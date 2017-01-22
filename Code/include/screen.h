@@ -48,7 +48,7 @@ typedef struct {
 enum _ascii {
 	SG_ESC = 0x1b,
 	SG_BACKS = '\b',
-	SG_ENTER = '\n',
+	SG_ENTER = '\r',
 	SG_UP = 0x100,
 	SG_DOWN,
 	SG_LEFT,
@@ -170,5 +170,7 @@ void hideMouse();
 int loadWave(char *filename, int mode);
 void setActivePage(int page);
 void setVisualPage(int page);
+void putNumber(int n, int x, int y, char lr);
+void putChar(char ch, int x, int y);
 
 void funcMap(int x1, int x2, int y1, int y2, float(*vect)(int x));
