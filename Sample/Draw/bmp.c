@@ -10,8 +10,8 @@ void sgLoop() {
 	bitMap *buf = (bitMap*)malloc(sizeof(bitMap));
 	if (!first) {
 		loadBmp(0, 0, "tower.bmp");
+		getImage(0, 0, 39, 39, buf);
+		putImage(320, 200, buf, 0);
 		first = 1;
 	}
-	getImage(0, 0, 39, 39, buf);
-	putImage(280, 200, buf, 0);
 }
