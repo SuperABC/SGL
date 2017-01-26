@@ -9,7 +9,7 @@ int _delaySE = 0;
 int _vectKey = 0;
 int _enMouse = 0, _enKey = 0;
 int _activePage = 0, _visualPage = 0;
-int _inLoop = 0;
+int _inLoop = 0, _full = 0, _hide = 0;
 
 vecTwo Q[SG_QSIZE];
 
@@ -176,6 +176,7 @@ int main(int argc, char* argv[]) {
 	glutSpecialUpFunc(sgSpecialUp);
 	glutIdleFunc(sgIdle);
 	_inLoop = 1;
+	if(_full)glutFullScreen();
 	glutMainLoop();
 }
 
@@ -284,6 +285,8 @@ static void sgMouse(int x, int y) {
 	else buf = Screen->buffer2;
 	Mouse->Pos.x = x*buf->sizeX / Window->winWidth;
 	Mouse->Pos.y = y*buf->sizeY / Window->winHeight;
+	if(_hide)ShowCursor(FALSE);
+	else ShowCursor(TRUE);
 }
 static void sgDrag(int x, int y) {
 	bitMap *buf;
@@ -829,13 +832,13 @@ void setFreq(float f) {
 	_vectDelta = (clock_t)(1000 / f);
 }
 void fullScreen() {
-	glutFullScreen();
+	_full = 1;
 }
 void showMouse() {
-	ShowCursor(TRUE);
+	_hide = 0;
 }
 void hideMouse() {
-	ShowCursor(FALSE);
+	_hide = 1;
 }
 void setActivePage(int page) {
 	if (page != 0 && page != 1)return;
@@ -851,14 +854,14 @@ void getImage(int left, int top, int right, int bottom, bitMap *bitmap) {
 	if (_activePage == 0) buf = Screen->buffer1;
 	else buf = Screen->buffer2;
 
-	if (right > buf->sizeX)right = buf->sizeX;
+	if (right >= buf->sizeX)right = buf->sizeX;
 	if (left < 0)left = 0;
-	if (bottom > buf->sizeY)bottom = buf->sizeY;
+	if (bottom >= buf->sizeY)bottom = buf->sizeY;
 	if (top < 0)top = 0;
 
 	if (right >= left)deltaX = right - left + 1;
 	else deltaX = left - right;
-	if (bottom>top)deltaY = bottom - top + 1;
+	if (bottom >= top)deltaY = bottom - top + 1;
 	else deltaY = top - bottom;
 
 	bitmap->sizeX = deltaX;
@@ -870,11 +873,45 @@ void getImage(int left, int top, int right, int bottom, bitMap *bitmap) {
 	}
 }
 void putImage(int left, int top, bitMap *bitmap, int op) {
+	int x1, x2, y1, y2;
 	bitMap *buf;
 	if (_activePage == 0) buf = Screen->buffer1;
 	else buf = Screen->buffer2;
-	for (int i = 0; i < bitmap->sizeY; i++) {
-		memcpy(buf->data + (buf->sizeX * (i + top) + left) * 3, bitmap->data + bitmap->sizeX * i * 3, bitmap->sizeX * 3 * sizeof(char));
+
+	if (left >= buf->sizeX || top >= buf->sizeY)return;
+	if (left + bitmap->sizeX <= 0 || top + bitmap->sizeY <= 0)return;
+	if (left < 0)x1 = 0;
+	else x1 = left;
+	if (top < 0)y1 = 0;
+	else y1 = top;
+	if (left + bitmap->sizeX > buf->sizeX)x2 = buf->sizeX - 1;
+	else x2 = left + bitmap->sizeX - 1;
+	if (top + bitmap->sizeY > buf->sizeY)y2 = buf->sizeY - 1;
+	else y2 = top + bitmap->sizeY - 1;
+	switch (op) {
+	case COPY_PUT:
+		for (int i = 0; i < y2-y1+1; i++) {
+			memcpy(buf->data + (buf->sizeX * (i + top) + left) * 3, bitmap->data + bitmap->sizeX * i * 3, (x2 - x1 + 1) * 3 * sizeof(char));
+		}
+		break;
+	case AND_PUT:
+		for (int i = 0; i < y2 - y1 + 1; i++) {
+			for (int j = 0; j < x2 - x1 + 1; j++) {
+				buf->data[(buf->sizeX * (i + top) + left + j) * 3] &= bitmap->data[(bitmap->sizeX*i + j) * 3];
+				buf->data[(buf->sizeX * (i + top) + left + j) * 3 + 1] &= bitmap->data[(bitmap->sizeX*i + j) * 3 + 1];
+				buf->data[(buf->sizeX * (i + top) + left + j) * 3 + 2] &= bitmap->data[(bitmap->sizeX*i + j) * 3 + 2];
+			}
+		}
+		break;
+	case OR_PUT:
+		for (int i = 0; i < y2 - y1 + 1; i++) {
+			for (int j = 0; j < x2 - x1 + 1; j++) {
+				buf->data[(buf->sizeX * (i + top) + left + j) * 3] |= bitmap->data[(bitmap->sizeX*i + j) * 3];
+				buf->data[(buf->sizeX * (i + top) + left + j) * 3 + 1] |= bitmap->data[(bitmap->sizeX*i + j) * 3 + 1];
+				buf->data[(buf->sizeX * (i + top) + left + j) * 3 + 2] |= bitmap->data[(bitmap->sizeX*i + j) * 3 + 2];
+			}
+		}
+		break;
 	}
 }
 void floodFill(int x, int y, RGB c) {

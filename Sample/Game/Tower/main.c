@@ -8,7 +8,7 @@ void sgSetup() {
 	Window->winWidth = 680;
 	Window->winHeight = 520;
 	strcpy(Window->winName, "Magic tower --SGL Sample Game");
-	loadWave("bgm.wav", SG_LOOP);
+	loadWave("Source\\tower\\bgm.wav", SG_LOOP);
 	initKey();
 	initMouse(SG_COORDINATE);
 	pro = START;
