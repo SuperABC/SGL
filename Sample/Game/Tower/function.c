@@ -8,7 +8,7 @@ void start() {
 	static int first = 1;
 	vecThree mouse;
 	if (first) {
-		loadBmp(0, 0, "Source\\start.bmp");
+		loadBmp(0, 0, "Source\\tower\\start.bmp");
 		first = 0;
 	}
 	if (biosMouse(1).m) {
@@ -30,7 +30,6 @@ void start() {
 void instruct() {
 	static int first = 1;
 	static int t = 0;
-	int key;
 	bitMap *oldImage = (bitMap*)malloc(sizeof(bitMap));
 	if (first) {
 		setColor(0, 0, 0);
@@ -44,7 +43,7 @@ void instruct() {
 	}
 	if (t <= 400) {
 		delayBegin();
-		loadBmp(0, 400 - t, "Source\\instruct.bmp");
+		loadBmp(0, 400 - t, "Source\\tower\\instruct.bmp");
 		putQuad(0, 480, 679, 519, SOLID_FILL);
 		delayEnd(20);
 	}
@@ -65,7 +64,7 @@ void archive() {
 	vecThree mouse;
 	int key;
 	if (first) {
-		loadBmp(0, 0, "Source\\save.bmp");
+		loadBmp(0, 0, "Source\\tower\\save.bmp");
 		showArchive();
 		first = 0;
 	}
@@ -131,7 +130,7 @@ void figure() {
 	vecThree mouse;
 	int key;
 	if (first) {
-		loadBmp(0, 0, "Source\\clothes.bmp");
+		loadBmp(0, 0, "Source\\tower\\clothes.bmp");
 		first = 0;
 	}
 	if (biosKey(1)) {
@@ -178,7 +177,7 @@ void difficulty() {
 	vecThree mouse;
 	int key;
 	if (first) {
-		loadBmp(0, 0, "Source\\dif.bmp");
+		loadBmp(0, 0, "Source\\tower\\dif.bmp");
 		first = 0;
 	}
 	if (biosKey(1)) {
@@ -233,7 +232,7 @@ void name() {
 	static char *name = NULL;
 	int key;
 	if (first) {
-		loadBmp(0, 0, "Source\\name.bmp");
+		loadBmp(0, 0, "Source\\tower\\name.bmp");
 		name = (char *)malloc(16 * sizeof(char));
 		name[0] = '\0';
 		first = 0;
@@ -274,7 +273,7 @@ void playing() {
 	static int first = 1;
 	int key;
 	if (first) {
-		loadBmp(0, 0, "Source\\tower.bmp");
+		loadBmp(0, 0, "Source\\tower\\tower.bmp");
 		first = 0;
 		for (int i = 0; i < 11; i++) {
 			for (int j = 0; j < 11; j++) {
@@ -302,7 +301,7 @@ void playing() {
 				showPlayer(player->x, player->y, player->face);
 			}
 			break;
-		case SG_DOWN| 0x8000:
+		case SG_DOWN | 0x8000:
 			if (player->y != 11) {
 				if (down())first = 1;
 			}
@@ -332,27 +331,28 @@ void playing() {
 		case 's'| 0x8000:
 			pro = SAVE;
 			first = 1;
+			break;
 		case 'u' | 0x8000:
-			if (player->box[4]&&player->floor < maxFloor) {
+			//if (player->box[4]&&player->floor < maxFloor) {
 				player->floor++;
 				player->x = wall[player->floor]->upx;
 				player->y = wall[player->floor]->upy;
 				first = 1;
-			}
+			//}
 			break;
 		case 'd'|0x8000:
-			if (player->box[4] && player->floor) {
+			//if (player->box[4] && player->floor) {
 				player->floor--;
 				player->x = wall[player->floor]->downx;
 				player->y = wall[player->floor]->downy;
 				first = 1;
-			}
+			//}
 			break;
 		case 'f'|0x8000:
-			if (player->box[3]) {
+			//if (player->box[3]) {
 				pro = DICTION;
 				first = 1;
-			}
+			//}
 		default:
 			break;
 		}
@@ -366,147 +366,147 @@ void fight() {
 			return;
 		}
 		monsb = mons[obj - 11]->blood;
-		loadBmp(40, 40, "Source\\fighting.bmp");
+		loadBmp(40, 40, "Source\\tower\\fighting.bmp");
 		switch (obj) {
 		case 11:
-			loadBmp(100, 90, "Source\\block\\bblock11.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock11.bmp");
 			break;
 		case 12:
-			loadBmp(100, 90, "Source\\block\\bblock12.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock12.bmp");
 			break;
 		case 13:
-			loadBmp(100, 90, "Source\\block\\bblock13.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock13.bmp");
 			break;
 		case 14:
-			loadBmp(100, 90, "Source\\block\\bblock14.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock14.bmp");
 			break;
 		case 15:
-			loadBmp(100, 90, "Source\\block\\bblock15.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock15.bmp");
 			break;
 		case 16:
-			loadBmp(100, 90, "Source\\block\\bblock16.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock16.bmp");
 			break;
 		case 17:
-			loadBmp(100, 90, "Source\\block\\bblock17.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock17.bmp");
 			break;
 		case 18:
-			loadBmp(100, 90, "Source\\block\\bblock18.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock18.bmp");
 			break;
 		case 19:
-			loadBmp(100, 90, "Source\\block\\bblock19.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock19.bmp");
 			break;
 		case 20:
-			loadBmp(100, 90, "Source\\block\\bblock20.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock20.bmp");
 			break;
 		case 21:
-			loadBmp(100, 90, "Source\\block\\bblock21.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock21.bmp");
 			break;
 		case 22:
-			loadBmp(100, 90, "Source\\block\\bblock22.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock22.bmp");
 			break;
 		case 23:
-			loadBmp(100, 90, "Source\\block\\bblock23.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock23.bmp");
 			break;
 		case 24:
-			loadBmp(100, 90, "Source\\block\\bblock24.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock24.bmp");
 			break;
 		case 25:
-			loadBmp(100, 90, "Source\\block\\bblock25.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock25.bmp");
 			break;
 		case 26:
-			loadBmp(100, 90, "Source\\block\\bblock26.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock26.bmp");
 			break;
 		case 27:
-			loadBmp(100, 90, "Source\\block\\bblock27.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock27.bmp");
 			break;
 		case 28:
-			loadBmp(100, 90, "Source\\block\\bblock28.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock28.bmp");
 			break;
 		case 29:
-			loadBmp(100, 90, "Source\\block\\bblock29.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock29.bmp");
 			break;
 		case 30:
-			loadBmp(100, 90, "Source\\block\\bblock30.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock30.bmp");
 			break;
 		case 31:
-			loadBmp(100, 90, "Source\\block\\bblock31.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock31.bmp");
 			break;
 		case 32:
-			loadBmp(100, 90, "Source\\block\\bblock32.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock32.bmp");
 			break;
 		case 33:
-			loadBmp(100, 90, "Source\\block\\bblock33.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock33.bmp");
 			break;
 		case 34:
-			loadBmp(100, 90, "Source\\block\\bblock34.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock34.bmp");
 			break;
 		case 35:
-			loadBmp(100, 90, "Source\\block\\bblock35.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock35.bmp");
 			break;
 		case 36:
-			loadBmp(100, 90, "Source\\block\\bblock36.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock36.bmp");
 			break;
 		case 37:
-			loadBmp(100, 90, "Source\\block\\bblock37.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock37.bmp");
 			break;
 		case 38:
-			loadBmp(100, 90, "Source\\block\\bblock38.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock38.bmp");
 			break;
 		case 39:
-			loadBmp(100, 90, "Source\\block\\bblock39.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock39.bmp");
 			break;
 		case 40:
-			loadBmp(100, 90, "Source\\block\\bblock40.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock40.bmp");
 			break;
 		case 41:
-			loadBmp(100, 90, "Source\\block\\bblock41.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock41.bmp");
 			break;
 		case 42:
-			loadBmp(100, 90, "Source\\block\\bblock42.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock42.bmp");
 			break;
 		case 43:
-			loadBmp(100, 90, "Source\\block\\bblock43.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock43.bmp");
 			break;
 		case 44:
-			loadBmp(100, 90, "Source\\block\\bblock44.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock44.bmp");
 			break;
 		case 45:
-			loadBmp(100, 90, "Source\\block\\bblock45.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock45.bmp");
 			break;
 		case 46:
-			loadBmp(100, 90, "Source\\block\\bblock46.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock46.bmp");
 			break;
 		case 47:
-			loadBmp(100, 90, "Source\\block\\bblock47.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock47.bmp");
 			break;
 		case 48:
-			loadBmp(100, 90, "Source\\block\\bblock48.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock48.bmp");
 			break;
 		case 49:
-			loadBmp(100, 90, "Source\\block\\bblock49.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock49.bmp");
 			break;
 		case 50:
-			loadBmp(100, 90, "Source\\block\\bblock50.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock50.bmp");
 			break;
 		case 51:
-			loadBmp(100, 90, "Source\\block\\bblock51.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock51.bmp");
 			break;
 		case 52:
-			loadBmp(100, 90, "Source\\block\\bblock52.bmp");
+			loadBmp(100, 90, "Source\\tower\\block\\bblock52.bmp");
 			break;
 		}
 		switch (player->outlook) {
 		case 0:
-			loadBmp(500, 90, "Source\\face\\bigface1.bmp");
+			loadBmp(500, 90, "Source\\tower\\face\\bigface1.bmp");
 			break;
 		case 1:
-			loadBmp(500, 90, "Source\\face\\bigface2.bmp");
+			loadBmp(500, 90, "Source\\tower\\face\\bigface2.bmp");
 			break;
 		case 2:
-			loadBmp(500, 90, "Source\\face\\bigface3.bmp");
+			loadBmp(500, 90, "Source\\tower\\face\\bigface3.bmp");
 			break;
 		case 3:
-			loadBmp(500, 90, "Source\\face\\bigface4.bmp");
+			loadBmp(500, 90, "Source\\tower\\face\\bigface4.bmp");
 			break;
 		}
 		first = 0;
@@ -557,17 +557,17 @@ void pause() {
 	static int first = 1;
 	int key;
 	if (first) {
-		loadBmp(80, 60, "Source\\pause.bmp");
+		loadBmp(80, 60, "Source\\tower\\pause.bmp");
 		first = 0;
 	}
 	if (biosKey(1)) {
 		key = biosKey(0);
 		switch (key) {
-		case SG_ESC:
+		case SG_ESC | 0x8000:
 			pro = PLAYING;
 			first = 1;
 			return;
-		case SG_ENTER:
+		case SG_ENTER | 0x8000:
 			pro = START;
 			first = 1;
 			return;
@@ -583,25 +583,25 @@ void buy() {
 	if (first) {
 		switch (obj) {
 		case 61:
-			loadBmp(240, 80, "Source\\shop1.bmp");
+			loadBmp(240, 80, "Source\\tower\\shop1.bmp");
 			break;
 		case 62:
-			loadBmp(240, 80, "Source\\shop2.bmp");
+			loadBmp(240, 80, "Source\\tower\\shop2.bmp");
 			break;
 		case 63:
-			loadBmp(240, 80, "Source\\shop3.bmp");
+			loadBmp(240, 80, "Source\\tower\\shop3.bmp");
 			break;
 		case 64:
-			loadBmp(240, 80, "Source\\shop4.bmp");
+			loadBmp(240, 80, "Source\\tower\\shop4.bmp");
 			break;
 		case 65:
-			loadBmp(240, 80, "Source\\shop5.bmp");
+			loadBmp(240, 80, "Source\\tower\\shop5.bmp");
 			break;
 		case 66:
-			loadBmp(240, 80, "Source\\shop6.bmp");
+			loadBmp(240, 80, "Source\\tower\\shop6.bmp");
 			break;
 		case 67:
-			loadBmp(240, 80, "Source\\shop7.bmp");
+			loadBmp(240, 80, "Source\\tower\\shop7.bmp");
 			break;
 		}
 		first = 0;
@@ -609,7 +609,7 @@ void buy() {
 	if (biosKey(1)) {
 		key = biosKey(0);
 		switch (key) {
-		case SG_ESC:
+		case SG_ESC | 0x8000:
 			pro = PLAYING;
 			first = 1;
 			return;
@@ -702,14 +702,14 @@ void save() {
 	vecThree mouse;
 	int key;
 	if (first) {
-		loadBmp(100, 180, "Source\\cards.bmp");
+		loadBmp(100, 180, "Source\\tower\\cards.bmp");
 		showArchive();
 		first = 0;
 	}
 	if (biosKey(1)) {
 		key = biosKey(0);
 		switch (key) {
-		case SG_ESC:
+		case SG_ESC | 0x8000:
 			pro = PLAYING;
 			first = 1;
 			return;
@@ -745,7 +745,7 @@ void diction() {
 	static int first = 1;
 	int stat[100] = { 0 }, count = 1;
 	if (first) {
-		loadBmp(200, 40, "Source\\allm.bmp");
+		loadBmp(200, 40, "Source\\tower\\allm.bmp");
 		for (int i = 0; i < 11; i++) {
 			for (int j = 0; j < 11; j++) {
 				stat[wall[player->floor]->pos[i][j]] = 1;
@@ -873,8 +873,8 @@ void initPro() {
 	mons[14]->exp = 42;
 
 	mons[15]->blood = 560;
-	mons[15]->deffence = 140;
-	mons[15]->offence = 256;
+	mons[15]->deffence = 288;
+	mons[15]->offence = 216;
 	mons[15]->money = 52;
 	mons[15]->exp = 44;
 
@@ -891,8 +891,8 @@ void initPro() {
 	mons[17]->exp = 52;
 
 	mons[18]->blood = 720;
-	mons[18]->deffence = 256;
-	mons[18]->offence = 340;
+	mons[18]->deffence = 396;
+	mons[18]->offence = 320;
 	mons[18]->money = 64;
 	mons[18]->exp = 62;
 
@@ -1037,48 +1037,48 @@ void initPro() {
 void drawNumber(int num, int x, int y, int bs) {
 	switch (num) {
 	case -1:
-		if(bs)loadBmp(x, y, "Source\\number\\empty.bmp");
-		else loadBmp(x, y, "Source\\number\\sempty.bmp");
+		if(bs)loadBmp(x, y, "Source\\tower\\number\\empty.bmp");
+		else loadBmp(x, y, "Source\\tower\\number\\sempty.bmp");
 		break;
 	case 0:
-		if (bs)loadBmp(x, y, "Source\\number\\00.bmp");
-		else loadBmp(x, y, "Source\\number\\s00.bmp");
+		if (bs)loadBmp(x, y, "Source\\tower\\number\\00.bmp");
+		else loadBmp(x, y, "Source\\tower\\number\\s00.bmp");
 		break;
 	case 1:
-		if (bs)loadBmp(x, y, "Source\\number\\01.bmp");
-		else loadBmp(x, y, "Source\\number\\s01.bmp");
+		if (bs)loadBmp(x, y, "Source\\tower\\number\\01.bmp");
+		else loadBmp(x, y, "Source\\tower\\number\\s01.bmp");
 		break;
 	case 2:
-		if (bs)loadBmp(x, y, "Source\\number\\02.bmp");
-		else loadBmp(x, y, "Source\\number\\s02.bmp");
+		if (bs)loadBmp(x, y, "Source\\tower\\number\\02.bmp");
+		else loadBmp(x, y, "Source\\tower\\number\\s02.bmp");
 		break;
 	case 3:
-		if (bs)loadBmp(x, y, "Source\\number\\03.bmp");
-		else loadBmp(x, y, "Source\\number\\s03.bmp");
+		if (bs)loadBmp(x, y, "Source\\tower\\number\\03.bmp");
+		else loadBmp(x, y, "Source\\tower\\number\\s03.bmp");
 		break;
 	case 4:
-		if (bs)loadBmp(x, y, "Source\\number\\04.bmp");
-		else loadBmp(x, y, "Source\\number\\s04.bmp");
+		if (bs)loadBmp(x, y, "Source\\tower\\number\\04.bmp");
+		else loadBmp(x, y, "Source\\tower\\number\\s04.bmp");
 		break;
 	case 5:
-		if (bs)loadBmp(x, y, "Source\\number\\05.bmp");
-		else loadBmp(x, y, "Source\\number\\s05.bmp");
+		if (bs)loadBmp(x, y, "Source\\tower\\number\\05.bmp");
+		else loadBmp(x, y, "Source\\tower\\number\\s05.bmp");
 		break;
 	case 6:
-		if (bs)loadBmp(x, y, "Source\\number\\06.bmp");
-		else loadBmp(x, y, "Source\\number\\s06.bmp");
+		if (bs)loadBmp(x, y, "Source\\tower\\number\\06.bmp");
+		else loadBmp(x, y, "Source\\tower\\number\\s06.bmp");
 		break;
 	case 7:
-		if (bs)loadBmp(x, y, "Source\\number\\07.bmp");
-		else loadBmp(x, y, "Source\\number\\s07.bmp");
+		if (bs)loadBmp(x, y, "Source\\tower\\number\\07.bmp");
+		else loadBmp(x, y, "Source\\tower\\number\\s07.bmp");
 		break;
 	case 8:
-		if (bs)loadBmp(x, y, "Source\\number\\08.bmp");
-		else loadBmp(x, y, "Source\\number\\s08.bmp");
+		if (bs)loadBmp(x, y, "Source\\tower\\number\\08.bmp");
+		else loadBmp(x, y, "Source\\tower\\number\\s08.bmp");
 		break;
 	case 9:
-		if (bs)loadBmp(x, y, "Source\\number\\09.bmp");
-		else loadBmp(x, y, "Source\\number\\s09.bmp");
+		if (bs)loadBmp(x, y, "Source\\tower\\number\\09.bmp");
+		else loadBmp(x, y, "Source\\tower\\number\\s09.bmp");
 		break;
 	}
 }
@@ -1102,7 +1102,7 @@ void showArchive() {
 	int time, floor;
 	name = (char *)malloc(20 * sizeof(char));
 	setColor(255, 255, 255);
-	fp = fopen("Source\\archive\\save1.tow", "r");
+	fp = fopen("Source\\tower\\archive\\save1.tow", "r");
 	if (fp != NULL) {
 		fgets(name, 20, fp);
 		name[strlen(name) - 1] = '\0';
@@ -1118,7 +1118,7 @@ void showArchive() {
 		putNumber((time % 3600) / 60, 252, 220, 'l');
 		putNumber(floor, 268, 236, 'r');
 	}
-	fp = fopen("Source\\archive\\save2.tow", "r");
+	fp = fopen("Source\\tower\\archive\\save2.tow", "r");
 	if (fp != NULL) {
 		fgets(name, 20, fp);
 		name[strlen(name) - 1] = '\0';
@@ -1134,7 +1134,7 @@ void showArchive() {
 		putNumber((time % 3600) / 60, 252, 300, 'l');
 		putNumber(floor, 268, 316, 'r');
 	}
-	fp = fopen("Source\\archive\\save3.tow", "r");
+	fp = fopen("Source\\tower\\archive\\save3.tow", "r");
 	if (fp != NULL) {
 		fgets(name, 20, fp);
 		name[strlen(name) - 1] = '\0';
@@ -1150,7 +1150,7 @@ void showArchive() {
 		putNumber((time % 3600) / 60, 252, 380, 'l');
 		putNumber(floor, 268, 396, 'r');
 	}
-	fp = fopen("Source\\archive\\save4.tow", "r");
+	fp = fopen("Source\\tower\\archive\\save4.tow", "r");
 	if (fp != NULL) {
 		fgets(name, 20, fp);
 		name[strlen(name) - 1] = '\0';
@@ -1166,7 +1166,7 @@ void showArchive() {
 		putNumber((time % 3600) / 60, 532, 220, 'l');
 		putNumber(floor, 546, 236, 'r');
 	}
-	fp = fopen("Source\\archive\\save5.tow", "r");
+	fp = fopen("Source\\tower\\archive\\save5.tow", "r");
 	if (fp != NULL) {
 		fgets(name, 20, fp);
 		name[strlen(name) - 1] = '\0';
@@ -1182,7 +1182,7 @@ void showArchive() {
 		putNumber((time % 3600) / 60, 532, 300, 'l');
 		putNumber(floor, 546, 316, 'r');
 	}
-	fp = fopen("Source\\archive\\save6.tow", "r");
+	fp = fopen("Source\\tower\\archive\\save6.tow", "r");
 	if (fp != NULL) {
 		fgets(name, 20, fp);
 		name[strlen(name) - 1] = '\0';
@@ -1204,37 +1204,37 @@ int loadFile(int card) {
 	int i, j, k;
 	switch (card) {
 	case 0:
-		fp = fopen("Source\\archive\\save0.tow", "r");
+		fp = fopen("Source\\tower\\archive\\save0.tow", "r");
 		if (fp == NULL)
 			return 0;
 		break;
 	case 1:
-		fp = fopen("Source\\archive\\save1.tow", "r");
+		fp = fopen("Source\\tower\\archive\\save1.tow", "r");
 		if (fp == NULL)
 			return 0;
 		break;
 	case 2:
-		fp = fopen("Source\\archive\\save2.tow", "r");
+		fp = fopen("Source\\tower\\archive\\save2.tow", "r");
 		if (fp == NULL)
 			return 0;
 		break;
 	case 3:
-		fp = fopen("Source\\archive\\save3.tow", "r");
+		fp = fopen("Source\\tower\\archive\\save3.tow", "r");
 		if (fp == NULL)
 			return 0;
 		break;
 	case 4:
-		fp = fopen("Source\\archive\\save4.tow", "r");
+		fp = fopen("Source\\tower\\archive\\save4.tow", "r");
 		if (fp == NULL)
 			return 0;
 		break;
 	case 5:
-		fp = fopen("Source\\archive\\save5.tow", "r");
+		fp = fopen("Source\\tower\\archive\\save5.tow", "r");
 		if (fp == NULL)
 			return 0;
 		break;
 	case 6:
-		fp = fopen("Source\\archive\\save6.tow", "r");
+		fp = fopen("Source\\tower\\archive\\save6.tow", "r");
 		if (fp == NULL)
 			return 0;
 		break;
@@ -1260,37 +1260,37 @@ int loadFile(int card) {
 
 	switch (card) {
 	case 0:
-		fp = fopen("Source\\archive\\build0.tow", "r");
+		fp = fopen("Source\\tower\\archive\\build0.tow", "r");
 		if (fp == NULL)
 			return 0;
 		break;
 	case 1:
-		fp = fopen("Source\\archive\\build1.tow", "r");
+		fp = fopen("Source\\tower\\archive\\build1.tow", "r");
 		if (fp == NULL)
 			return 0;
 		break;
 	case 2:
-		fp = fopen("Source\\archive\\build2.tow", "r");
+		fp = fopen("Source\\tower\\archive\\build2.tow", "r");
 		if (fp == NULL)
 			return 0;
 		break;
 	case 3:
-		fp = fopen("Source\\archive\\build3.tow", "r");
+		fp = fopen("Source\\tower\\archive\\build3.tow", "r");
 		if (fp == NULL)
 			return 0;
 		break;
 	case 4:
-		fp = fopen("Source\\archive\\build4.tow", "r");
+		fp = fopen("Source\\tower\\archive\\build4.tow", "r");
 		if (fp == NULL)
 			return 0;
 		break;
 	case 5:
-		fp = fopen("Source\\archive\\build5.tow", "r");
+		fp = fopen("Source\\tower\\archive\\build5.tow", "r");
 		if (fp == NULL)
 			return 0;
 		break;
 	case 6:
-		fp = fopen("Source\\archive\\build6.tow", "r");
+		fp = fopen("Source\\tower\\archive\\build6.tow", "r");
 		if (fp == NULL)
 			return 0;
 		break;
@@ -1319,22 +1319,22 @@ void saveFile(int card) {
 	time_t t;
 	switch (card) {
 	case 1:
-		fp = fopen("Source\\archive\\save1.tow", "w+");
+		fp = fopen("Source\\tower\\archive\\save1.tow", "w+");
 		break;
 	case 2:
-		fp = fopen("Source\\archive\\save2.tow", "w+");
+		fp = fopen("Source\\tower\\archive\\save2.tow", "w+");
 		break;
 	case 3:
-		fp = fopen("Source\\archive\\save3.tow", "w+");
+		fp = fopen("Source\\tower\\archive\\save3.tow", "w+");
 		break;
 	case 4:
-		fp = fopen("Source\\archive\\save4.tow", "w+");
+		fp = fopen("Source\\tower\\archive\\save4.tow", "w+");
 		break;
 	case 5:
-		fp = fopen("Source\\archive\\save5.tow", "w+");
+		fp = fopen("Source\\tower\\archive\\save5.tow", "w+");
 		break;
 	case 6:
-		fp = fopen("Source\\archive\\save6.tow", "w+");
+		fp = fopen("Source\\tower\\archive\\save6.tow", "w+");
 		break;
 	}
 	fputs(player->name, fp);
@@ -1359,22 +1359,22 @@ void saveFile(int card) {
 	
 	switch (card) {
 	case 1:
-		fp = fopen("Source\\archive\\build1.tow", "w+");
+		fp = fopen("Source\\tower\\archive\\build1.tow", "w+");
 		break;
 	case 2:
-		fp = fopen("Source\\archive\\build2.tow", "w+");
+		fp = fopen("Source\\tower\\archive\\build2.tow", "w+");
 		break;
 	case 3:
-		fp = fopen("Source\\archive\\build3.tow", "w+");
+		fp = fopen("Source\\tower\\archive\\build3.tow", "w+");
 		break;
 	case 4:
-		fp = fopen("Source\\archive\\build4.tow", "w+");
+		fp = fopen("Source\\tower\\archive\\build4.tow", "w+");
 		break;
 	case 5:
-		fp = fopen("Source\\archive\\build5.tow", "w+");
+		fp = fopen("Source\\tower\\archive\\build5.tow", "w+");
 		break;
 	case 6:
-		fp = fopen("Source\\archive\\build6.tow", "w+");
+		fp = fopen("Source\\tower\\archive\\build6.tow", "w+");
 		break;
 	}
 	for (i = 0; i <= 80; i++) {
@@ -1555,6 +1555,7 @@ int up() {
 		putBlock(player->x - 1, player->y, 81);
 		break;
 	case 82:
+		break;
 	case 83:
 	case 84:
 	case 85:
@@ -2192,307 +2193,307 @@ int right() {
 void putBlock(int x, int y, int style) {
 	switch (style) {
 	case 0:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block0.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block0.bmp");
 		break;
 	case 1:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block1.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block1.bmp");
 		break;
 	case 2:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block2.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block2.bmp");
 		break;
 	case 3:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block3.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block3.bmp");
 		break;
 	case 4:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block4.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block4.bmp");
 		break;
 	case 5:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block5.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block5.bmp");
 		break;
 	case 6:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block6.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block6.bmp");
 		break;
 	case 7:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block7.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block7.bmp");
 		break;
 	case 8:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block8.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block8.bmp");
 		break;
 	case 9:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block9.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block9.bmp");
 		break;
 	case 10:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block10.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block10.bmp");
 		break;
 	case 11:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block11.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block11.bmp");
 		break;
 	case 12:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block12.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block12.bmp");
 		break;
 	case 13:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block13.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block13.bmp");
 		break;
 	case 14:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block14.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block14.bmp");
 		break;
 	case 15:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block15.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block15.bmp");
 		break;
 	case 16:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block16.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block16.bmp");
 		break;
 	case 17:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block17.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block17.bmp");
 		break;
 	case 18:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block18.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block18.bmp");
 		break;
 	case 19:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block19.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block19.bmp");
 		break;
 	case 20:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block20.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block20.bmp");
 		break;
 	case 21:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block21.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block21.bmp");
 		break;
 	case 22:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block22.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block22.bmp");
 		break;
 	case 23:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block23.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block23.bmp");
 		break;
 	case 24:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block24.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block24.bmp");
 		break;
 	case 25:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block25.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block25.bmp");
 		break;
 	case 26:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block26.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block26.bmp");
 		break;
 	case 27:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block27.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block27.bmp");
 		break;
 	case 28:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block28.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block28.bmp");
 		break;
 	case 29:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block29.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block29.bmp");
 		break;
 	case 30:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block30.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block30.bmp");
 		break;
 	case 31:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block31.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block31.bmp");
 		break;
 	case 32:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block32.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block32.bmp");
 		break;
 	case 33:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block33.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block33.bmp");
 		break;
 	case 34:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block34.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block34.bmp");
 		break;
 	case 35:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block35.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block35.bmp");
 		break;
 	case 36:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block36.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block36.bmp");
 		break;
 	case 37:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block37.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block37.bmp");
 		break;
 	case 38:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block38.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block38.bmp");
 		break;
 	case 39:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block39.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block39.bmp");
 		break;
 	case 40:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block40.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block40.bmp");
 		break;
 	case 41:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block41.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block41.bmp");
 		break;
 	case 42:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block42.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block42.bmp");
 		break;
 	case 43:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block43.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block43.bmp");
 		break;
 	case 44:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block44.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block44.bmp");
 		break;
 	case 45:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block45.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block45.bmp");
 		break;
 	case 46:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block46.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block46.bmp");
 		break;
 	case 47:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block47.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block47.bmp");
 		break;
 	case 48:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block48.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block48.bmp");
 		break;
 	case 49:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block49.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block49.bmp");
 		break;
 	case 50:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block50.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block50.bmp");
 		break;
 	case 51:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block51.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block51.bmp");
 		break;
 	case 52:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block52.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block52.bmp");
 		break;
 	case 53:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block53.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block53.bmp");
 		break;
 	case 54:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block54.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block54.bmp");
 		break;
 	case 55:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block55.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block55.bmp");
 		break;
 	case 56:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block56.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block56.bmp");
 		break;
 	case 57:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block57.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block57.bmp");
 		break;
 	case 58:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block58.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block58.bmp");
 		break;
 	case 59:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block59.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block59.bmp");
 		break;
 	case 60:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block60.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block60.bmp");
 		break;
 	case 61:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block61.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block61.bmp");
 		break;
 	case 62:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block62.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block62.bmp");
 		break;
 	case 63:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block63.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block63.bmp");
 		break;
 	case 64:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block64.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block64.bmp");
 		break;
 	case 65:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block65.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block65.bmp");
 		break;
 	case 66:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block66.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block66.bmp");
 		break;
 	case 67:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block67.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block67.bmp");
 		break;
 	case 68:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block68.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block68.bmp");
 		break;
 	case 69:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block69.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block69.bmp");
 		break;
 	case 70:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block70.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block70.bmp");
 		break;
 	case 71:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block71.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block71.bmp");
 		break;
 	case 72:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block72.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block72.bmp");
 		break;
 	case 73:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block73.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block73.bmp");
 		break;
 	case 74:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block74.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block74.bmp");
 		break;
 	case 75:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block75.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block75.bmp");
 		break;
 	case 76:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block76.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block76.bmp");
 		break;
 	case 77:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block77.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block77.bmp");
 		break;
 	case 78:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block78.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block78.bmp");
 		break;
 	case 79:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block79.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block79.bmp");
 		break;
 	case 80:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block80.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block80.bmp");
 		break;
 	case 81:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block81.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block81.bmp");
 		break;
 	case 82:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block81.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block81.bmp");
 		break;
 	case 83:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block83.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block83.bmp");
 		break;
 	case 84:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block84.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block84.bmp");
 		break;
 	case 85:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block85.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block85.bmp");
 		break;
 	case 86:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block86.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block86.bmp");
 		break;
 	case 87:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block87.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block87.bmp");
 		break;
 	case 88:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block88.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block88.bmp");
 		break;
 	case 89:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block89.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block89.bmp");
 		break;
 	case 90:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block90.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block90.bmp");
 		break;
 	case 91:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block91.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block91.bmp");
 		break;
 	case 92:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block92.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block92.bmp");
 		break;
 	case 93:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block93.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block93.bmp");
 		break;
 	case 94:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block94.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block94.bmp");
 		break;
 	case 95:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block95.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block95.bmp");
 		break;
 	case 96:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block96.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block96.bmp");
 		break;
 	case 97:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block97.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block97.bmp");
 		break;
 	case 98:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block98.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block98.bmp");
 		break;
 	case 99:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block99.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block99.bmp");
 		break;
 	case 100:
-		loadBmp(160 + x*SIZE, y*SIZE, "Source\\block\\block100.bmp");
+		loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\block\\block100.bmp");
 		break;
 
 	}
@@ -2502,64 +2503,64 @@ void showPlayer(int x, int y, int face) {
 	case 0:
 		switch (face) {
 		case 0:
-			loadBmp(160 + x*SIZE, y*SIZE, "Source\\face\\c1f1.bmp");
+			loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\face\\c1f1.bmp");
 			break;
 		case 1:
-			loadBmp(160 + x*SIZE, y*SIZE, "Source\\face\\c1f2.bmp");
+			loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\face\\c1f2.bmp");
 			break;
 		case 2:
-			loadBmp(160 + x*SIZE, y*SIZE, "Source\\face\\c1f3.bmp");
+			loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\face\\c1f3.bmp");
 			break;
 		case 3:
-			loadBmp(160 + x*SIZE, y*SIZE, "Source\\face\\c1f4.bmp");
+			loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\face\\c1f4.bmp");
 			break;
 		}
 		break;
 	case 1:
 		switch (face) {
 		case 0:
-			loadBmp(160 + x*SIZE, y*SIZE, "Source\\face\\c2f1.bmp");
+			loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\face\\c2f1.bmp");
 			break;
 		case 1:
-			loadBmp(160 + x*SIZE, y*SIZE, "Source\\face\\c2f2.bmp");
+			loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\face\\c2f2.bmp");
 			break;
 		case 2:
-			loadBmp(160 + x*SIZE, y*SIZE, "Source\\face\\c2f3.bmp");
+			loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\face\\c2f3.bmp");
 			break;
 		case 3:
-			loadBmp(160 + x*SIZE, y*SIZE, "Source\\face\\c2f4.bmp");
+			loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\face\\c2f4.bmp");
 			break;
 		}
 		break;
 	case 2:
 		switch (face) {
 		case 0:
-			loadBmp(160 + x*SIZE, y*SIZE, "Source\\face\\c3f1.bmp");
+			loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\face\\c3f1.bmp");
 			break;
 		case 1:
-			loadBmp(160 + x*SIZE, y*SIZE, "Source\\face\\c3f2.bmp");
+			loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\face\\c3f2.bmp");
 			break;
 		case 2:
-			loadBmp(160 + x*SIZE, y*SIZE, "Source\\face\\c3f3.bmp");
+			loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\face\\c3f3.bmp");
 			break;
 		case 3:
-			loadBmp(160 + x*SIZE, y*SIZE, "Source\\face\\c3f4.bmp");
+			loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\face\\c3f4.bmp");
 			break;
 		}
 		break;
 	case 3:
 		switch (face) {
 		case 0:
-			loadBmp(160 + x*SIZE, y*SIZE, "Source\\face\\c4f1.bmp");
+			loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\face\\c4f1.bmp");
 			break;
 		case 1:
-			loadBmp(160 + x*SIZE, y*SIZE, "Source\\face\\c4f2.bmp");
+			loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\face\\c4f2.bmp");
 			break;
 		case 2:
-			loadBmp(160 + x*SIZE, y*SIZE, "Source\\face\\c4f3.bmp");
+			loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\face\\c4f3.bmp");
 			break;
 		case 3:
-			loadBmp(160 + x*SIZE, y*SIZE, "Source\\face\\c4f4.bmp");
+			loadBmp(160 + x*SIZE, y*SIZE, "Source\\tower\\face\\c4f4.bmp");
 			break;
 		}
 		break;
@@ -2582,7 +2583,7 @@ void showMsg() {
 int response() {
 	bitMap *oldImage = (bitMap*)malloc(280 * 200 * 3 * sizeof(char));
 	getImage(200, 160, 479, 359, oldImage);
-	loadBmp(200, 160, "Source\\response.bmp");
+	loadBmp(200, 160, "Source\\tower\\response.bmp");
 	delay(5000);
 	putImage(200, 160, oldImage, 0);
 	free(oldImage);
@@ -2593,127 +2594,127 @@ void putInfo(int count, int style) {
 	int de1, de2;
 	switch (style) {
 	case 11:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block11.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block11.bmp");
 		break;
 	case 12:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block12.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block12.bmp");
 		break;
 	case 13:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block13.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block13.bmp");
 		break;
 	case 14:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block14.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block14.bmp");
 		break;
 	case 15:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block15.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block15.bmp");
 		break;
 	case 16:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block16.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block16.bmp");
 		break;
 	case 17:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block17.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block17.bmp");
 		break;
 	case 18:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block18.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block18.bmp");
 		break;
 	case 19:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block19.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block19.bmp");
 		break;
 	case 20:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block20.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block20.bmp");
 		break;
 	case 21:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block21.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block21.bmp");
 		break;
 	case 22:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block22.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block22.bmp");
 		break;
 	case 23:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block23.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block23.bmp");
 		break;
 	case 24:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block24.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block24.bmp");
 		break;
 	case 25:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block25.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block25.bmp");
 		break;
 	case 26:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block26.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block26.bmp");
 		break;
 	case 27:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block27.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block27.bmp");
 		break;
 	case 28:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block28.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block28.bmp");
 		break;
 	case 29:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block29.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block29.bmp");
 		break;
 	case 30:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block30.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block30.bmp");
 		break;
 	case 31:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block31.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block31.bmp");
 		break;
 	case 32:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block32.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block32.bmp");
 		break;
 	case 33:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block33.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block33.bmp");
 		break;
 	case 34:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block34.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block34.bmp");
 		break;
 	case 35:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block35.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block35.bmp");
 		break;
 	case 36:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block36.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block36.bmp");
 		break;
 	case 37:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block37.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block37.bmp");
 		break;
 	case 38:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block38.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block38.bmp");
 		break;
 	case 39:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block39.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block39.bmp");
 		break;
 	case 40:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block40.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block40.bmp");
 		break;
 	case 41:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block41.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block41.bmp");
 		break;
 	case 42:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block42.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block42.bmp");
 		break;
 	case 43:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block43.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block43.bmp");
 		break;
 	case 44:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block44.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block44.bmp");
 		break;
 	case 45:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block45.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block45.bmp");
 		break;
 	case 46:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block46.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block46.bmp");
 		break;
 	case 47:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block47.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block47.bmp");
 		break;
 	case 48:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block48.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block48.bmp");
 		break;
 	case 49:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block49.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block49.bmp");
 		break;
 	case 50:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block50.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block50.bmp");
 		break;
 	case 51:
-		loadBmp(240, 40 + count*SIZE, "Source\\block\\block51.bmp");
+		loadBmp(240, 40 + count*SIZE, "Source\\tower\\block\\block51.bmp");
 		break;
 
 	}
