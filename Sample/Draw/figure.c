@@ -1,4 +1,5 @@
 #include "screen.h"
+#pragma comment(lib, "SGL.lib")
 extern struct _win *Window;
 void sgSetup() {
 	Window->winWidth = 640;
