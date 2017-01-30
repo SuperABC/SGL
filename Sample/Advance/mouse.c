@@ -1,4 +1,5 @@
 #include "screen.h"
+#pragma comment(lib, SG_Lib("sgl"))
 #define MOUSE_SIZE 16 
 extern struct _win *Window;
 
@@ -66,8 +67,8 @@ char *expand(word mask[16], int w, int h) {
 }
 
 void sgSetup() {
-	Window->winWidth = 160;
-	Window->winHeight = 160;
+	Window->winWidth = 640;
+	Window->winHeight = 480;
 	strcpy(Window->winName, "Rythm Master --SGL Sample Game");
 
 	mouse = (struct m*)malloc(sizeof(struct m));
@@ -88,6 +89,8 @@ void sgLoop() {
 	if (first) {
 		setColor(255, 255, 255);
 		clearScreen();
+		tmp = mousePos();
+		if (tmp.x < 0 || tmp.y<0 || tmp.x>Window->winWidth || tmp.y>Window->winHeight)return;
 		first = 0;
 	}
 	else putImage(tmp.x, tmp.y, mouse->oldImage, COPY_PUT);
