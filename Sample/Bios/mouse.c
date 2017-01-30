@@ -1,4 +1,5 @@
 #include "screen.h"
+#pragma comment(lib, SG_Lib("sgl"))
 #define DRAG
 extern struct _win *Window;
 void sgSetup() {

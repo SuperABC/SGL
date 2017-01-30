@@ -1,6 +1,14 @@
 #pragma once
 #define _CRT_SECURE_NO_WARNINGS
 #define FREEGLUT_STATIC
+
+#ifdef _DEBUG
+#define SG_Lib(name) name "d.lib"
+#else
+#define SG_Lib(name) name ".lib"
+#endif
+#pragma comment(lib, SG_Lib("freeglut_static"))
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -8,8 +16,6 @@
 #include <string.h>
 #include <Windows.h>
 #include "freeglut.h"
-#define GL_Lib(name) name "d.lib"
-#pragma comment(lib, GL_Lib("freeglut_static"))
 
 #define SG_PI 3.14159265358979323846
 #define SG_QSIZE 32768
@@ -89,11 +95,11 @@ enum _ascii {
 	SG_F12
 };
 enum _style {
-	SOLID_LINE = 0,
-	DOTTED_LINE = 1,
-	CENTER_LINE = 2,
-	DASHED_LINE = 3,
-	USERBIT_LINE = 4
+	SOLID_LINE,
+	DOTTED_LINE,
+	CENTER_LINE,
+	DASHED_LINE,
+	USERBIT_LINE
 };
 enum _piccpy {
 	COPY_PUT,
@@ -109,36 +115,19 @@ enum _fill {
 	DOT_FILL
 };
 enum _errors {
-	SG_NONE = 0,
+	SG_NO_ERORR = 0,
 	SG_FILE_NOT_FOUND = -1,
 	SG_NO_LOAD_MEM = -2,
 	SG_INVALID_MODE = -3,
 	SG_IO_ERROR = -4,
-	SG_INVALID_VERSION = -5
+	SG_INVALID_VERSION = -5,
+	SG_SIZE_MISMATCH = -6,
+	SG_OUT_OF_RANGE = -7
 };
 
-struct _screen {
-	bitMap *buffer1, *buffer2;
-	GLuint texName;
-	GLuint rgb[3];
-};
 struct _win {
 	int winWidth, winHeight;
 	char *winName;
-};
-struct _key {
-	word keyBuf[1024];
-	int front, rear;
-};
-struct _mouse {
-	vecTwo Pos;
-	vecThree mouseBuf[1024];
-	int front, rear;
-	int left, middle, right;
-	int clicked, coord;
-};
-struct _vect {
-	vect _v8, _v9;
 };
 
 void sgSetup();
@@ -146,12 +135,12 @@ void sgLoop();
 
 SGvoid setColor(int r, int g, int b);
 SGvoid clearScreen();
-SGvoid putPixel(int x, int y);
+SGint putPixel(int x, int y);
 RGB getPixel(int x, int y);
 SGvoid putLine(int x1, int y1, int x2, int y2, int mode);
 SGvoid putQuad(int x1, int y1, int x2, int y2, int mode);
 SGvoid putCircle(int xc, int yc, int r, int mode);
-SGvoid getImage(int left, int top, int right, int bottom, bitMap *bitmap);
+SGint getImage(int left, int top, int right, int bottom, bitMap *bitmap);
 SGvoid putImage(int left, int top, bitMap *bitmap, int op);
 SGint loadBmp(int x, int y, char *filename);
 SGvoid putString(char *str, int x, int y);
@@ -175,10 +164,12 @@ SGvoid setFreq(float f);
 SGvoid fullScreen();
 SGvoid showMouse();
 SGvoid hideMouse();
+SGvoid setMouse(int x, int y);
 SGint loadWave(char *filename, int mode);
 SGvoid setActivePage(int page);
 SGvoid setVisualPage(int page);
 SGvoid putNumber(int n, int x, int y, char lr);
 SGvoid putChar(char ch, int x, int y);
+SGint maskImage(int left, int top, bitMap *mask, bitMap *bitmap);
 
 SGvoid funcMap(int x1, int x2, int y1, int y2, float(*vect)(int x));

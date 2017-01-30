@@ -1,6 +1,7 @@
 #pragma once
-#define __assembler
 #include "screen.h"
+#pragma comment(lib, SG_Lib("sgl"))
+#define __assembler
 #define SIZE 40
 #define inRect(x, y, x1, y1, x2, y2) ((x>=x1&&x<=x2)&&(y>=y1&&y<=y2))
 
@@ -80,7 +81,3 @@ void showMsg();
 int response();
 void putInfo(int count, int style);
 
-/*
-void drawFightNumbers(int rx, int ry, int temp);
-void drawSmallNumbers(int rx, int ry, int temp);
-void drawMonsNumbers(int rx, int ry, int temp);*/
