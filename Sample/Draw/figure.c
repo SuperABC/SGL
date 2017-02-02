@@ -1,10 +1,6 @@
 #include "screen.h"
-#pragma comment(lib, "SGL.lib")
-extern struct _win *Window;
 void sgSetup() {
-	Window->winWidth = 640;
-	Window->winHeight = 480;
-	strcpy(Window->winName, "SGL Sample");
+	initWindow(640, 480, "SGL sample");
 }
 void sgLoop() {
 	RGB p;
@@ -12,8 +8,8 @@ void sgLoop() {
 	setColor(0, 0, 0);
 	putQuad(80, 80, 160, 160, SOLID_FILL);
 	putQuad(240, 80, 320, 160, EMPTY_FILL);
-	putCircle(120, 280, 40, SOLID_FILL);
-	putCircle(280, 280, 40, EMPTY_FILL);
+	putCircle(120, 280, 40, EMPTY_FILL);
+	putEllipse(280, 280, 40, 80, SOLID_FILL);
 	putLine(80, 400, 320, 400, 0);
 
 	putLine(400, 80, 480, 80, 0);

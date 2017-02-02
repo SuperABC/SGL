@@ -1,7 +1,7 @@
 #include "screen.h"
-#pragma comment(lib, SG_Lib("sgl"))
 #define MOUSE_SIZE 16 
-extern struct _win *Window;
+
+extern struct _win* Window;
 
 word mouseOut[] = {
 	/* 16 words of screen mask */
@@ -67,9 +67,7 @@ char *expand(word mask[16], int w, int h) {
 }
 
 void sgSetup() {
-	Window->winWidth = 640;
-	Window->winHeight = 480;
-	strcpy(Window->winName, "Rythm Master --SGL Sample Game");
+	initWindow(640, 480, "SGL sample");
 
 	mouse = (struct m*)malloc(sizeof(struct m));
 	mouse->oldImage = (bitMap*)malloc(MOUSE_SIZE*MOUSE_SIZE * 3 * sizeof(char));

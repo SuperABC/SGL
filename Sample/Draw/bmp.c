@@ -1,10 +1,6 @@
 #include "screen.h"
-#pragma comment(lib, SG_Lib("sgl"))
-extern struct _win *Window;
 void sgSetup() {
-	Window->winWidth = 680;
-	Window->winHeight = 520;
-	strcpy(Window->winName, "SGL Sample");
+	initWindow(680, 520, "SGL sample");
 }
 void sgLoop() {
 	static int first = 0;
