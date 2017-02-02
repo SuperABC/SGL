@@ -7,7 +7,9 @@
 #else
 #define SG_Lib(name) name ".lib"
 #endif
+
 #pragma comment(lib, SG_Lib("freeglut_static"))
+#pragma comment(lib, SG_Lib("sgl"))
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -36,6 +38,7 @@ typedef unsigned char byte;
 typedef unsigned short int word;
 typedef unsigned long int dword;
 typedef void(*vect)(void);
+typedef void(*func)(double, double);
 
 typedef void SGvoid;
 typedef int SGint;
@@ -133,6 +136,7 @@ struct _win {
 void sgSetup();
 void sgLoop();
 
+SGvoid initWindow(int width, int height, char *title);
 SGvoid setColor(int r, int g, int b);
 SGvoid clearScreen();
 SGint putPixel(int x, int y);
@@ -140,6 +144,7 @@ RGB getPixel(int x, int y);
 SGvoid putLine(int x1, int y1, int x2, int y2, int mode);
 SGvoid putQuad(int x1, int y1, int x2, int y2, int mode);
 SGvoid putCircle(int xc, int yc, int r, int mode);
+void putEllipse(int xc, int yc, int a, int b, int mode);
 SGint getImage(int left, int top, int right, int bottom, bitMap *bitmap);
 SGvoid putImage(int left, int top, bitMap *bitmap, int op);
 SGint loadBmp(int x, int y, char *filename);
@@ -171,5 +176,4 @@ SGvoid setVisualPage(int page);
 SGvoid putNumber(int n, int x, int y, char lr);
 SGvoid putChar(char ch, int x, int y);
 SGint maskImage(int left, int top, bitMap *mask, bitMap *bitmap);
-
 SGvoid funcMap(int x1, int x2, int y1, int y2, float(*vect)(int x));
