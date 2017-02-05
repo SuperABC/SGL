@@ -1,10 +1,6 @@
 #include "screen.h"
-#pragma comment(lib, SG_Lib("sgl"))
-extern struct _win *Window;
 void sgSetup() {
-	Window->winWidth = 680;
-	Window->winHeight = 520;
-	strcpy(Window->winName, "SGL Sample");
+	initWindow(680, 520, "SGL sample");
 }
 void sgLoop() {
 	static int first = 0;
@@ -12,7 +8,7 @@ void sgLoop() {
 	if (!first) {
 		loadBmp(0, 0, "tower.bmp");
 		getImage(0, 0, 39, 39, buf);
-		putImage(320, 200, buf, 0);
+		putImage(320, 200, buf, COPY_PUT);
 		first = 1;
 	}
 }
