@@ -1,20 +1,16 @@
 #include "screen.h"
-#pragma comment(lib, SG_Lib("sgl"))
 #define DRAG
-extern struct _win *Window;
 void sgSetup() {
-	Window->winWidth = 640;
-	Window->winHeight = 480;
-	strcpy(Window->winName, "SGL Sample");
+	initWindow(640, 480, "SGL sample");
 	initMouse(SG_COORDINATE);
 }
 void sgLoop() {
 #ifdef CLICK
-	vecThree v;
+	vecThree mouse;
 	setColor(0, 0, 0);
 	if (biosMouse(1).m) {
-		v = biosMouse(0);
-		if (v.m == SG_BUTTON_DOWN)putCircle(v.x, v.y, 10, SOLID_FILL);
+		mouse = biosMouse(0);
+		if (mouse.m == SG_LEFT_BUTTON)putCircle(mouse.x, mouse.y, 10, SOLID_FILL);
 	}
 	clearMouseBuffer();
 #endif

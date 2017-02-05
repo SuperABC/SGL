@@ -7,7 +7,9 @@
 #else
 #define SG_Lib(name) name ".lib"
 #endif
+
 #pragma comment(lib, SG_Lib("freeglut_static"))
+#pragma comment(lib, SG_Lib("sgl"))
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,13 +19,14 @@
 #include <Windows.h>
 #include "freeglut.h"
 
+//SG const macros
 #define SG_PI 3.14159265358979323846
 #define SG_QSIZE 32768
 
+//SG io macros
 #define SG_LOOP SND_LOOP
 #define SG_COORDINATE 1
 #define SG_ACCURATE 0
-
 #define SG_BUTTON_UP 0
 #define SG_BUTTON_DOWN 1
 #define SG_LEFT_BUTTON 1
@@ -32,10 +35,12 @@
 #define SG_MIDDLE_BUTTON_UP 4
 #define SG_MIDDLE_BUTTON_DOWN 5
 
+//type defines.
 typedef unsigned char byte;
 typedef unsigned short int word;
 typedef unsigned long int dword;
 typedef void(*vect)(void);
+typedef void(*func)(double, double);
 
 typedef void SGvoid;
 typedef int SGint;
@@ -59,6 +64,7 @@ typedef struct {
 	unsigned char *data;
 }bitMap;
 
+//SG enums.
 enum _ascii {
 	SG_ESC = 0x1b,
 	SG_BACKS = '\b',
@@ -130,46 +136,57 @@ struct _win {
 	char *winName;
 };
 
-void sgSetup();
-void sgLoop();
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-SGvoid setColor(int r, int g, int b);
-SGvoid clearScreen();
-SGint putPixel(int x, int y);
-RGB getPixel(int x, int y);
-SGvoid putLine(int x1, int y1, int x2, int y2, int mode);
-SGvoid putQuad(int x1, int y1, int x2, int y2, int mode);
-SGvoid putCircle(int xc, int yc, int r, int mode);
-SGint getImage(int left, int top, int right, int bottom, bitMap *bitmap);
-SGvoid putImage(int left, int top, bitMap *bitmap, int op);
-SGint loadBmp(int x, int y, char *filename);
-SGvoid putString(char *str, int x, int y);
-SGvoid floodFill(int x, int y, RGB c);
-SGvoid initKey();
-SGint biosKey(int cmd);
-SGvoid clearKeyBuffer();
-SGvoid initMouse(int mode);
-vecTwo mousePos();
-SGint mouseStatus(int b);
-vecThree biosMouse(int cmd);
-SGvoid clearMouseBuffer();
-SGvoid delay(int t);
-SGvoid delayBegin();
-SGint delayEnd(int t);
-SGint random(int n);
-vect getVect(int intn);
-SGint setVect(int intn, vect v);
-SGvoid dosInt(int intn, int *ret);
-SGvoid setFreq(float f);
-SGvoid fullScreen();
-SGvoid showMouse();
-SGvoid hideMouse();
-SGvoid setMouse(int x, int y);
-SGint loadWave(char *filename, int mode);
-SGvoid setActivePage(int page);
-SGvoid setVisualPage(int page);
-SGvoid putNumber(int n, int x, int y, char lr);
-SGvoid putChar(char ch, int x, int y);
-SGint maskImage(int left, int top, bitMap *mask, bitMap *bitmap);
+	//psedo main functions
+	void sgSetup();
+	void sgLoop();
 
-SGvoid funcMap(int x1, int x2, int y1, int y2, float(*vect)(int x));
+	//SG interfaces
+	SGvoid initWindow(int width, int height, char *title);
+	SGvoid setColor(int r, int g, int b);
+	SGvoid clearScreen();
+	SGint putPixel(int x, int y);
+	RGB getPixel(int x, int y);
+	SGvoid putLine(int x1, int y1, int x2, int y2, int mode);
+	SGvoid putQuad(int x1, int y1, int x2, int y2, int mode);
+	SGvoid putCircle(int xc, int yc, int r, int mode);
+	SGvoid putEllipse(int xc, int yc, int a, int b, int mode);
+	SGint getImage(int left, int top, int right, int bottom, bitMap *bitmap);
+	SGvoid putImage(int left, int top, bitMap *bitmap, int op);
+	SGint loadBmp(int x, int y, char *filename);
+	SGvoid putString(char *str, int x, int y);
+	SGvoid floodFill(int x, int y, RGB c);
+	SGvoid initKey();
+	SGint biosKey(int cmd);
+	SGvoid clearKeyBuffer();
+	SGvoid initMouse(int mode);
+	vecTwo mousePos();
+	SGint mouseStatus(int b);
+	vecThree biosMouse(int cmd);
+	SGvoid clearMouseBuffer();
+	SGvoid delay(int t);
+	SGvoid delayBegin();
+	SGint delayEnd(int t);
+	SGint random(int n);
+	vect getVect(int intn);
+	SGint setVect(int intn, vect v);
+	SGvoid dosInt(int intn, int *ret);
+	SGvoid setFreq(float f);
+	SGvoid fullScreen();
+	SGvoid showMouse();
+	SGvoid hideMouse();
+	SGvoid setMouse(int x, int y);
+	SGint loadWave(char *filename, int mode);
+	SGvoid setActivePage(int page);
+	SGvoid setVisualPage(int page);
+	SGvoid putNumber(int n, int x, int y, char lr);
+	SGvoid putChar(char ch, int x, int y);
+	SGint maskImage(int left, int top, bitMap *mask, bitMap *bitmap);
+	SGvoid funcMap(int x1, int x2, int y1, int y2, float(*vect)(int x));
+
+#ifdef __cplusplus
+}
+#endif
