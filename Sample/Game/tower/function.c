@@ -577,7 +577,7 @@ void pause() {
 	}
 }
 void buy() {
-	static first = 1;
+	static int first = 1;
 	vecThree mouse;
 	int key;
 	if (first) {
@@ -698,7 +698,7 @@ void die() {
 	pro = START;
 }
 void save() {
-	static first = 1;
+	static int first = 1;
 	vecThree mouse;
 	int key;
 	if (first) {

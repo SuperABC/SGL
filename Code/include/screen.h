@@ -66,6 +66,7 @@ typedef struct {
 
 //SG enums.
 enum _ascii {
+	SG_TAB = '\t',
 	SG_ESC = 0x1b,
 	SG_BACKS = '\b',
 	SG_ENTER = '\r',

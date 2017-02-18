@@ -82,7 +82,7 @@ void sgSetup() {
 	hideMouse();
 }
 void sgLoop() {
-	static int first = 1;
+	static int first = 1, show = 0;
 	static vecTwo tmp;
 	if (first) {
 		setColor(255, 255, 255);
@@ -97,7 +97,10 @@ void sgLoop() {
 	putImage(tmp.x, tmp.y, mouse->out, AND_PUT);
 	putImage(tmp.x, tmp.y, mouse->in, OR_PUT);
 	if (biosKey(1)) {
-		exit(0);
+		if(biosKey(0)&0x8000)show = !show;
 	}
+	if (show)showMouse();
+	else hideMouse();
+	clearKeyBuffer();
 }
 
