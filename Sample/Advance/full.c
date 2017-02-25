@@ -1,8 +1,8 @@
-#include "screen.h"
+#include "sgl.h"
 #define WIN_WIDTH 1280
 #define WIN_HEIGHT 720
 void sgSetup() {
-	initWindow(WIN_WIDTH, WIN_HEIGHT, "SGL Sample");
+	initWindow(WIN_WIDTH, WIN_HEIGHT, "SGL Sample", BIT_MAP);
 	initMouse(SG_COORDINATE);
 	fullScreen();
 }
