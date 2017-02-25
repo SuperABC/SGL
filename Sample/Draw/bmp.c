@@ -1,6 +1,6 @@
-#include "screen.h"
+#include "sgl.h"
 void sgSetup() {
-	initWindow(680, 520, "SGL sample");
+	initWindow(680, 520, "SGL sample", BIT_MAP);
 }
 void sgLoop() {
 	static int first = 0;
