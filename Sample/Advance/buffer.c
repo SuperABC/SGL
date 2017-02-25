@@ -1,10 +1,10 @@
-#include "screen.h"
+#include "sgl.h"
 //#define DB
 
 int page = 0;
 
 void sgSetup() {
-	initWindow(640, 480, "SGL Sample");
+	initWindow(640, 480, "SGL Sample", BIT_MAP);
 #ifdef DB
 	setActivePage(!page);
 	setVisualPage(page);

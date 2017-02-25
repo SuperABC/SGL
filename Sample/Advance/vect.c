@@ -1,4 +1,4 @@
-#include "screen.h"
+#include "sgl.h"
 
 void vectKey(void);
 void vectTime(void);
@@ -7,7 +7,7 @@ vect vk, vt;
 int num = 0, numx = 0, numy = 0;
 
 void sgSetup() {
-	initWindow(640, 480, "SGL Sample");
+	initWindow(640, 480, "SGL Sample", BIT_MAP);
 	initKey();
 	setFreq(1.f);
 	vk = getVect(9);

@@ -1,5 +1,5 @@
 #define __assembler
-#include "screen.h"
+#include "sgl.h"
 
 #define inRect(x, y, x1, y1, x2, y2) ((x>=x1&&x<=x2)&&(y>=y1&&y<=y2))
 #define speedUp(e) (e+=e>0?1:-1)
@@ -20,7 +20,7 @@ struct _enemy {
 int liveTime = 0;
 
 void sgSetup() {
-	initWindow(640, 640, "Collision --SGL Sample Game");
+	initWindow(640, 640, "Collision --SGL Sample Game", BIT_MAP);
 	initMouse(SG_COORDINATE);
 	player.oldImage = (bitMap*)malloc(sizeof(bitMap));
 	enemy1.oldImage = (bitMap*)malloc(sizeof(bitMap));

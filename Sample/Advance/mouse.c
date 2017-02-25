@@ -1,7 +1,7 @@
-#include "screen.h"
+#include "sgl.h"
 #define MOUSE_SIZE 16 
 
-extern struct _win* Window;
+extern struct _win *Window;
 
 word mouseOut[] = {
 	/* 16 words of screen mask */
@@ -67,7 +67,7 @@ char *expand(word mask[16], int w, int h) {
 }
 
 void sgSetup() {
-	initWindow(640, 480, "SGL sample");
+	initWindow(640, 480, "SGL sample", BIT_MAP);
 
 	mouse = (struct m*)malloc(sizeof(struct m));
 	mouse->oldImage = (bitMap*)malloc(MOUSE_SIZE*MOUSE_SIZE * 3 * sizeof(char));
