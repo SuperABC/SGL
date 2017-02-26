@@ -19,6 +19,11 @@
 #include <Windows.h>
 #include "freeglut.h"
 
+#ifdef __cplusplus
+#include <iostream>
+#include <fstream>
+#endif
+
 //SG const macros
 #define SG_PI 3.14159265358979323846
 #define SG_CHAR_WIDTH 8
@@ -169,6 +174,7 @@ enum _errors {
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 
 	//psedo main functions
 	void sgSetup();
