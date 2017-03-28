@@ -1,4 +1,6 @@
-#include "sgl.h"
+#include "winsgl.h"
+#pragma comment (lib, "winsgl.lib")
+
 #define MOUSE_SIZE 16 
 
 extern struct _win *Window;
@@ -41,6 +43,7 @@ word mouseIn[] = {
 	0x0180, /*0000000110000000*/
 	0x0000, /*0000000000000000*/
 };
+
 struct m{
 	bitMap *oldImage;
 	bitMap *out, *in;
@@ -48,18 +51,20 @@ struct m{
 
 char *expand(word mask[16], int w, int h) {
 	int i, j;
-	char *ret = (char*)malloc(w * h * 3 * sizeof(char));
+	char *ret;
+
+	ret = (char*)malloc(w * h * 3 * sizeof(char));
 	for (i = 0; i<h; i++) {
 		for (j = 0; j<w; j++) {
 			if (mask[i] & 1 << (w - 1 - j)) {
-				ret[(i*w + j) * 3] = 255;
-				ret[(i*w + j) * 3 + 1] = 255;
-				ret[(i*w + j) * 3 + 2] = 255;
+				ret[(i*w + j) * 3] = (char)255;
+				ret[(i*w + j) * 3 + 1] = (char)255;
+				ret[(i*w + j) * 3 + 2] = (char)255;
 			}
 			else {
-				ret[(i*w + j) * 3] = 0;
-				ret[(i*w + j) * 3 + 1] = 0;
-				ret[(i*w + j) * 3 + 2] = 0;
+				ret[(i*w + j) * 3] = (char)0;
+				ret[(i*w + j) * 3 + 1] = (char)0;
+				ret[(i*w + j) * 3 + 2] = (char)0;
 			}
 		}
 	}
@@ -84,6 +89,7 @@ void sgSetup() {
 void sgLoop() {
 	static int first = 1, show = 0;
 	static vecTwo tmp;
+
 	if (first) {
 		setColor(255, 255, 255);
 		clearScreen();
@@ -92,13 +98,16 @@ void sgLoop() {
 		first = 0;
 	}
 	else putImage(tmp.x, tmp.y, mouse->oldImage, COPY_PUT);
+
 	tmp = mousePos();
 	getImage(tmp.x, tmp.y, tmp.x + MOUSE_SIZE - 1, tmp.y + MOUSE_SIZE - 1, mouse->oldImage);
 	putImage(tmp.x, tmp.y, mouse->out, AND_PUT);
 	putImage(tmp.x, tmp.y, mouse->in, OR_PUT);
+
 	if (biosKey(1)) {
 		if(biosKey(0)&0x8000)show = !show;
 	}
+
 	if (show)showMouse();
 	else hideMouse();
 	clearKeyBuffer();

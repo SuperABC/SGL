@@ -1,8 +1,7 @@
-#define __assembler
-#include "sgl.h"
+#include "winsgl.h"
 
 #define inRect(x, y, x1, y1, x2, y2) ((x>=x1&&x<=x2)&&(y>=y1&&y<=y2))
-#define speedUp(e) (e+=e>0?1:-1)
+#define speedUp(e) (e+=e>0?2:-2)
 
 void movePlayer(int x, int y);
 void moveEnemy();
@@ -33,7 +32,6 @@ void sgLoop() {
 	vecTwo position;
 	int press;
 
-	delayBegin();
 	if (first) {
 		loadBmp(0, 0, "Source\\collision\\background.bmp");
 		player.pos.x = player.pos.y = 290;
@@ -45,8 +43,8 @@ void sgLoop() {
 		enemy3.pos.y = 432;
 		enemy4.pos.x = 480;
 		enemy4.pos.y = 480;
-		enemy1.vel.x = enemy1.vel.y = enemy2.vel.y = enemy3.vel.x = 1;
-		enemy4.vel.x = enemy4.vel.y = enemy3.vel.y = enemy2.vel.x = -1;
+		enemy1.vel.x = enemy1.vel.y = enemy2.vel.y = enemy3.vel.x = 4;
+		enemy4.vel.x = enemy4.vel.y = enemy3.vel.y = enemy2.vel.x = -4;
 		getImage(player.pos.x, player.pos.y, player.pos.x + 59, player.pos.y + 59, player.oldImage);
 		getImage(enemy1.pos.x, enemy1.pos.y, enemy1.pos.x + 83, enemy1.pos.y + 63, enemy1.oldImage);
 		getImage(enemy2.pos.x, enemy2.pos.y, enemy2.pos.x + 135, enemy2.pos.y + 31, enemy2.oldImage);
@@ -85,8 +83,9 @@ void sgLoop() {
 	if (!cont)return;
 	else {
 		moveEnemy();
-		delayEnd(8);
-		liveTime += 11;
+		delayEnd(20);
+		delayBegin();
+		liveTime += 24;
 	}
 }
 
@@ -95,6 +94,8 @@ void movePlayer(int x, int y) {
 	setColor(255, 0, 0);
 	player.pos.x = x;
 	player.pos.y = y;
+	free(player.oldImage->data);
+	getImage(player.pos.x, player.pos.y, player.pos.x + 83, player.pos.y + 63, player.oldImage);
 	putQuad(player.pos.x, player.pos.y, player.pos.x + 59, player.pos.y + 59, SOLID_FILL);
 }
 void moveEnemy() {
@@ -103,7 +104,7 @@ void moveEnemy() {
 	putImage(enemy3.pos.x, enemy3.pos.y, enemy3.oldImage, COPY_PUT);
 	putImage(enemy4.pos.x, enemy4.pos.y, enemy4.oldImage, COPY_PUT);
 
-	if (liveTime % 10000 < 11) {
+	if (liveTime % 10000 < 24) {
 		speedUp(enemy1.vel.x);
 		speedUp(enemy1.vel.y);
 		speedUp(enemy2.vel.x);
@@ -191,6 +192,10 @@ void moveEnemy() {
 		enemy4.vel.y = -enemy4.vel.y;
 	}
 
+	free(enemy1.oldImage->data);
+	free(enemy2.oldImage->data);
+	free(enemy3.oldImage->data);
+	free(enemy4.oldImage->data);
 	getImage(enemy1.pos.x, enemy1.pos.y, enemy1.pos.x + 83, enemy1.pos.y + 63, enemy1.oldImage);
 	getImage(enemy2.pos.x, enemy2.pos.y, enemy2.pos.x + 135, enemy2.pos.y + 31, enemy2.oldImage);
 	getImage(enemy3.pos.x, enemy3.pos.y, enemy3.pos.x + 59, enemy3.pos.y + 95, enemy3.oldImage);

@@ -509,7 +509,6 @@ void fight() {
 			loadBmp(500, 90, "Source\\tower\\face\\bigface4.bmp");
 			break;
 		}
-		first = 0;
 	}
 	if (biosKey(1))biosKey(0);
 	if (biosKey(1)) {
@@ -532,6 +531,10 @@ void fight() {
 		player->blood -= mons[obj - 11]->offence - player->deffence;
 	if (player->blood<0) {
 		player->blood = 0;
+	}
+	if (first) {
+		first = 0;
+		return;
 	}
 	if (fast)delayEnd(50);
 	else delayEnd(400);
@@ -1550,7 +1553,7 @@ int up() {
 	case 81:
 		wall[player->floor]->pos[player->y - 2][player->x - 1] = 0;
 		putBlock(player->x, player->y - 1, 0);
-		response();
+		//response();
 		wall[player->floor]->pos[player->y - 1][player->x - 2] = 82;
 		putBlock(player->x - 1, player->y, 81);
 		break;

@@ -1,10 +1,12 @@
-#include "sgl.h"
-#define DRAG
+#include "winsgl.h"
+#define CLICK
+
 void sgSetup() {
 	initWindow(640, 480, "SGL sample", BIT_MAP);
 	initMouse(SG_COORDINATE);
 }
 void sgLoop() {
+
 #ifdef CLICK
 	vecThree mouse;
 	setColor(0, 0, 0);
@@ -14,6 +16,7 @@ void sgLoop() {
 	}
 	clearMouseBuffer();
 #endif
+
 #ifdef DRAG
 	vecTwo v;
 	setColor(0, 0, 0);
@@ -22,4 +25,5 @@ void sgLoop() {
 		putCircle(v.x, v.y, 10, SOLID_FILL);
 	}
 #endif
+
 }
