@@ -1,4 +1,4 @@
-#include "sgl.h"
+#include "winsgl.h"
 
 void vectKey(void);
 void vectTime(void);
@@ -10,6 +10,7 @@ void sgSetup() {
 	initWindow(640, 480, "SGL Sample", BIT_MAP);
 	initKey();
 	setFreq(1.f);
+
 	vk = getVect(9);
 	vt = getVect(8);
 	setVect(9, vectKey);
@@ -26,6 +27,7 @@ void sgLoop() {
 void vectKey(void) {
 	int key;
 	dosInt(9, &key);
+
 	switch (key) {
 	case SG_UP:
 		if (numy >= 16)numy -= 16;

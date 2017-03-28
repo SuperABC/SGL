@@ -1,4 +1,4 @@
-#include "sgl.h"
+#include "winsgl.h"
 
 const char *txt = "Hello, welcome to sgl text mode!\n"
 							"\n"
@@ -13,12 +13,14 @@ void sgLoop() {
 	static int first = 1;
 	static int charNum = 0;
 	static int x = 0, y = 0;
+
 	if (first) {
 		first = 0;
 		setBfc(BLUE, LIGHTCYAN);
 		clearText();
 		return;
 	}
+
 	if (txt[charNum]) {
 		if (txt[charNum] == '\n') {
 			x = 0;

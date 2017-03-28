@@ -1,4 +1,6 @@
-#include "sgl.h"
+#include "winsgl.h"
+
+//Unfinished.
 
 void sgSetup() {
 	initWindow(100, 100, "SGL Sample", BIT_MAP);
