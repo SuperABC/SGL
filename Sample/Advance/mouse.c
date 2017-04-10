@@ -1,5 +1,4 @@
 #include "winsgl.h"
-#pragma comment (lib, "winsgl.lib")
 
 #define MOUSE_SIZE 16 
 
