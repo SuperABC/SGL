@@ -63,7 +63,6 @@ struct _win {
 	int winWidth, winHeight;
 	int txtWidth, txtHeight;
 	int posLeft, posUp;
-	int timeFreq;
 	HWND hwnd;
 	char *winName;
 };
