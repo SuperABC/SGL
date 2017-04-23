@@ -113,24 +113,21 @@ enum _ascii {
 	SG_ESC = 0x1b,
 	SG_BACKS = '\b',
 	SG_ENTER = '\r',
-	SG_UP = 0x100,
-	SG_DOWN,
-	SG_LEFT,
+	SG_LEFT = 0x100,
+	SG_UP,
 	SG_RIGHT,
-	SG_LCTRL,
-	SG_RCTRL,
-	SG_LALT,
-	SG_RALT,
-	SG_LSHIFT,
-	SG_RSHIFT,
+	SG_DOWN,
+	SG_CTRL,
+	SG_ALT,
+	SG_SHIFT,
 	SG_INSERT,
 	SG_DELETE,
 	SG_HOME,
 	SG_END,
 	SG_NUMLOC,
+	SG_CAPSLOC,
 	SG_PAGEUP,
 	SG_PAGEDOWN,
-	SG_BEGIN,
 	SG_F1,
 	SG_F2,
 	SG_F3,
@@ -163,6 +160,14 @@ enum _fill {
 	SOLID_FILL,
 	CROSS_FILL,
 	DOT_FILL
+};
+enum _widget {
+	SG_BUTTON,
+	SG_DIALOG,
+	SG_INPUT,
+	SG_LIST,
+	SG_CHECK,
+	SG_PROCESS
 };
 enum _errors {
 	SG_NO_ERORR = 0,
@@ -229,9 +234,13 @@ SGvoid setActivePage(int page);
 SGvoid setVisualPage(int page);
 SGvoid putNumber(int n, int x, int y, char lr);
 SGvoid putChar(char ch, int x, int y);
+SGvoid putChinese(byte *ch, int x, int y);
 SGvoid writeChar(char c, int x, int y);
 SGint maskImage(int left, int top, bitMap *mask, bitMap *bitmap);
-SGvoid funcMap(int x1, int x2, int y1, int y2, float(*vect)(int x));
+SGvoid funcMap(int x1, int x2, int y1, int y2, float(*vect)(float x));
+
+void sgSetup();
+void sgLoop();
 
 #ifdef __cplusplus
 }

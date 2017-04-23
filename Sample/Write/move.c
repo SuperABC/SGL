@@ -14,7 +14,10 @@ void sgLoop() {
 		setBfc(BLUE, LIGHTCYAN);
 		clearText();
 	}
-	else putText(x, y, txt);
+	else {
+		putText(x, y, txt);
+		free(txt->content);
+	}
 
 	x = random(69);
 	y = random(25);
