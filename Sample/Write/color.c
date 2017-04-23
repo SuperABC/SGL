@@ -1,5 +1,6 @@
 #include "winsgl.h"
 
+
 void sgSetup() {
 	initWindow(40, 16, "SGL Sample", TEXT_MAP);
 }

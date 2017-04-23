@@ -3,7 +3,7 @@
 
 void sgSetup() {
 	initWindow(640, 480, "SGL sample", BIT_MAP);
-	initMouse(SG_COORDINATE);
+	initMouse(SG_ACCURATE);
 }
 void sgLoop() {
 
