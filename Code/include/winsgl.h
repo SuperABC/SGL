@@ -10,6 +10,7 @@
 
 //#pragma comment(lib, SG_LIB("winsgl"))
 #define _CRT_SECURE_NO_WARNINGS
+#define _SGL_V200
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -34,56 +35,30 @@
 #define SG_SND_NOSTOP SND_NOSTOP
 #define SG_SND_PURGE SND_PURGE
 #define SG_SND_ONCE NULL
-#define SG_COORDINATE 1
+
 #define SG_ACCURATE 0
+#define SG_COORDINATE 1
+
 #define SG_BUTTON_UP 0
 #define SG_BUTTON_DOWN 1
+
 #define SG_LEFT_BUTTON 1
 #define SG_RIGHT_BUTTON 2
 #define SG_MIDDLE_BUTTON 3
 #define SG_MIDDLE_BUTTON_UP 4
 #define SG_MIDDLE_BUTTON_DOWN 5
 
-//type defines.
-typedef unsigned char byte;
-typedef unsigned short int word;
-typedef unsigned long int dword;
-typedef void(*vect)(void);
-typedef void(*func)(double, double);
+#define SG_WINDOW 0
+#define SG_SCREEN 1
 
-typedef void SGvoid;
-typedef int SGint;
-typedef char SGchar;
-typedef char *SGstring;
-typedef float SGfloat;
-typedef double SGdouble;
-typedef long SGlong;
+#define WIDGET_BACK 0
+#define WIDGET_FRONT 1
 
-struct _win {
-	int winWidth, winHeight;
-	int txtWidth, txtHeight;
-	int posLeft, posUp;
-	HWND hwnd;
-	char *winName;
-};
-
-typedef struct {
-	int x, y;
-}vecTwo;
-typedef struct {
-	int x, y, m;
-}vecThree;
-typedef struct {
-	int r, g, b;
-}RGB;
-typedef struct {
-	int sizeX, sizeY;
-	unsigned char *data;
-}bitMap;
-typedef struct {
-	int width, height;
-	short *content;
-}textMap;
+#define WIDGET_DEFAULT 0
+#define WIDGET_PASS 1
+#define WIDGET_PRESSED 2
+#define WIDGET_SELECTED 4
+#define WIDGET_FOCUSED 8
 
 //SG enums.
 enum _colors {
@@ -141,7 +116,7 @@ enum _ascii {
 	SG_F11,
 	SG_F12
 };
-enum _style {
+enum _line {
 	SOLID_LINE,
 	DOTTED_LINE,
 	CENTER_LINE,
@@ -158,58 +133,118 @@ enum _piccpy {
 enum _fill {
 	EMPTY_FILL,
 	SOLID_FILL,
+	DASH_WRAP,
 	CROSS_FILL,
 	DOT_FILL
 };
-enum _widget {
+enum _control {
 	SG_BUTTON,
-	SG_DIALOG,
 	SG_INPUT,
+	SG_DIALOG,
+	SG_OUTPUT,
 	SG_LIST,
 	SG_CHECK,
-	SG_PROCESS
+	SG_PROCESS,
+	SG_MOUSE
+};
+enum _style {
+	SG_DESIGN,
+	WIN_XP,
+	WIN_10,
+	LINUX,
+	ANDROID,
+	WEBSITE,
 };
 enum _errors {
 	SG_NO_ERORR = 0,
-	SG_FILE_NOT_FOUND = -1,
+	SG_OBJECT_NOT_FOUND = -1,
 	SG_NO_LOAD_MEM = -2,
 	SG_INVALID_MODE = -3,
 	SG_IO_ERROR = -4,
 	SG_INVALID_VERSION = -5,
 	SG_SIZE_MISMATCH = -6,
-	SG_OUT_OF_RANGE = -7
+	SG_OUT_OF_RANGE = -7,
+	SG_NULL_POINTER = -8,
+	SG_INCOMPLETE_STRUCT = -9,
+	SG_MULTY_VALUE = -10
 };
+
+//type defines.
+typedef unsigned char byte;
+typedef unsigned short int word;
+typedef unsigned long int dword;
+typedef void(*vect)(void);
+typedef void(*mouseMoveCall)(void *w, int x, int y);
+typedef void(*mouseClickCall)(void *w, int x, int y, int status);
+typedef void(*keyCall)(void *w, int key);
+
+typedef void SGvoid;
+typedef int SGint;
+typedef char SGchar;
+typedef unsigned char *SGstring;
+typedef float SGfloat;
+typedef double SGdouble;
+typedef long SGlong;
+
+typedef struct {
+	int x, y;
+}vecTwo;
+typedef struct {
+	int x, y, m;
+}vecThree;
+typedef struct {
+	int r, g, b;
+}RGB;
+typedef struct {
+	int sizeX, sizeY;
+	SGstring data;
+}bitMap;
+typedef struct {
+	int width, height;
+	short *content;
+}textMap;
+typedef struct {
+	enum control type;
+
+	vecTwo pos;
+	vecTwo size;
+
+	int visible;
+	int priority;
+	int status;
+	int style;
+
+	int hide;
+	int value;
+	SGstring name;
+	SGstring content;
+	SGstring helpMessage;
+
+	bitMap *cover;
+
+	mouseMoveCall mouseIn, mouseOut;
+	mouseClickCall mouseDown, mouseUp, mouseClick;
+	keyCall keyDown, keyUp, keyPress;
+
+}widgetObj;
 
 //Frame functions.
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+//Widget callbacks.
+void vectDefault(void);
+void mouseMoveDefault(widgetObj *w, int x, int y);
+void mouseClickDefault(widgetObj *w, int x, int y, int status);
+void mouseClickInput(widgetObj *w, int x, int y, int status);
+void keyDefault(widgetObj *w, int key);
+
 //SG interfaces
 SGvoid initWindow(int width, int height, char *title, int mode);
 SGvoid setWindow(int left, int up);
-SGvoid setColor(int r, int g, int b);
-SGvoid setBfc(int bgc, int fgc);
-SGvoid setCharColor(char color, int x, int y);
-SGvoid setCharBgc(char color, int x, int y);
-SGvoid setCharFgc(char color, int x, int y);
-SGvoid clearScreen();
-SGvoid clearText();
-SGint putPixel(int x, int y);
-RGB getPixel(int x, int y);
-SGint getShort(int x, int y);
-SGvoid putLine(int x1, int y1, int x2, int y2, int mode);
-SGvoid putQuad(int x1, int y1, int x2, int y2, int mode);
-SGvoid putCircle(int xc, int yc, int r, int mode);
-SGvoid putEllipse(int xc, int yc, int a, int b, int mode);
-SGint getImage(int left, int top, int right, int bottom, bitMap *bitmap);
-SGvoid putImage(int left, int top, bitMap *bitmap, int op);
-SGint getText(int left, int top, int right, int bottom, textMap *text);
-SGvoid putText(int left, int top, textMap *text);
-SGint loadBmp(int x, int y, char *filename);
-SGvoid putString(char *str, int x, int y);
-SGvoid writeString(char *s, int x, int y);
-SGvoid floodFill(int x, int y, RGB c);
+SGint getWidth(int obj);
+SGint getHeight(int obj);
 SGvoid initKey();
 SGint biosKey(int cmd);
 SGvoid clearKeyBuffer();
@@ -226,18 +261,50 @@ vect getVect(int intn);
 SGint setVect(int intn, vect v);
 SGvoid dosInt(int intn, int *ret);
 SGvoid setFreq(float f);
-//SGvoid fullScreen();
 SGvoid showMouse();
 SGvoid hideMouse();
 SGvoid setMouse(int x, int y);
 SGvoid setActivePage(int page);
 SGvoid setVisualPage(int page);
+widgetObj *newWidget(int type, SGstring name);
+SGint registerWidget(widgetObj *obj);
+widgetObj *getWidgetByIndex(int index);
+widgetObj *getWidgetByName(char *name);
+SGvoid showWidget(char *name);
+SGvoid ceaseWidget(char *name);
+SGint deleteWidgetByIndex(int index);
+SGint deleteWidgetByName(char *name);
+
+SGvoid setColor(int r, int g, int b);
+SGvoid clearScreen();
+SGint putPixel(int x, int y);
+RGB getPixel(int x, int y);
+SGvoid putLine(int x1, int y1, int x2, int y2, int mode);
+SGvoid putQuad(int x1, int y1, int x2, int y2, int mode);
+SGvoid putCircle(int xc, int yc, int r, int mode);
+SGvoid putEllipse(int xc, int yc, int a, int b, int mode);
+SGint loadBmp(int x, int y, char *filename);
 SGvoid putNumber(int n, int x, int y, char lr);
 SGvoid putChar(char ch, int x, int y);
 SGvoid putChinese(byte *ch, int x, int y);
-SGvoid writeChar(char c, int x, int y);
+SGvoid putString(SGstring str, int x, int y);
+SGvoid putStringConstraint(SGstring str, int x, int y, int constraint);
+SGint getImage(int left, int top, int right, int bottom, bitMap *bitmap);
+SGvoid putImage(int left, int top, bitMap *bitmap, int op);
 SGint maskImage(int left, int top, bitMap *mask, bitMap *bitmap);
 SGvoid funcMap(int x1, int x2, int y1, int y2, float(*vect)(float x));
+SGvoid floodFill(int x, int y, RGB c);
+
+SGvoid setBfc(int bgc, int fgc);
+SGvoid clearText();
+SGvoid setCharColor(char color, int x, int y);
+SGvoid setCharBgc(char color, int x, int y);
+SGvoid setCharFgc(char color, int x, int y);
+SGint getShort(int x, int y);
+SGvoid writeChar(char c, int x, int y);
+SGvoid writeString(char *s, int x, int y);
+SGint getText(int left, int top, int right, int bottom, textMap *text);
+SGvoid putText(int left, int top, textMap *text);
 
 void sgSetup();
 void sgLoop();
