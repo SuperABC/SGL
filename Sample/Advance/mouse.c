@@ -93,7 +93,7 @@ void sgLoop() {
 		setColor(255, 255, 255);
 		clearScreen();
 		tmp = mousePos();
-		if (tmp.x < 0 || tmp.y<0 || tmp.x>Window->winWidth || tmp.y>Window->winHeight)return;
+		if (tmp.x < 0 || tmp.y<0 || tmp.x>getWidth(SG_WINDOW) || tmp.y>getHeight(SG_WINDOW))return;
 		first = 0;
 	}
 	else putImage(tmp.x, tmp.y, mouse->oldImage, COPY_PUT);
