@@ -21,6 +21,8 @@
 
 //SG const macros
 #define SG_PI 3.14159265358979323846
+#define SG_CHAR_WIDTH 8
+#define SG_CHAR_HEIGHT 16
 #define SG_QSIZE 32768
 
 //SG io macros
@@ -63,8 +65,40 @@ typedef struct {
 	GLint sizeX, sizeY;
 	unsigned char *data;
 }bitMap;
+typedef struct {
+	int width, height;
+	short *content;
+}textMap;
+
+struct _win {
+	int winWidth, winHeight;
+	int txtWidth, txtHeight;
+	char *winName;
+};
 
 //SG enums.
+enum _colors {
+	BLACK,
+	BLUE,
+	GREEN,
+	CYAN,
+	RED,
+	MAGENTA,
+	BROWN,
+	DARKGRAY,
+	LIGHTGRAY,
+	LIGHTBLUE,
+	LIGHTGREEN,
+	LIGHTCYAN,
+	LIGHTRED,
+	LIGHTMAGENTA,
+	YELLOW,
+	WHITE
+};
+enum _mode {
+	BIT_MAP,
+	TEXT_MAP
+};
 enum _ascii {
 	SG_TAB = '\t',
 	SG_ESC = 0x1b,
@@ -132,11 +166,6 @@ enum _errors {
 	SG_OUT_OF_RANGE = -7
 };
 
-struct _win {
-	int winWidth, winHeight;
-	char *winName;
-};
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -146,19 +175,28 @@ extern "C" {
 	void sgLoop();
 
 	//SG interfaces
-	SGvoid initWindow(int width, int height, char *title);
+	SGvoid initWindow(int width, int height, char *title, int mode);
 	SGvoid setColor(int r, int g, int b);
+	SGvoid setBfc(int bgc, int fgc);
+	SGvoid setCharColor(char color, int x, int y);
+	SGvoid setCharBgc(char color, int x, int y);
+	SGvoid setCharFgc(char color, int x, int y);
 	SGvoid clearScreen();
+	SGvoid clearText();
 	SGint putPixel(int x, int y);
 	RGB getPixel(int x, int y);
+	SGint getShort(int x, int y);
 	SGvoid putLine(int x1, int y1, int x2, int y2, int mode);
 	SGvoid putQuad(int x1, int y1, int x2, int y2, int mode);
 	SGvoid putCircle(int xc, int yc, int r, int mode);
 	SGvoid putEllipse(int xc, int yc, int a, int b, int mode);
 	SGint getImage(int left, int top, int right, int bottom, bitMap *bitmap);
 	SGvoid putImage(int left, int top, bitMap *bitmap, int op);
+	SGint getText(int left, int top, int right, int bottom, textMap *text);
+	SGvoid putText(int left, int top, textMap *text);
 	SGint loadBmp(int x, int y, char *filename);
 	SGvoid putString(char *str, int x, int y);
+	SGvoid writeString(char *s, int x, int y);
 	SGvoid floodFill(int x, int y, RGB c);
 	SGvoid initKey();
 	SGint biosKey(int cmd);
@@ -185,6 +223,7 @@ extern "C" {
 	SGvoid setVisualPage(int page);
 	SGvoid putNumber(int n, int x, int y, char lr);
 	SGvoid putChar(char ch, int x, int y);
+	SGvoid writeChar(char c, int x, int y);
 	SGint maskImage(int left, int top, bitMap *mask, bitMap *bitmap);
 	SGvoid funcMap(int x1, int x2, int y1, int y2, float(*vect)(int x));
 

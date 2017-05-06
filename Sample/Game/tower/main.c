@@ -4,7 +4,7 @@ tower *wall[81];
 opponent *mons[41];
 int pro, obj, maxFloor = 0;
 void sgSetup() {
-	initWindow(680, 520, "Magic tower --SGL Sample Game");
+	initWindow(680, 520, "Magic tower --SGL Sample Game", BIT_MAP);
 	loadWave("Source\\tower\\bgm.wav", SG_LOOP);
 	initKey();
 	initMouse(SG_COORDINATE);

@@ -1,7 +1,7 @@
-#include "screen.h"
+#include "sgl.h"
 #define MOUSE_SIZE 16 
 
-extern struct _win* Window;
+extern struct _win *Window;
 
 word mouseOut[] = {
 	/* 16 words of screen mask */
@@ -67,7 +67,7 @@ char *expand(word mask[16], int w, int h) {
 }
 
 void sgSetup() {
-	initWindow(640, 480, "SGL sample");
+	initWindow(640, 480, "SGL sample", BIT_MAP);
 
 	mouse = (struct m*)malloc(sizeof(struct m));
 	mouse->oldImage = (bitMap*)malloc(MOUSE_SIZE*MOUSE_SIZE * 3 * sizeof(char));
@@ -82,7 +82,7 @@ void sgSetup() {
 	hideMouse();
 }
 void sgLoop() {
-	static int first = 1;
+	static int first = 1, show = 0;
 	static vecTwo tmp;
 	if (first) {
 		setColor(255, 255, 255);
@@ -97,7 +97,10 @@ void sgLoop() {
 	putImage(tmp.x, tmp.y, mouse->out, AND_PUT);
 	putImage(tmp.x, tmp.y, mouse->in, OR_PUT);
 	if (biosKey(1)) {
-		exit(0);
+		if(biosKey(0)&0x8000)show = !show;
 	}
+	if (show)showMouse();
+	else hideMouse();
+	clearKeyBuffer();
 }
 
