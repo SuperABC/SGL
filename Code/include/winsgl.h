@@ -10,7 +10,7 @@
 
 //#pragma comment(lib, SG_LIB("winsgl"))
 #define _CRT_SECURE_NO_WARNINGS
-#define _SGL_V200
+#define _SGL_V211
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,6 +28,7 @@
 #define SG_PI 3.14159265358979323846
 #define SG_CHAR_WIDTH 8
 #define SG_CHAR_HEIGHT 16
+#define SG_LINE_DELTA_DEFAULT 20
 #define SG_QSIZE 32768
 
 //SG io macros
@@ -39,14 +40,16 @@
 #define SG_ACCURATE 0
 #define SG_COORDINATE 1
 
-#define SG_BUTTON_UP 0
-#define SG_BUTTON_DOWN 1
+#define SG_BUTTON_UP 0x80
+#define SG_BUTTON_DOWN 0x00
+#define SG_KEY_UP 0x80
+#define SG_KEY_DOWN 0x00
 
-#define SG_LEFT_BUTTON 1
-#define SG_RIGHT_BUTTON 2
-#define SG_MIDDLE_BUTTON 3
-#define SG_MIDDLE_BUTTON_UP 4
-#define SG_MIDDLE_BUTTON_DOWN 5
+#define SG_LEFT_BUTTON 0x01
+#define SG_RIGHT_BUTTON 0x02
+#define SG_MIDDLE_BUTTON 0x04
+#define SG_MIDDLE_BUTTON_UP 0x08
+#define SG_MIDDLE_BUTTON_DOWN 0x10
 
 #define SG_WINDOW 0
 #define SG_SCREEN 1
@@ -54,11 +57,13 @@
 #define WIDGET_BACK 0
 #define WIDGET_FRONT 1
 
-#define WIDGET_DEFAULT 0
-#define WIDGET_PASS 1
-#define WIDGET_PRESSED 2
-#define WIDGET_SELECTED 4
-#define WIDGET_FOCUSED 8
+#define WIDGET_DEFAULT 0x00
+#define WIDGET_PASS 0x01
+#define WIDGET_PRESSED 0x02
+#define WIDGET_SELECTED 0x04
+#define WIDGET_FOCUSED 0x08
+
+#define INRECT(x, y, xl, yl, xh, yh) (((x)>=(xl))&&((x)<=(xh))&&((y)>=(yl))&&((y)<=(yh)))
 
 //SG enums.
 enum _colors {
@@ -143,9 +148,10 @@ enum _control {
 	SG_DIALOG,
 	SG_OUTPUT,
 	SG_LIST,
+	SG_LABEL,
 	SG_CHECK,
 	SG_PROCESS,
-	SG_MOUSE
+	SG_OPTION
 };
 enum _style {
 	SG_DESIGN,
@@ -193,7 +199,7 @@ typedef struct {
 	int x, y, m;
 }vecThree;
 typedef struct {
-	int r, g, b;
+	byte r, g, b;
 }RGB;
 typedef struct {
 	int sizeX, sizeY;
@@ -203,7 +209,7 @@ typedef struct {
 	int width, height;
 	short *content;
 }textMap;
-typedef struct {
+typedef struct _w{
 	enum control type;
 
 	vecTwo pos;
@@ -221,6 +227,7 @@ typedef struct {
 	SGstring helpMessage;
 
 	bitMap *cover;
+	struct _w *associate;
 
 	mouseMoveCall mouseIn, mouseOut;
 	mouseClickCall mouseDown, mouseUp, mouseClick;
@@ -236,9 +243,18 @@ extern "C" {
 //Widget callbacks.
 void vectDefault(void);
 void mouseMoveDefault(widgetObj *w, int x, int y);
+void mouseMoveList(widgetObj *w, int x, int y);
+void mouseMoveOption(widgetObj *w, int x, int y);
 void mouseClickDefault(widgetObj *w, int x, int y, int status);
 void mouseClickInput(widgetObj *w, int x, int y, int status);
+void mouseClickDialog(widgetObj *w, int x, int y, int status);
+void mouseClickList(widgetObj *w, int x, int y, int status);
+void mouseClickCheck(widgetObj *w, int x, int y, int status);
+void mouseClickProcess(widgetObj *w, int x, int y, int status);
+void mouseClickOption(widgetObj *w, int x, int y, int status);
 void keyDefault(widgetObj *w, int key);
+void keyInput(widgetObj *w, int key);
+void keyList(widgetObj *w, int key);
 
 //SG interfaces
 SGvoid initWindow(int width, int height, char *title, int mode);
@@ -281,6 +297,7 @@ SGint putPixel(int x, int y);
 RGB getPixel(int x, int y);
 SGvoid putLine(int x1, int y1, int x2, int y2, int mode);
 SGvoid putQuad(int x1, int y1, int x2, int y2, int mode);
+SGvoid putTriangle(int x1, int y1, int x2, int y2, int x3, int y3, int mode);
 SGvoid putCircle(int xc, int yc, int r, int mode);
 SGvoid putEllipse(int xc, int yc, int a, int b, int mode);
 SGint loadBmp(int x, int y, char *filename);
@@ -288,7 +305,7 @@ SGvoid putNumber(int n, int x, int y, char lr);
 SGvoid putChar(char ch, int x, int y);
 SGvoid putChinese(byte *ch, int x, int y);
 SGvoid putString(SGstring str, int x, int y);
-SGvoid putStringConstraint(SGstring str, int x, int y, int constraint);
+SGint putStringConstraint(SGstring str, int x, int y, int constraint);
 SGint getImage(int left, int top, int right, int bottom, bitMap *bitmap);
 SGvoid putImage(int left, int top, bitMap *bitmap, int op);
 SGint maskImage(int left, int top, bitMap *mask, bitMap *bitmap);
