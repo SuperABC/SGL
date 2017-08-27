@@ -19,20 +19,20 @@ void sgLoop() {
 		setColor(255, 255, 255);
 		putQuad(x, y, x + 19, y + 19, SOLID_FILL);
 		switch (key) {
-		case SG_UP | 0x8000:
-		case 'w' | 0x8000:
+		case SG_UP:
+		case 'w':
 			if (y >= 20)y -= 20;
 			break;
-		case SG_DOWN | 0x8000:
-		case 's' | 0x8000:
+		case SG_DOWN:
+		case 's':
 			if (y <= 440)y += 20;
 			break;
-		case SG_LEFT | 0x8000:
-		case 'a' | 0x8000:
+		case SG_LEFT:
+		case 'a':
 			if (x >= 20)x -= 20;
 			break;
-		case SG_RIGHT | 0x8000:
-		case 'd' | 0x8000:
+		case SG_RIGHT:
+		case 'd':
 			if (x <= 600)x += 20;
 			break;
 		}

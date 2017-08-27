@@ -3,6 +3,7 @@
 void sgSetup() {
 	initWindow(640, 480, "SGL Sample", BIT_MAP);
 	initKey();
+	setFontSize(20);
 }
 void sgLoop() {
 	int key;
@@ -15,8 +16,8 @@ void sgLoop() {
 		setColor(255, 255, 255);
 		putQuad(0, 460, 639, 479, SOLID_FILL);
 		setColor(0, 0, 0);
-		if (key & 0x8000)putString("Up", 0, 462);
-		else putString("Down", 0, 462);
+		if (key & 0x8000)putString("Up", 0, 458);
+		else putString("Down", 0, 458);
 		putNumber(key & 0x7FFF, 80, 462, 'l');
 		if((key & 0x7FFF) < 256)putChar(key & 0x7FFF, 160, 462);
 	}

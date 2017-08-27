@@ -252,12 +252,12 @@ void name() {
 				n = 0;
 			}
 			break;
-		case SG_BACKS | 0x8000:
+		case SG_BACKS:
 			if (n) name[--n] = '\0';
 			break;
 		default:
 			if (n > 12)return;
-			if (key > (31 | 0x8000) && key < (128 | 0x8000)) {
+			if ((key & 0x8000) == 0&&(key & 0x7FFF) > 31 && (key & 0x7FFF) < 128) {
 				name[n++] = key;
 				name[n] = '\0';
 			}
@@ -287,12 +287,12 @@ void playing() {
 	if (biosKey(1)) {
 		key = biosKey(0);
 		switch (key) {
-		case SG_ESC | 0x8000:
-		case 'p'| 0x8000:
+		case SG_ESC:
+		case 'p':
 			pro = PAUSE;
 			first = 1;
 			return;
-		case SG_UP | 0x8000:
+		case SG_UP:
 			if (player->y != 1) {
 				if (up())first = 1;
 			}
@@ -301,7 +301,7 @@ void playing() {
 				showPlayer(player->x, player->y, player->face);
 			}
 			break;
-		case SG_DOWN | 0x8000:
+		case SG_DOWN:
 			if (player->y != 11) {
 				if (down())first = 1;
 			}
@@ -310,7 +310,7 @@ void playing() {
 				showPlayer(player->x, player->y, player->face);
 			}
 			break;
-		case SG_LEFT | 0x8000:
+		case SG_LEFT:
 			if (player->x != 1) {
 				if (left())first = 1;
 			}
@@ -319,7 +319,7 @@ void playing() {
 				showPlayer(player->x, player->y, player->face);
 			}
 			break;
-		case SG_RIGHT | 0x8000:
+		case SG_RIGHT:
 			if (player->x != 11) {
 				if (right())first = 1;
 			}
@@ -328,31 +328,31 @@ void playing() {
 				showPlayer(player->x, player->y, player->face);
 			}
 			break;
-		case 's'| 0x8000:
+		case 's':
 			pro = SAVE;
 			first = 1;
 			break;
-		case 'u' | 0x8000:
-			//if (player->box[4]&&player->floor < maxFloor) {
+		case 'u':
+			if (player->box[4]&&player->floor < maxFloor) {
 				player->floor++;
 				player->x = wall[player->floor]->upx;
 				player->y = wall[player->floor]->upy;
 				first = 1;
-			//}
+			}
 			break;
-		case 'd'|0x8000:
-			//if (player->box[4] && player->floor) {
+		case 'd':
+			if (player->box[4] && player->floor) {
 				player->floor--;
 				player->x = wall[player->floor]->downx;
 				player->y = wall[player->floor]->downy;
 				first = 1;
-			//}
+			}
 			break;
-		case 'f'|0x8000:
-			//if (player->box[3]) {
+		case 'f':
+			if (player->box[3]) {
 				pro = DICTION;
 				first = 1;
-			//}
+			}
 		default:
 			break;
 		}

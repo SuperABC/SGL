@@ -56,15 +56,15 @@ void layoutWidget() {
 	Process->pos.y = 160;
 	Process->size.x = 320;
 	Process->size.y = 168;
-	strcpy(Process->content, "加载中…");
+	strcpy(Process->content, "加载中...");
 	registerWidget(Process);
 	free(Process);
 
 	Option = newWidget(SG_OPTION, "Option");
 	Option->size.x = 160;
-	Option->hide = 2;
-	memcpy(Option->content, "确定\0取消", 10);
-	Option->associate = getWidgetByName("Load");
+	Option->hide = 5;
+	memcpy(Option->content, "清空\0剪切\0复制\0粘贴\0撤销", 25);
+	Option->associate = getWidgetByName("Input");
 	registerWidget(Option);
 	free(Option);
 }
