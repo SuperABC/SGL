@@ -55,6 +55,7 @@ void layoutWidget() {
 	Input->pos.y = 420;
 	Input->size.x = 480;
 	Input->size.y = 24;
+	Input->associate = getWidgetByName("Button1");
 	strcpy(Input->content, "");
 	registerWidget(Input);
 	free(Input);
@@ -64,6 +65,7 @@ void layoutWidget() {
 	Input->pos.y = 380;
 	Input->size.x = 480;
 	Input->size.y = 24;
+	Input->associate = getWidgetByName("Button2");
 	strcpy(Input->content, "");
 	registerWidget(Input);
 	free(Input);
@@ -73,6 +75,7 @@ void layoutWidget() {
 	Input->pos.y = 340;
 	Input->size.x = 480;
 	Input->size.y = 24;
+	Input->associate = getWidgetByName("Button3");
 	strcpy(Input->content, "");
 	registerWidget(Input);
 	free(Input);
@@ -81,7 +84,7 @@ void layoutWidget() {
 	Dialog->pos.x = 160;
 	Dialog->pos.y = 160;
 	Dialog->size.x = 320;
-	Dialog->size.y = 160;
+	Dialog->size.y = 168;
 	strcpy(Dialog->content, "成功弹出对话框！");
 	registerWidget(Dialog);
 }

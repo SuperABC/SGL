@@ -31,6 +31,7 @@ void layoutWidget() {
 	Input->pos.y = 420;
 	Input->size.x = 480;
 	Input->size.y = 24;
+	Input->associate = getWidgetByName("Button");
 	strcpy(Input->content, "");
 	registerWidget(Input);
 	free(Input);
