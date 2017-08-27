@@ -12,11 +12,8 @@ void sgLoop() {
 	putQuad(240, 80, 320, 160, EMPTY_FILL);
 	putCircle(120, 280, 40, EMPTY_FILL);
 	putEllipse(280, 280, 40, 80, SOLID_FILL);
-	putLine(80, 400, 320, 400, 0);
+	putLine(80, 400, 320, 400, SOLID_LINE);
 
-	putLine(400, 80, 480, 80, 0);
-	putLine(440, 400, 480, 80, 0);
-	putLine(400, 80, 440, 400, 0);
 	setColor(255, 255, 0);
-	floodFill(440, 81, p);
+	putTriangle(400, 80, 480, 80, 440, 400, SOLID_FILL);
 }
