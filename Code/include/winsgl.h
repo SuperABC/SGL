@@ -194,6 +194,9 @@ enum _font {
 	FONT_UNDERLINE = 2,
 	FONT_STRIKEOUT = 4
 };
+enum _alert {
+
+};
 enum _errors { //Different return values when error occurs.
 	SG_NO_ERORR = 0,
 	SG_OBJECT_NOT_FOUND = -1,
@@ -255,6 +258,12 @@ typedef struct {
 	int width, height;
 	short *content;
 }textMap;
+typedef struct {
+	RGB color;
+	int size;
+	LPWSTR name;
+	int coeff;
+}font;
 typedef struct _w{
 	enum _control type;
 
@@ -312,6 +321,7 @@ void mouseClickOption(widgetObj *w, int x, int y, int status);
 void keyDefault(widgetObj *w, int key);
 void keyInput(widgetObj *w, int key);
 void keyList(widgetObj *w, int key);
+void keyOption(widgetObj *w, int key);
 /* Used when keyboard pressed. Parameter w for the widget object,
  * key for the ascii or the key code of the pressed key. */
 
@@ -413,6 +423,32 @@ SGvoid setVisualPage(int page);
 SGint bmpMemory(bitMap *obj, char *filename);
 /* Load bmp to a bitMap struct other than showing it on screen. */
 
+SGint selectFile(char name[], char start[], char format[]);
+/* Use Win API Graphic mode to choose one file. Parameter name
+* is used to receive the selected file name with its path, and start
+* is the path to begin with so set it to NULL as default. Parameter
+* format is the probable file format and each format is seperated
+* with \0, and it's set to NULL as default as well.*/
+
+SGint selectSave(char name[], char start[], char format[]);
+/* Use Win API Graphic mode to let user input the file name that
+* they want to save. Parameter name is used to receive the input
+* file name with its path, and start is the path to begin with so set
+* it to NULL as default. Parameter format is the probable file
+* format and each format is seperated with \0, and it's set to NULL
+* as default as well.*/
+
+SGint selectDir(char name[], char start[]);
+/* Use Win API Graphic mode to choose one directory. Parameter
+* name is used to receive the selected directory name with its
+* path, and start is the path to begin with so set it to NULL as
+* default. */
+
+SGvoid alertInfo(char *info, char *title, int mode);
+/* Create a new dialog to show or confirm some information.
+* Parameter info is the text while title is title, and mode is one
+* of the enums in _alert. */
+
 widgetObj *newWidget(int type, SGstring name);
 /* Returns a widget with default parameter. */
 
@@ -511,7 +547,7 @@ SGvoid putChar(char ch, int x, int y);
 SGvoid putString(Cstring str, int x, int y);
 /* Draw one string str on the screen of position (x, y). */
 
-SGint putStringConstraint(Cstring str, int x, int y, int constraint);
+SGint putStringConstraint(Cstring str, int x, int y, int start, int constraint);
 /* Draw one string str on the screen of position (x, y) with maximum
  * length constraint. */
 
