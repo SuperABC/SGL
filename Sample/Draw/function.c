@@ -1,9 +1,9 @@
 #include "winsgl.h"
 
 float f(float x) {
-	//return 20*sinf(x/4)+50;
+	return 20*sinf(x/4)+50;
 	//return sqrt(900-x*x);
-	return x*x - 80 * x + 1600;
+	//return x*x - 80 * x + 1600;
 }
 
 void sgSetup() {
