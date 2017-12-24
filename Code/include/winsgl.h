@@ -23,6 +23,7 @@
 #define SG_A(name) name ".a"
 
 //#pragma comment(lib, SG_LIB("winsgl"))
+#pragma comment(lib, "winmm.lib")
 #define _CRT_SECURE_NO_WARNINGS
 #define _SGL_V211
 
@@ -48,14 +49,9 @@
 #define SG_QSIZE 32768
 #define SG_MAX_FONT_SIZE 128
 #define SG_MAX_FONT_LENGTH 128
-
+#define SG_MAX_MENU_ITEM_NUM 128
 
 //SG io macros
-
-#define SG_SND_LOOP SND_LOOP
-#define SG_SND_NOSTOP SND_NOSTOP
-#define SG_SND_PURGE SND_PURGE
-#define SG_SND_ONCE NULL
 
 #define SG_ACCURATE 0
 #define SG_COORDINATE 1
@@ -195,6 +191,27 @@ enum _font {
 	FONT_STRIKEOUT = 4
 };
 enum _alert {
+	ALERT_BUTTON_ABORTRETRYIGNORE = MB_ABORTRETRYIGNORE,
+	ALERT_BUTTON_OK = MB_OK,
+	ALERT_BUTTON_OKCANCEL = MB_OKCANCEL,
+	ALERT_BUTTON_RETRYCANCEL = MB_RETRYCANCEL,
+	ALERT_BUTTON_YESNO = MB_YESNO,
+	ALERT_BUTTON_YESNOCANCEL = MB_YESNOCANCEL,
+
+	ALERT_ICON_EXCLAMATION = MB_ICONEXCLAMATION,
+	ALERT_ICON_WARNING = MB_ICONWARNING,
+	ALERT_ICON_INFORMATION = MB_ICONINFORMATION,
+	ALERT_ICON_ASTERISK = MB_ICONASTERISK,
+	ALERT_ICON_QUESTION = MB_ICONQUESTION,
+	ALERT_ICON_STOP = MB_ICONSTOP,
+	ALERT_ICON_ERROR = MB_ICONERROR,
+	ALERT_ICON_HAND = MB_ICONHAND,
+
+	ALERT_SYS_APPL = MB_APPLMODAL,
+	ALERT_SYS_SYSTEM = MB_SYSTEMMODAL,
+	ALERT_SYS_TASK = MB_TASKMODAL,
+};
+enum _instrument {
 
 };
 enum _errors { //Different return values when error occurs.
@@ -304,6 +321,7 @@ void vectDefault(void);
 void mouseMoveDefault(widgetObj *w, int x, int y);
 void mouseMoveList(widgetObj *w, int x, int y);
 void mouseMoveOption(widgetObj *w, int x, int y);
+void mouseMoveDrag(widgetObj *w, int x, int y);
 /* Used when the cursor moves no matter in or out of the widgets.
  * Parameter w for the widget object, x and y for the coordinate. */
 
@@ -314,6 +332,7 @@ void mouseClickList(widgetObj *w, int x, int y, int status);
 void mouseClickCheck(widgetObj *w, int x, int y, int status);
 void mouseClickProcess(widgetObj *w, int x, int y, int status);
 void mouseClickOption(widgetObj *w, int x, int y, int status);
+void mouseClickDrag(widgetObj *w, int x, int y, int status);
 /* Used when mouse clicked no matter in or out of the widgets.
  * Parameter w for the widget object, x and y for the coordinate.
  * status to represent which button and whether press or release. */
@@ -375,6 +394,31 @@ vecThree biosMouse(int cmd);
 
 SGvoid clearMouseBuffer();
 /* Delete all mouse events before current time. */
+
+SGint initMidi();
+/* Make midi output device active so that digital music can be
+ * played by SGL program. */
+
+SGvoid changeInstrument(int in);
+/* Change current instrument to parameter in which is enumed
+ * in _instrument. */
+
+SGvoid playMidi(int tune, int volume, int sw);
+/* Play one midi note with tune and volume. Parameter sw is set
+ * to 1 if it's switched on and 0 if it's switched off.*/
+
+SGint playMidiFile(char *filename);
+/* Play the midi file with name filename. The return value is the
+ * music id. */
+
+SGvoid stopMidiFile(int id);
+/* Stop the playing midi music with its id. */
+
+SGvoid pauseMidiFile(int id);
+/* Pause the playing midi music with its id. */
+
+SGvoid resumeMidiFile(int id);
+/* Resume the paused midi music with its id. */
 
 SGvoid delay(int t);
 /* Wait for t millisecond. During the time the window won't refresh. */
@@ -448,6 +492,40 @@ SGvoid alertInfo(char *info, char *title, int mode);
 /* Create a new dialog to show or confirm some information.
 * Parameter info is the text while title is title, and mode is one
 * of the enums in _alert. */
+
+SGvoid initMenu();
+/* Allow this program to use windows menus. */
+
+SGint addMenuList(char *title, int id);
+/* Add a new list of name title into the main menu if parameter
+ * id is 0, or else into the sublist of the given id. The return value is
+ * the list id.*/
+
+SGint addMenuItem(char *title, int id, void(*func)());
+/* Add a new item of name title into the main menu if parameter
+ * id is 0, or else into the sublist of the given id. The parameter func
+ * is the callback function which means that it will be called after
+ * the user click the item. */
+
+SGint enableItem(int id);
+/* Make the item or menu of id enabled. That is, it can be clicked. */
+
+SGint disableItem(int id);
+/* Make the item or menu of id disabled. That is, it can't be clicked.*/
+
+SGvoid checkItem(int id);
+/* Make the item of id checked with a tick on the left.*/
+
+SGvoid uncheckItem(int id);
+/* Make the item of id unchecked and clear the tick on the left.*/
+
+SGint copyText(char *src);
+/* Copy the given text into windows clipboard so that it can be pasted
+ * to other programs. */
+
+SGstring pasteText();
+/* Return the text in clipboard. The return string need to be freed by
+ * the programmer. */
 
 widgetObj *newWidget(int type, SGstring name);
 /* Returns a widget with default parameter. */
