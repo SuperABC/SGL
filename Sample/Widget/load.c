@@ -1,6 +1,7 @@
 #include "winsgl.h"
 
 int loading = 0;
+char *clipboard;
 
 void buttonLoad(widgetObj *w, int x, int y, int status) {
 	mouseClickDefault(w, x, y, status);
@@ -10,12 +11,36 @@ void buttonLoad(widgetObj *w, int x, int y, int status) {
 		loading = 1;
 	}
 }
+void optionChoose(widgetObj *w, int x, int y, int status) {
+	mouseClickOption(w, x, y, status);
+	if (status&SG_LEFT_BUTTON && status & SG_BUTTON_UP) {
+		widgetObj *tmp = getWidgetByName("Input");
+		switch (w->value) {
+		case 0:
+			strcpy(tmp->content, "");
+			break;
+		case 1:
+			strcpy(clipboard, tmp->content);
+			strcpy(tmp->content, "");
+			break;
+		case 2:
+			strcpy(clipboard, tmp->content);
+			break;
+		case 3:
+			strcpy(tmp->content, clipboard);
+			break;
+		case 4:
+			break;
+		}
+	}
+}
 void load() {
 	if (++getWidgetByName("Process")->value == 100) {
 		loading = 0;
 		ceaseWidget("Process");
 	}
 }
+
 void layoutWidget() {
 	widgetObj *Button;
 	widgetObj *Input;
@@ -65,6 +90,7 @@ void layoutWidget() {
 	Option->hide = 5;
 	memcpy(Option->content, "Çå¿Õ\0¼ôÇÐ\0¸´ÖÆ\0Õ³Ìù\0³·Ïú", 25);
 	Option->associate = getWidgetByName("Input");
+	Option->mouseClick = optionChoose;
 	registerWidget(Option);
 	free(Option);
 }
@@ -74,6 +100,7 @@ void sgSetup() {
 	initMouse(SG_COORDINATE);
 	initKey();
 	layoutWidget();
+	clipboard = malloc(100 * sizeof(char));
 }
 void sgLoop() {
 	if (loading)

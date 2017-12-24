@@ -26,7 +26,7 @@ void layoutWidget() {
 	Button->size.x = 60;
 	Button->size.y = 24;
 	Button->mouseClick = createDialog;
-	strcpy(Button->content, "确认");
+	strcpy(Button->content, "确 认");
 	registerWidget(Button);
 	free(Button);
 
@@ -36,7 +36,7 @@ void layoutWidget() {
 	Button->size.x = 60;
 	Button->size.y = 24;
 	Button->mouseClick = createDialog;
-	strcpy(Button->content, "确认");
+	strcpy(Button->content, "确 认");
 	registerWidget(Button);
 	free(Button);
 
@@ -46,7 +46,7 @@ void layoutWidget() {
 	Button->size.x = 60;
 	Button->size.y = 24;
 	Button->mouseClick = createDialog;
-	strcpy(Button->content, "确认");
+	strcpy(Button->content, "确 认");
 	registerWidget(Button);
 	free(Button);
 
@@ -76,7 +76,7 @@ void layoutWidget() {
 	Input->size.x = 480;
 	Input->size.y = 24;
 	Input->associate = getWidgetByName("Button3");
-	strcpy(Input->content, "");
+	strcpy(Input->content, "abcd");
 	registerWidget(Input);
 	free(Input);
 
