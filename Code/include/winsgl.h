@@ -351,7 +351,7 @@ void keyOption(widgetObj *w, int key);
  * for advanced graphic programming and for SG Creater to use.
  */
 
-SGvoid initWindow(int width, int height, char *title, int mode);
+SGvoid initWindow(int width, int height, const char *title, int mode);
 /* Used in sgSetup(), to set the parameters of the graphic window.
  * Actually this function just set the variables, the real window will
  * be created before sgLoop(). */
@@ -407,7 +407,7 @@ SGvoid playMidi(int tune, int volume, int sw);
 /* Play one midi note with tune and volume. Parameter sw is set
  * to 1 if it's switched on and 0 if it's switched off.*/
 
-SGint playMidiFile(char *filename);
+SGint playMidiFile(const char *filename);
 /* Play the midi file with name filename. The return value is the
  * music id. */
 
@@ -419,6 +419,14 @@ SGvoid pauseMidiFile(int id);
 
 SGvoid resumeMidiFile(int id);
 /* Resume the paused midi music with its id. */
+
+SGvoid createThread(vect func);
+/* Create a thread with function func which means that the new thread
+  * will start running with func. */
+
+SGvoid timerThread(vect func, int millis, int time);
+/* Create a timer using multy thread. Parameter func is the timer function,
+ * millis is the interval */
 
 SGvoid delay(int t);
 /* Wait for t millisecond. During the time the window won't refresh. */
@@ -464,7 +472,7 @@ SGvoid setActivePage(int page);
 SGvoid setVisualPage(int page);
 /* Choose which page is now showing. */
 
-SGint bmpMemory(bitMap *obj, char *filename);
+SGint bmpMemory(bitMap *obj, const char *filename);
 /* Load bmp to a bitMap struct other than showing it on screen. */
 
 SGint selectFile(char name[], char start[], char format[]);
@@ -488,7 +496,7 @@ SGint selectDir(char name[], char start[]);
 * path, and start is the path to begin with so set it to NULL as
 * default. */
 
-SGvoid alertInfo(char *info, char *title, int mode);
+SGvoid alertInfo(const char *info, const char *title, int mode);
 /* Create a new dialog to show or confirm some information.
 * Parameter info is the text while title is title, and mode is one
 * of the enums in _alert. */
@@ -496,16 +504,19 @@ SGvoid alertInfo(char *info, char *title, int mode);
 SGvoid initMenu();
 /* Allow this program to use windows menus. */
 
-SGint addMenuList(char *title, int id);
+SGint addMenuList(const char *title, int id);
 /* Add a new list of name title into the main menu if parameter
  * id is 0, or else into the sublist of the given id. The return value is
  * the list id.*/
 
-SGint addMenuItem(char *title, int id, void(*func)());
+SGint addMenuItem(const char *title, int id, void(*func)());
 /* Add a new item of name title into the main menu if parameter
  * id is 0, or else into the sublist of the given id. The parameter func
  * is the callback function which means that it will be called after
  * the user click the item. */
+
+SGint addMenuSeparator(int id);
+/* Add a separate line in the list with given id. */
 
 SGint enableItem(int id);
 /* Make the item or menu of id enabled. That is, it can be clicked. */
@@ -519,7 +530,7 @@ SGvoid checkItem(int id);
 SGvoid uncheckItem(int id);
 /* Make the item of id unchecked and clear the tick on the left.*/
 
-SGint copyText(char *src);
+SGint copyText(const char *src);
 /* Copy the given text into windows clipboard so that it can be pasted
  * to other programs. */
 
@@ -540,23 +551,23 @@ SGint inWidget(widgetObj *obj, int x, int y);
 widgetObj *getWidgetByIndex(int index);
 /* Returns the widget pointer with the given index. */
 
-widgetObj *getWidgetByName(char *name);
+widgetObj *getWidgetByName(const char *name);
 /* Returns the widget pointer with the given name. */
 
-int getIndexByName(char *name);
+int getIndexByName(const char *name);
 /* Returns the index of the widget in system list with the
  * given parameter name. */
 
-SGvoid showWidget(char *name);
+SGvoid showWidget(const char *name);
 /* Make the widget of name visible. */
 
-SGvoid ceaseWidget(char *name);
+SGvoid ceaseWidget(const char *name);
 /* Make the widget of name disvisible. */
 
 SGint deleteWidgetByIndex(int index);
 /* Delete the widget with the given index. */
 
-SGint deleteWidgetByName(char *name);
+SGint deleteWidgetByName(const char *name);
 /* Delete the widget with the given name. */
 
 
@@ -610,7 +621,7 @@ SGvoid putEllipse(int xc, int yc, int a, int b, int mode);
 /* Draw a circle with centre (xc, yc) and axis a and b of currrent
  * color with the given mode showed in enum list. */
 
-SGint loadBmp(int x, int y, char *filename);
+SGint loadBmp(int x, int y, const char *filename);
 /* Put a bmp picture on the screen with top-left corner (x, y). */
 
 SGvoid putNumber(int n, int x, int y, char lr);
@@ -624,6 +635,10 @@ SGvoid putChar(char ch, int x, int y);
 
 SGvoid putString(Cstring str, int x, int y);
 /* Draw one string str on the screen of position (x, y). */
+
+SGvoid putStringFormat(Cstring str, int x, int y, ...);
+/* Draw one string str on the screen of position (x, y) with format
+ * controling. */
 
 SGint putStringConstraint(Cstring str, int x, int y, int start, int constraint);
 /* Draw one string str on the screen of position (x, y) with maximum
@@ -698,7 +713,7 @@ SGint getShort(int x, int y);
 SGvoid writeChar(char c, int x, int y);
 /* Put down one character c with current color at (x, y). */
 
-SGvoid writeString(char *s, int x, int y);
+SGvoid writeString(const char *s, int x, int y);
 /* Put down one string s with current color at (x, y). */
 
 SGint getText(int left, int top, int right, int bottom, textMap *text);
