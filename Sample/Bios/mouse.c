@@ -1,9 +1,9 @@
 #include "winsgl.h"
-#define DRAG
+#define CLICK
 
 void sgSetup() {
 	initWindow(640, 480, "SGL sample", BIT_MAP);
-	initMouse(SG_ACCURATE);
+	initMouse(SG_COORDINATE);
 }
 void sgLoop() {
 
@@ -20,7 +20,7 @@ void sgLoop() {
 #ifdef DRAG
 	vecTwo v;
 	setColor(0, 0, 0);
-	if (mouseStatus(SG_LEFT_BUTTON)) {
+	if (!mouseStatus(SG_LEFT_BUTTON)) {
 		v = mousePos();
 		putCircle(v.x, v.y, 10, SOLID_FILL);
 	}
