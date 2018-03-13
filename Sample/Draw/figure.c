@@ -4,9 +4,6 @@ void sgSetup() {
 	initWindow(640, 480, "SGL sample", BIT_MAP);
 }
 void sgLoop() {
-	RGB p;
-	p.r = p.g = p.b = 0;
-
 	setColor(0, 0, 0);
 	putQuad(80, 80, 160, 160, SOLID_FILL);
 	putQuad(240, 80, 320, 160, EMPTY_FILL);
