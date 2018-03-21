@@ -87,6 +87,7 @@ void layoutWidget() {
 	Dialog->size.y = 168;
 	strcpy(Dialog->content, "成功弹出对话框！");
 	registerWidget(Dialog);
+	free(Dialog);
 }
 
 void sgSetup() {
