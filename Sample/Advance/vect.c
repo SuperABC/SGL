@@ -8,12 +8,12 @@ int num = 0, numx = 0, numy = 0;
 
 void sgSetup() {
 	initWindow(640, 480, "SGL Sample", BIT_MAP);
-	initKey();
+	//initKey();
 	setFreq(1.f);
 
-	vk = getVect(9);
-	vt = getVect(8);
-	setVect(9, vectKey);
+	//vk = getVect(9);
+	//vt = getVect(8);
+	//setVect(9, vectKey);
 	setVect(8, vectTime);
 }
 void sgLoop() {

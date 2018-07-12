@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016-2017, Super GP Individual.
+ * Copyright (c) 2016-2018, Super GP Individual.
  * All Rights Reserved.
  *
  * Permission to use, copy, modify, and distribute this library for any
@@ -24,8 +24,10 @@
 
 //#pragma comment(lib, SG_LIB("winsgl"))
 #pragma comment(lib, "winmm.lib")
+#pragma comment(lib, "ws2_32.lib")
 #define _CRT_SECURE_NO_WARNINGS
-#define _SGL_V211
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+#define _SGL_V302
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,6 +35,7 @@
 #include <time.h>
 #include <string.h>
 #include <windows.h>
+#include <winsock.h>
 
 #ifdef __cplusplus
 #include <iostream>
@@ -50,6 +53,9 @@
 #define SG_MAX_FONT_SIZE 128
 #define SG_MAX_FONT_LENGTH 128
 #define SG_MAX_MENU_ITEM_NUM 128
+#define SG_MAX_CONNECTION 64
+#define SG_MCI_BUFFER_SIZE 256
+#define SG_MCI_MAX_NUM 256
 
 //SG io macros
 
@@ -80,6 +86,12 @@
 #define WIDGET_FOCUSED 0x08
 
 #define INRECT(x, y, xl, yl, xh, yh) (((x)>=(xl))&&((x)<=(xh))&&((y)>=(yl))&&((y)<=(yh)))
+
+#ifdef UNICODE
+#define SGWINSTR  LPWSTR
+#else
+#define SGWINSTR  LPCSTR
+#endif
 
 
 //SG enums.
@@ -170,7 +182,9 @@ enum _control { //Types of widget.
 	SG_CHECK,
 	SG_PROCESS,
 	SG_OPTION,
-	SG_DRAG
+	SG_DRAG,
+	SG_SCROLLVERT,
+	SG_SCROLLHORIZ
 };
 enum _style { //Styles of widget.
 	SG_DESIGN,
@@ -212,7 +226,7 @@ enum _alert {
 	ALERT_SYS_TASK = MB_TASKMODAL,
 };
 enum _instrument {
-
+	MIDI_PIANO
 };
 enum _errors { //Different return values when error occurs.
 	SG_NO_ERORR = 0,
@@ -225,7 +239,9 @@ enum _errors { //Different return values when error occurs.
 	SG_OUT_OF_RANGE = -7,
 	SG_NULL_POINTER = -8,
 	SG_INCOMPLETE_STRUCT = -9,
-	SG_MULTY_VALUE = -10
+	SG_MULTY_VALUE = -10,
+	SG_CONNECTION_FAILED = -11,
+	SG_MEDIA_ERROR = -12
 };
 
 
@@ -278,7 +294,7 @@ typedef struct {
 typedef struct {
 	RGB color;
 	int size;
-	LPWSTR name;
+	SGWINSTR name;
 	int coeff;
 }font;
 typedef struct _w{
@@ -296,10 +312,13 @@ typedef struct _w{
 	int value;
 	SGstring name;
 	SGstring content;
-	SGstring helpMessage;
-
 	bitMap *cover;
 	struct _w *associate;
+
+	SGstring tip;
+	vecTwo tipPos, tipSize;
+	mouseMoveCall showTip;
+	bitMap *tipCover;
 
 	mouseMoveCall mouseIn, mouseOut;
 	mouseClickCall mouseDown, mouseUp, mouseClick;
@@ -322,6 +341,8 @@ void mouseMoveDefault(widgetObj *w, int x, int y);
 void mouseMoveList(widgetObj *w, int x, int y);
 void mouseMoveOption(widgetObj *w, int x, int y);
 void mouseMoveDrag(widgetObj *w, int x, int y);
+void mouseMoveScrollVert(widgetObj *w, int x, int y);
+void mouseMoveScrollHoriz(widgetObj *w, int x, int y);
 /* Used when the cursor moves no matter in or out of the widgets.
  * Parameter w for the widget object, x and y for the coordinate. */
 
@@ -333,6 +354,8 @@ void mouseClickCheck(widgetObj *w, int x, int y, int status);
 void mouseClickProcess(widgetObj *w, int x, int y, int status);
 void mouseClickOption(widgetObj *w, int x, int y, int status);
 void mouseClickDrag(widgetObj *w, int x, int y, int status);
+void mouseClickScrollVert(widgetObj *w, int x, int y, int status);
+void mouseClickScrollHoriz(widgetObj *w, int x, int y, int status);
 /* Used when mouse clicked no matter in or out of the widgets.
  * Parameter w for the widget object, x and y for the coordinate.
  * status to represent which button and whether press or release. */
@@ -341,6 +364,8 @@ void keyDefault(widgetObj *w, int key);
 void keyInput(widgetObj *w, int key);
 void keyList(widgetObj *w, int key);
 void keyOption(widgetObj *w, int key);
+void keyScrollVert(widgetObj *w, int key);
+void keyScrollHoriz(widgetObj *w, int key);
 /* Used when keyboard pressed. Parameter w for the widget object,
  * key for the ascii or the key code of the pressed key. */
 
@@ -419,6 +444,25 @@ SGvoid pauseMidiFile(int id);
 
 SGvoid resumeMidiFile(int id);
 /* Resume the paused midi music with its id. */
+
+SGvoid initMci();
+/* Initialize the media(mp3) device. */
+
+SGint loadMciSrc(char *filename);
+/* Load the file in format mp3 to memory, the return value is its identifier.
+ * Then operate the music using this identifier.*/
+
+SGint playMci(int id);
+/* Start playing the music with the given id. */
+
+SGint stopMci(int id);
+/* Stop playing the music with the given id, then roll back to its start. */
+
+SGint pauseMci(int id);
+/* Pause the music with the given id. */
+
+SGint resumeMci(int id);
+/* Resume playing the music with the given id at the pause point.*/
 
 SGvoid createThread(vect func);
 /* Create a thread with function func which means that the new thread
@@ -501,7 +545,7 @@ SGvoid alertInfo(const char *info, const char *title, int mode);
 * Parameter info is the text while title is title, and mode is one
 * of the enums in _alert. */
 
-SGvoid initMenu();
+SGint initMenu();
 /* Allow this program to use windows menus. */
 
 SGint addMenuList(const char *title, int id);
@@ -538,6 +582,54 @@ SGstring pasteText();
 /* Return the text in clipboard. The return string need to be freed by
  * the programmer. */
 
+SOCKET createServer(int port);
+/* Set up a server(both local and remote), for diy communication, port should
+ * be greater than 1023 and less than 65536. The return value is the socket
+ * of the server. */
+
+SOCKET createClient(const char *server, int port);
+/* Set up a client and connect to server(localhost is "127.0.0.1), the port
+ * should be equal to the one set by server. The return value is the socket
+ * of the client. */
+
+SOCKET acceptOne(SOCKET server);
+/* Used by a server to accept one request, one acceptOne should answer
+ * one createClient. The return value is the socket of the connection. */
+
+SGint socketSend(SOCKET s, char *buffer);
+/* Used to send a string via one connection, socket s stands for the socket
+ * of the given connection. */
+
+SGint socketReceive(SOCKET s, char *buffer, int len);
+/* Used to receive a string via one connection, socket s stands for the
+ * socket of the given connection. Parameter len is the max length to receive,
+ * if more content is sending, the rest will wait. If the connection is stopped,
+ * the return value is SG_CONNECTION_FAILED. */
+
+SGvoid closeSocket(SOCKET s);
+/* When one the connection is cut, we should close the socket of this
+ * connection. */
+
+SGvoid hideCaption();
+
+SGvoid showCaption();
+
+SGvoid addTray();
+
+SGvoid hideToTray();
+
+SGvoid restoreFromTray();
+
+SGint initTrayMenu();
+
+SGint addTrayMenuList(const char *title, int id);
+
+SGint addTrayMenuItem(const char *title, int id, void(*func)());
+
+SGint addTrayMenuSeparator(int id);
+
+SGvoid setIcon(const char *ico);
+
 widgetObj *newWidget(int type, SGstring name);
 /* Returns a widget with default parameter. */
 
@@ -569,6 +661,12 @@ SGint deleteWidgetByIndex(int index);
 
 SGint deleteWidgetByName(const char *name);
 /* Delete the widget with the given name. */
+
+void moveWidgetByIndex(int index, int xDelta, int yDelta);
+/* Move the widget to (x + xDelta, y + yDelta) with the given index. */
+
+void moveWidgetByName(const char *name, int xDelta, int yDelta);
+/* Move the widget to (x + xDelta, y + yDelta) with the given name. */
 
 
 /*

@@ -4,7 +4,7 @@
 #include <vector>
 #include "winsgl.h"
 
-#pragma comment(lib, SG_LIB("winsgl"))
+//#pragma comment(lib, SG_LIB("winsgl"))
 
 using namespace std;
 using ChessType = enum { white, black, noChess };
