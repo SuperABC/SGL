@@ -499,14 +499,3 @@ typedef struct _w{
 ​	The function **closeWindow(int id)** is used to close the window with given id.
 
 
-
-​	
-
-
-
-
-
-=======
-# SGL
-Download the latest version(v3.0.2) branch and unzip the zip file. Read Configuration to configurate and create a project. Then read Instruction to learn how to use it. For the usage of widgets, a new file is written for instruction.
->>>>>>> dd066350b121ed9fd032bb64aa9976dd5787034d
