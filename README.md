@@ -487,6 +487,8 @@ typedef struct _w{
 
 ​	**SG_COMBINED** is a widget linked list. The link pointer is attribute next. The pos of the root can be concerned as the base coordinate.
 
+
+
 #### Sub Windows
 
 ​	In Sample->Advance->window.c
