@@ -27,7 +27,7 @@
 #pragma comment(lib, "ws2_32.lib")
 #define _CRT_SECURE_NO_WARNINGS
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
-#define _SGL_V302
+#define _SGL_V400
 
 #include <stdio.h>
 #include <stdlib.h>
