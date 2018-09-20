@@ -16,8 +16,8 @@
 #define SGL_INNER_H
 
 #include <windows.h>
-#include <Shlobj.h>  
-#include "..\include\winsgl.h"
+#include <Shlobj.h>
+#include "winsgl.h"
 
 #define SCROLL_WIDTH 20
 #define MINIMAL_BAR 24
@@ -70,8 +70,8 @@ struct _key {
 	int front, rear;
 };
 struct _mouse {
-	vecTwo Pos;
-	vecThree mouseBuf[1024];
+	vec2 Pos;
+	vec3 mouseBuf[1024];
 	int front, rear;
 	int left, middle, right;
 	int coord;
@@ -121,16 +121,35 @@ struct _menu {
 	int id;
 	struct _item *sub[SG_MAX_MENU_ITEM_NUM];
 };
+struct _function;
+struct _panel;
+struct _function {
+	int id;
+	char *name;
+	vect function;
+};
+struct _panel {
+	int maxId;
 
+	int x, y, outer, inner;
+	bitMap *cover;
+	struct _function *normalPanel[SG_MAX_PANEL_FUNCTION];
+	struct _function *shiftPanel[SG_MAX_PANEL_FUNCTION];
+	struct _function *ctrlPanel[SG_MAX_PANEL_FUNCTION];
+	struct _function *shiftctrlPanel[SG_MAX_PANEL_FUNCTION];
+};
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
 void _makeBitmap(HDC hdc, LPBYTE lpBits, long width, long height, WORD wBitCount);
-int _wcharAt(char *src, int pos);
+void _makeSubBitmap(HDC hdc, int id, LPBYTE lpBits, long width, long height, WORD wBitCount);
+int _wcharAt(const char *src, int pos);
+int _scharAt(const char *src, int pos);
 LPWSTR _widenStr(const char *src);
 char *_shortenStr(const LPWSTR src);
 int _strlenW(const char *str);
 void _prepareText(int width);
+void _prepareSubText(int width);
 void _midiout(HMIDIOUT hMidi, int iStatus, int iChannel, int iData1, int iData2);
 int _mciSend(const char *cmd);
 int _addList(const char *name, struct _menu *super, int id);
@@ -143,6 +162,8 @@ void _setThreadFunc(vect func);
 DWORD WINAPI _threadFunc(LPVOID pM);
 DWORD WINAPI _timerFunc(LPVOID pM);
 int _stringPrintf(const char *format, va_list ap, int x, int y);
+void _drawPanel();
+void _clearPanel();
 
 void _textLoop(void);
 void _textRenew(short c, int x, int y);
@@ -159,6 +180,17 @@ void sgMouse(int x, int y);
 void sgDrag(int x, int y);
 void sgClick(int button, int state, int x, int y);
 void sgWheel(int dir);
+void sgSubInit(vect setup);
+void sgSubKey(int id, int cAscii, int x, int y);
+void sgSubSpecial(int id, int cAscii, int x, int y);
+void sgSubKeyUp(int id, int cAscii, int x, int y);
+void sgSubSpecialUp(int id, int cAscii, int x, int y);
+void sgSubMouse(int id, int x, int y);
+void sgSubDrag(int id, int x, int y);
+void sgSubClick(int id, int button, int state, int x, int y);
+void sgSubWheel(int id, int dir);
+
+int checkThread();
 
 void _drawWidget(int fb);
 void _drawSubWidget(int id, int fb);
@@ -174,6 +206,8 @@ void _drawList(widgetObj *w);
 void _drawSubList(int id, widgetObj *w);
 void _drawLable(widgetObj *w);
 void _drawSubLable(int id, widgetObj *w);
+void _drawPic(widgetObj *w);
+void _drawSubPic(int id, widgetObj *w);
 void _drawCheck(widgetObj *w);
 void _drawSubCheck(int id, widgetObj *w);
 void _drawProcess(widgetObj *w);
