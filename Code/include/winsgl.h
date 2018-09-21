@@ -276,7 +276,8 @@ typedef void(*vect)(void);
 typedef void(*mouseMoveCall)(void *w, int x, int y);
 typedef void(*mouseClickCall)(void *w, int x, int y, int status);
 typedef void(*mouseClickUser)(void *w);
-typedef void(*keyCall)(void *w, int key);
+typedef void(*keyPressCall)(void *w, int key);
+typedef void(*keyPressUser)(void *w, int key);
 
 typedef void SGvoid;
 typedef char SGchar;
@@ -329,30 +330,28 @@ typedef struct _w{
 	vec2 pos;
 	vec2 size;
 
+	int style;
+	int status;
 	int visible;
 	int priority;
-	int status;
-	int style;
 	int valid;
 
 	int hide;
 	int value;
 	SGstring name;
 	void *content;
-	bitMap *cover;
 	struct _w *associate;
 	struct _w *next;
-	RGB bgColor, passColor, pressColor, fgColor;
+	struct _w *child;
 
-	SGstring tip;
-	vec2 tipPos, tipSize;
-	mouseMoveCall showTip;
-	bitMap *tipCover;
+	RGB bgColor, passColor, pressColor, fgColor;
+	bitMap bgImg;
 
 	mouseMoveCall mouseIn, mouseOut;
-	mouseClickCall mouseDown, mouseUp, mouseClick;
+	mouseClickCall mouseDown, mouseUp;
 	mouseClickUser mouseUser;
-	keyCall keyDown, keyUp, keyPress;
+	keyPressCall keyDown, keyUp;
+	keyPressUser keyUser;
 
 }widgetObj;
 

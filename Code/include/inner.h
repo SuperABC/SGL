@@ -88,12 +88,6 @@ struct _mouse {
 struct _vect {
 	vect _v8, _v9;
 };
-struct _widget {
-	widgetObj *obj[SG_QSIZE];
-	struct _hash *hash[256];
-	int count;
-	int active;
-} *Widget;
 struct _text {
 	HDC memDC;
 	HFONT font;
@@ -113,6 +107,12 @@ struct _mci {
 
 	int length[SG_MCI_MAX_NUM];
 };
+struct _widget {
+	widgetObj *obj[SG_QSIZE];
+	struct _hash *hash[256];
+	int count;
+	int active;
+} *Widget;
 
 struct _item;
 struct _menu;

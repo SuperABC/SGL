@@ -815,7 +815,7 @@ void sgKey(int cAscii, int x, int y) {
 			tmp = Widget->obj[i];
 			if (tmp->status&WIDGET_SELECTED) {
 				tmp->keyDown(tmp, cAscii);
-				tmp->keyPress(tmp, cAscii);
+				tmp->keyUser(tmp, cAscii);
 			}
 		}
 	}
@@ -926,7 +926,7 @@ void sgSpecial(int cAscii, int x, int y) {
 			tmp = Widget->obj[i];
 			if (tmp->status&WIDGET_SELECTED) {
 				tmp->keyDown(tmp, cAscii);
-				tmp->keyPress(tmp, cAscii);
+				tmp->keyUser(tmp, cAscii);
 			}
 		}
 	}
@@ -1490,7 +1490,7 @@ void sgSubKey(int id, int cAscii, int x, int y) {
 		tmp = _wndList[id].widget->obj[i];
 		if (tmp->status&WIDGET_SELECTED) {
 			tmp->keyDown(tmp, cAscii);
-			tmp->keyPress(tmp, cAscii);
+			tmp->keyUser(tmp, cAscii);
 		}
 	}
 }
@@ -1594,7 +1594,7 @@ void sgSubSpecial(int id, int cAscii, int x, int y) {
 		tmp = _wndList[id].widget->obj[i];
 		if (tmp->status&WIDGET_SELECTED) {
 			tmp->keyDown(tmp, cAscii);
-			tmp->keyPress(tmp, cAscii);
+			tmp->keyUser(tmp, cAscii);
 		}
 	}
 }
