@@ -423,7 +423,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
 	case WM_TIMER:
 		if (wParam == TIMER_DELTA_HANDLE) {
-			if (!_inDelay)sgLoop();
+			if (!_inDelay) {
+				startSubWindow(-1);
+				sgLoop();
+				endSubWindow();
+			}
 			if (_sglMode == TEXT_MAP)_textLoop();
 		}
 		if (wParam == INTERUPT_DELTA_HANDLE) {
@@ -1236,17 +1240,15 @@ void sgClick(int button, int state, int x, int y) {
 
 		if (_sglMode == BIT_MAP) {
 			if (Widget->active != -1 && inWidget(Widget->obj[Widget->active], x, y)) {
-				Widget->obj[Widget->active]->mouseClick(Widget->obj[Widget->active],
+				Widget->obj[Widget->active]->mouseUser(Widget->obj[Widget->active]);
+				Widget->obj[Widget->active]->mouseUp(Widget->obj[Widget->active],
 					_Mouse->Pos.x, _Mouse->Pos.y, SG_BUTTON_UP | SG_LEFT_BUTTON);
-				if (Widget->active != -1)
-					Widget->obj[Widget->active]->mouseUp(Widget->obj[Widget->active],
-						_Mouse->Pos.x, _Mouse->Pos.y, SG_BUTTON_UP | SG_LEFT_BUTTON);
 				for (i = 0; i < Widget->count; i++) {
 					tmp = Widget->obj[i];
 					if (tmp->visible == FALSE)continue;
 					if (inWidget(tmp, x, y))continue;
 					if (Widget->active == i)continue;
-					tmp->mouseClick(Widget->obj[i], _Mouse->Pos.x, _Mouse->Pos.y, SG_BUTTON_UP | SG_LEFT_BUTTON);
+					tmp->mouseUser(Widget->obj[i]);
 					tmp->mouseUp(Widget->obj[i], _Mouse->Pos.x, _Mouse->Pos.y, SG_BUTTON_UP | SG_LEFT_BUTTON);
 				}
 			}
@@ -1254,7 +1256,7 @@ void sgClick(int button, int state, int x, int y) {
 				for (i = 0; i < Widget->count; i++) {
 					tmp = Widget->obj[i];
 					if (tmp->visible == FALSE)continue;
-					tmp->mouseClick(Widget->obj[i], _Mouse->Pos.x, _Mouse->Pos.y, SG_BUTTON_UP | SG_LEFT_BUTTON);
+					tmp->mouseUser(Widget->obj[i]);
 					tmp->mouseUp(Widget->obj[i], _Mouse->Pos.x, _Mouse->Pos.y, SG_BUTTON_UP | SG_LEFT_BUTTON);
 				}
 			}
@@ -1315,16 +1317,14 @@ void sgClick(int button, int state, int x, int y) {
 
 		if (_sglMode == BIT_MAP) {
 			if (Widget->active != -1 && inWidget(Widget->obj[Widget->active], x, y)) {
-				Widget->obj[Widget->active]->mouseClick(Widget->obj[Widget->active],
+				Widget->obj[Widget->active]->mouseUser(Widget->obj[Widget->active]);
+				Widget->obj[Widget->active]->mouseUp(Widget->obj[Widget->active],
 					_Mouse->Pos.x, _Mouse->Pos.y, SG_BUTTON_DOWN | SG_RIGHT_BUTTON);
-				if (Widget->active != -1)
-					Widget->obj[Widget->active]->mouseUp(Widget->obj[Widget->active],
-						_Mouse->Pos.x, _Mouse->Pos.y, SG_BUTTON_DOWN | SG_RIGHT_BUTTON);
 				for (i = 0; i < Widget->count; i++) {
 					tmp = Widget->obj[i];
 					if (tmp->visible == FALSE)continue;
 					if (inWidget(tmp, x, y))continue;
-					tmp->mouseClick(Widget->obj[i], _Mouse->Pos.x, _Mouse->Pos.y, SG_BUTTON_UP | SG_RIGHT_BUTTON);
+					tmp->mouseUser(Widget->obj[i]);
 					tmp->mouseUp(Widget->obj[i], _Mouse->Pos.x, _Mouse->Pos.y, SG_BUTTON_UP | SG_RIGHT_BUTTON);
 				}
 			}
@@ -1332,7 +1332,7 @@ void sgClick(int button, int state, int x, int y) {
 				for (i = 0; i < Widget->count; i++) {
 					tmp = Widget->obj[i];
 					if (tmp->visible == FALSE)continue;
-					tmp->mouseClick(Widget->obj[i], _Mouse->Pos.x, _Mouse->Pos.y, SG_BUTTON_UP | SG_RIGHT_BUTTON);
+					tmp->mouseUser(Widget->obj[i]);
 					tmp->mouseUp(Widget->obj[i], _Mouse->Pos.x, _Mouse->Pos.y, SG_BUTTON_UP | SG_RIGHT_BUTTON);
 				}
 			}
@@ -1393,7 +1393,7 @@ void sgWheel(int dir) {
 
 	if (_sglMode == BIT_MAP) {
 		if (Widget->active != -1 && inWidget(Widget->obj[Widget->active], x, y)) {
-			Widget->obj[Widget->active]->mouseClick(Widget->obj[Widget->active],
+			Widget->obj[Widget->active]->mouseDown(Widget->obj[Widget->active],
 				_Mouse->Pos.x, _Mouse->Pos.y, dir > 0 ?
 				SG_MIDDLE_BUTTON_UP : SG_MIDDLE_BUTTON_DOWN);
 			for (i = 0; i < Widget->count; i++) {
@@ -1402,7 +1402,7 @@ void sgWheel(int dir) {
 				tmp = Widget->obj[i];
 				if (tmp->visible == FALSE)continue;
 				if (inWidget(tmp, x, y))continue;
-				tmp->mouseClick(Widget->obj[i], _Mouse->Pos.x, _Mouse->Pos.y, dir > 0 ?
+				tmp->mouseDown(Widget->obj[i], _Mouse->Pos.x, _Mouse->Pos.y, dir > 0 ?
 					SG_MIDDLE_BUTTON_UP : SG_MIDDLE_BUTTON_DOWN);
 			}
 		}
@@ -1410,7 +1410,7 @@ void sgWheel(int dir) {
 			for (i = 0; i < Widget->count; i++) {
 				tmp = Widget->obj[i];
 				if (tmp->visible == FALSE)continue;
-				tmp->mouseClick(Widget->obj[i], _Mouse->Pos.x, _Mouse->Pos.y, dir > 0 ?
+				tmp->mouseDown(Widget->obj[i], _Mouse->Pos.x, _Mouse->Pos.y, dir > 0 ?
 					SG_MIDDLE_BUTTON_UP : SG_MIDDLE_BUTTON_DOWN);
 			}
 		}
@@ -2087,7 +2087,7 @@ void sgSubWheel(int id, int dir) {
 
 	if (_wndList[id].widget->active != -1 &&
 		inWidget(_wndList[id].widget->obj[_wndList[id].widget->active], x, y)) {
-		_wndList[id].widget->obj[_wndList[id].widget->active]->mouseClick(
+		_wndList[id].widget->obj[_wndList[id].widget->active]->mouseDown(
 			_wndList[id].widget->obj[_wndList[id].widget->active],
 			_wndList[id].mouse->Pos.x, _wndList[id].mouse->Pos.y, dir > 0 ?
 			SG_MIDDLE_BUTTON_UP : SG_MIDDLE_BUTTON_DOWN);
@@ -2097,7 +2097,7 @@ void sgSubWheel(int id, int dir) {
 			tmp = _wndList[id].widget->obj[i];
 			if (tmp->visible == FALSE)continue;
 			if (inWidget(tmp, x, y))continue;
-			tmp->mouseClick(_wndList[id].widget->obj[i],
+			tmp->mouseDown(_wndList[id].widget->obj[i],
 				_wndList[id].mouse->Pos.x, _wndList[id].mouse->Pos.y, dir > 0 ?
 				SG_MIDDLE_BUTTON_UP : SG_MIDDLE_BUTTON_DOWN);
 		}
@@ -2106,7 +2106,7 @@ void sgSubWheel(int id, int dir) {
 		for (i = 0; i < _wndList[id].widget->count; i++) {
 			tmp = _wndList[id].widget->obj[i];
 			if (tmp->visible == FALSE)continue;
-			tmp->mouseClick(_wndList[id].widget->obj[i],
+			tmp->mouseDown(_wndList[id].widget->obj[i],
 				_wndList[id].mouse->Pos.x, _wndList[id].mouse->Pos.y, dir > 0 ?
 				SG_MIDDLE_BUTTON_UP : SG_MIDDLE_BUTTON_DOWN);
 		}
@@ -3296,9 +3296,11 @@ int createWindow(int width, int height, const char *title, vect setup, vect loop
 void closeWindow(int id) {
 	PostMessage(_wndList[id].hwnd, WM_CLOSE, 0, 0);
 }
-void setCurrentWindow(int id) {
+void startSubWindow(int id) {
 	SEM_P();
 	currentWindow = id;
+}
+void endSubWindow() {
 	SEM_V();
 }
 void initKey() {

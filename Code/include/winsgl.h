@@ -359,6 +359,7 @@ typedef struct _w{
 //The active window id when dealing with widget events.
 extern int currentWindow;
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -430,37 +431,17 @@ SGvoid setResizeable();
  * set the mode to resizeable, the image will not zoom, only the size of the
  * window will change. */
 
-SGvoid setSubResizeable(int id);
-/* When changing the size of the sub window with given id, the default mode
- * will not change the screen buffer value which means the image will resize as
- * well. If we set the mode to resizeable, the image will not zoom, only the size
- * of the window will change. */
-
 SGvoid resizeFuntion(void (*func)(int x, int y));
 /* The parameter function will be executed when the size of the window
  *changed. */
-
-SGvoid resizeSubFuntion(int id, void(*func)(int x, int y));
-/* The parameter function will be executed when the size of the sub window
- * changed. */
 
 SGint getWidth(int obj);
 /* Returns the width of the obj. The parameter obj can be SG_WINDOW
  * (the current window) or SG_SCREEN(The screen of the computer). */
 
-SGint getSubWidth(int id, int obj);
-/* Returns the width of the obj. The parameter obj can be SG_WINDOW
- * (the current window) or SG_SCREEN(The screen of the computer). Parameter
- * id is the window to fetch. */
-
 SGint getHeight(int obj);
 /* Returns the height of the obj. The parameter obj can be SG_WINDOW
  * (the current window) or SG_SCREEN(The screen of the computer). */
-
-SGint getSubHeight(int id, int obj);
-/* Returns the height of the obj. The parameter obj can be SG_WINDOW
-* (the current window) or SG_SCREEN(The screen of the computer). Parameter
-* id is the window to fetch. */
 
 SGvoid initKey();
 /* Make keyboard active, or no callback will occur when key pressed. */
@@ -469,16 +450,8 @@ SGint biosKey(int cmd);
 /* Main function to deal with key event. The parameter cmd can be
  * 0 or 1. Details of the usage are in instruction pdf. */
 
-SGint biosSubKey(int id, int cmd);
-/* Main function to deal with key event occured in window with given id. 
- * The parameter cmd can be 0 or 1. Details of the usage are in instruction
- * pdf. */
-
 SGvoid clearKeyBuffer();
 /* Delete all key events before current time. */
-
-SGvoid clearSubKeyBuffer(int id);
-/* Delete all key events of window with given id before current time. */
 
 SGvoid initMouse(int mode);
 /* Make mouse active, or no callback will occur when mouse move or click. */
@@ -507,32 +480,17 @@ SGint deletePanelItem(int id);
 vec2 mousePos();
 /* Returns the current position of the cursor. */
 
-vec2 mouseSubPos(int id);
-/* Returns the current position at window with given id of the cursor. */
-
 SGint mouseStatus(int b);
 /* Returns whether one of the three mouse button is push down.
  * Parameter b can be SG_LEFT_BUTTON or SG_RIGHT_BUTTON or
  * SG_MIDDLE_BUTTON. */
 
-SGint mouseSubStatus(int id, int b);
-/* Returns whether one of the three mouse button is push down in window
- * with given id. Parameter b can be SG_LEFT_BUTTON or SG_RIGHT_BUTTON
- * or SG_MIDDLE_BUTTON. */
-
 vec3 biosMouse(int cmd);
 /* Main function to deal with mouse event. The parameter cmd can be
  * 0 or 1. Details of the usage are in instruction pdf. */
 
-vec2 biosSubMouse(int id, int cmd);
-/* Main function to deal with mouse event in window with given id. The
- * parameter cmd can be 0 or 1. Details of the usage are in instruction pdf. */
-
 SGvoid clearMouseBuffer();
 /* Delete all mouse events before current time. */
-
-SGvoid clearSubMouseBuffer(int id);
-/* Delete all mouse events of window with given id before current time. */
 
 SGint initMidi();
 /* Make midi output device active so that digital music can be
@@ -624,23 +582,14 @@ SGvoid hideMouse();
 SGvoid setMousePos(int x, int y);
 /* Set the cursor position. */
 
-SGvoid setSubMousePos(int id, int x, int y);
-/* Set the cursor position in window with given id. */
-
 SGvoid setMouseIcon(SGWINSTR icon);
 /* Set the icon of the cursor. */
 
 SGvoid setActivePage(int page);
 /* Choose which page is now under editing. */
 
-SGvoid setSubActivePage(int id, int page);
-/* Choose which page is now under editing in window with given id. */
-
 SGvoid setVisualPage(int page);
 /* Choose which page is now showing. */
-
-SGvoid setSubVisualPage(int id, int page);
-/* Choose which page is now showing in window with given id. */
 
 SGint selectFile(char name[], char start[], char format[], int idx);
 /* Use Win API Graphic mode to choose one file. Parameter name
@@ -739,14 +688,8 @@ SGvoid closeSocket(SOCKET s);
 SGvoid hideCaption();
 /* Hide the caption bar at the top. */
 
-SGvoid hideSubCaption(int id);
-/* Hide the caption bar at the top in window with given id. */
-
 SGvoid showCaption();
 /* Show the caption bar at the top. */
-
-SGvoid showSubCaption(int id);
-/* Show the caption bar at the top in window with given id. */
 
 SGvoid addTray();
 /* Add the application icon in the tray bar and enable the program
@@ -792,10 +735,6 @@ SGint showPopupMenu(int menu, int x, int y);
 /* The popup menu with given parameter can be shown with top-left corner at (x, y)
  * by calling this function. */
 
-SGint showSubPopupMenu(int id, int menu, int x, int y);
-/* The popup menu with given parameter can be shown in window with given id with
- * top-left corner at (x, y) by calling this function. */
-
 int createWindow(int width, int height, const char *title, vect setup, vect loop);
 /* Create a new window with SGL canvas. The first three parameters are
  * same as initWindow, while setup and loop are functions similar to sgSetup
@@ -804,17 +743,16 @@ int createWindow(int width, int height, const char *title, vect setup, vect loop
 void closeWindow(int id);
 /* Close the sub window with the id given by createWindow. */
 
-void setCurrentWindow(int id);
-/* Select the window object to manipulate. If id is -1 then the main window
- * is the object, or else sub window with this id is the object. */
+void startSubWindow(int id);
+/* Start to draw in sub window with given id. Other window cannot draw until
+ * endSubWindow in this window. */
+
+void endSubWindow();
+/* End drawing in sub window and other window can draw. */
 
 SGvoid setIcon(const char *ico);
 /* Set the running-time icon for the window. The icon will appear
  * at top_left in the caption bar and in the tray. */
-
-SGvoid setSubIcon(int id, const char *ico);
-/* Set the running-time icon for the window with given id. The icon
- * will appear at top_left in the caption bar and in the tray. */
 
 bitMap *copyPic(bitMap *src);
 /* Copy picture from src to dst. */
@@ -851,11 +789,6 @@ widgetObj *newCombinedWidget(int num, const char *name, ...);
 SGint registerWidget(widgetObj *obj);
 /* After setting all the parameters, give back the widget to
  * the system. After this function, all callbacks are activated.*/
-
-int registerSubWidget(int id, widgetObj *obj);
-/* After setting all the parameters, give back the widget to
- * the sub window of given id. After this function, all callbacks are
- * activated.*/
 
 int easyWidget(int type, const char *name,
 	int x, int y, int width, int height, const char *content, mouseClickUser click);
@@ -902,118 +835,55 @@ void moveWidgetByName(const char *name, int xDelta, int yDelta);
 SGvoid setColor(int r, int g, int b);
 /* Set the current rgb color. */
 
-SGvoid setSubColor(int id, int r, int g, int b);
-/* Set the current rgb color in the sub window with the given id. */
-
 SGvoid setFontSize(int height);
 /* Set the current font size.*/
-
-SGvoid setSubFontSize(int id, int height);
-/* Set the current font size in the sub window with the given id. */
 
 SGvoid setFontName(const char *name);
 /* Set the current font name.*/
 
-SGvoid setSubFontName(int id, const char *name);
-/* Set the current font name in the sub window with the given id. */
-
 SGvoid setFontStyle(int coeff);
 /* Set the current font style.*/
-
-SGvoid setSubFontStyle(int id, int coeff);
-/* Set the current font style in the sub window with the given id. */
 
 SGvoid setAlpha(float alpha);
 /* Set the alpha value when mixing images. */
 
-SGvoid setSubAlpha(int id, float alpha);
-/* Set the alpha value when mixing images in the sub window with
- * the given id. */
-
 SGfloat getAlpha();
 /* Get the alpha value. */
-
-SGfloat getSubAlpha();
-/* Get the alpha value with the given id. */
 
 SGvoid clearScreen();
 /* Fill the whole screen with current color. */
 
-SGvoid clearSubScreen(int id);
-/* Fill the whole screen with current color in the sub window
- * with the given id. */
-
 SGint putPixel(int x, int y);
 /* Set the pixel of coordinate (x, y) of current color. */
 
-SGint putSubPixel(int id, int x, int y);
-/* Set the pixel of coordinate (x, y) of current color in the sub
- * window with the given id. */
-
 RGB getPixel(int x, int y);
 /* Returns the rgb color of coordinate (x, y). */
-
-RGB getSubPixel(int id, int x, int y);
-/* Returns the rgb color of coordinate (x, y) in the sub window
- * with the given id. */
 
 SGvoid putLine(int x1, int y1, int x2, int y2, int mode);
 /* Draw a line from (x1, y1) to (x2, y2) of currrent color with
  * the given mode showed in enum list. */
 
-SGvoid putSubLine(int id, int x1, int y1, int x2, int y2, int mode);
-/* Draw a line from (x1, y1) to (x2, y2) of currrent color with
- * the given mode showed in enum list in the sub window with
- * the given id. */
-
 SGvoid putQuad(int x1, int y1, int x2, int y2, int mode);
 /* Draw a rectangle from (x1, y1) to (x2, y2) of currrent color
  * with the given mode showed in enum list. */
-
-SGvoid putSubQuad(int id, int x1, int y1, int x2, int y2, int mode);
-/* Draw a rectangle from (x1, y1) to (x2, y2) of currrent color
- * with the given mode showed in enum list in the sub window with
- * the given id. */
 
 SGvoid putTriangle(int x1, int y1, int x2, int y2, int x3, int y3, int mode);
 /* Draw a triangle from of the given three point of currrent
  * color with the given mode showed in enum list. */
 
-SGvoid putSubTriangle(int id, int x1, int y1, int x2, int y2, int x3, int y3, int mode);
-/* Draw a triangle from of the given three point of currrent color
- * with the given mode showed in enum list in the sub window with
- * the given id. */
-
 SGvoid putCircle(int xc, int yc, int r, int mode);
 /* Draw a circle with centre (xc, yc) and radius r of currrent
  * color with the given mode showed in enum list. */
-
-SGvoid putSubCircle(int id, int xc, int yc, int r, int mode);
-/* Draw a circle with centre (xc, yc) and radius r of currrent
- * color with the given mode showed in enum list in the sub window
- * with the given id. */
 
 SGvoid putEllipse(int xc, int yc, int a, int b, int mode);
 /* Draw a circle with centre (xc, yc) and axis a and b of currrent
  * color with the given mode showed in enum list. */
 
-SGvoid putSubEllipse(int id, int xc, int yc, int a, int b, int mode);
-/* Draw a circle with centre (xc, yc) and axis a and b of currrent
-* color with the given mode showed in enum list in the sub window
- * with the given id. */
-
 void putBitmap(int x, int y, bitMap bmp);
-/* Put a bmp picture on the screen with top-left corner (x, y). */
-
-void putSubBitmap(int id, int x, int y, bitMap bmp);
 /* Put a bmp picture on the screen with top-left corner (x, y). */
 
 SGint drawBmp(int x, int y, const char *filename);
 /* Put a bmp picture on the screen with top-left corner (x, y). */
-
-SGint drawSubBmp(int id, int x, int y, const char *filename);
-/* Put a bmp picture on the screen with top-left corner (x, y) in
- * the sub window with the given id. */
 
 SGvoid putNumber(int n, int x, int y, char lr);
 /* Draw number n on the screen of position (x, y). The parameter
@@ -1021,23 +891,11 @@ SGvoid putNumber(int n, int x, int y, char lr);
 * number, or 'r', which means the bottom-right corner. Details are
 * in instruction pdf. */
 
-SGvoid putSubNumber(int id, int n, int x, int y, char lr);
-/* Draw number n on the sub window with given id of position (x, y).
-* The parameter lr can be 'l', which means that (x, y) is the top-left
-* corner of the number, or 'r', which means the bottom-right corner.
-* Details are in instruction pdf. */
-
 SGvoid putChar(char ch, int x, int y);
 /* Draw one character ch on the screen of position (x, y). */
 
-SGvoid putSubChar(int id, char ch, int x, int y);
-/* Draw one character ch on the sub window with given id of position (x, y). */
-
 SGvoid putString(const char *str, int x, int y);
 /* Draw one string str on the screen of position (x, y). */
-
-SGvoid putSubString(int id, const char *str, int x, int y);
-/* Draw one string str on the sub window with given id of position (x, y). */
 
 SGint stringWidth(const char *str, int x);
 /* Get the width on x axis of the given string in current font. */
@@ -1053,16 +911,8 @@ SGint putStringConstraint(const char *str, int x, int y, int start, int constrai
 SGint getImage(int left, int top, int right, int bottom, bitMap *bitmap);
 /* Copy the pixel messages of the given area to parameter bitmap. */
 
-SGint getSubImage(int id, int left, int top, int right, int bottom, bitMap *bitmap);
-/* Copy the pixel messages of the given area to parameter bitmap in
- * the sub window with the given id. */
-
 SGvoid putImage(int left, int top, bitMap *bitmap, int op);
 /* Paste the pixel messages of the given area to (left, top) with mode op. */
-
-SGvoid putSubImage(int id, int left, int top, bitMap *bitmap, int op);
-/* Paste the pixel messages of the given area to (left, top) with mode op in
- * the sub window with the given id. */
 
 SGint maskImage(int left, int top, bitMap *mask, bitMap *bitmap);
 /* The new pixel */
@@ -1070,26 +920,12 @@ SGint maskImage(int left, int top, bitMap *mask, bitMap *bitmap);
 SGvoid funcMap(int x1, int x2, int y1, int y2, float(*vect)(float x));
 /* Draw the graph of function vect with border limitation. */
 
-SGvoid funcSubMap(int id, int x1, int x2, int y1, int y2, float(*vect)(float x));
-/* Draw the graph of function vect with border limitation in the sub
- * window with the given id. */
-
 SGvoid floodFill(int x, int y, RGB c);
 /* Fill from coordinate (x, y) recursively with current color until
  * meeting the given color c. */
 
-SGvoid floodSubFill(int id, int x, int y, RGB c);
-/* Fill from coordinate (x, y) recursively with current color until
-* meeting the given color c in the sub window with the given id. */
-
 bitMap loadBmp(const char *filename);
 /* Load bmp to a bitMap struct other than showing it on screen. */
-
-bitMap loadPng(const char *filename);
-/* Load png to a bitMap struct other than showing it on screen. */
-
-bitMap loadJpg(const char *filename);
-/* Load jpg to a bitMap struct other than showing it on screen. */
 
 SGvoid initOpenGL();
 /* Enable SGL to use OpenGL. */
