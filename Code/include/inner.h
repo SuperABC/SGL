@@ -12,12 +12,15 @@
  */
 
 
+
 #ifndef SGL_INNER_H
 #define SGL_INNER_H
+
 
 #include <windows.h>
 #include <Shlobj.h>
 #include "winsgl.h"
+
 
 #define SCROLL_WIDTH 20
 #define MINIMAL_BAR 24
@@ -36,6 +39,12 @@
 #define TIMER_DELTA_HANDLE 2
 
 #define WM_TRAY (WM_USER + 1)
+
+#define SEM_INIT() extern long windowSem;
+#define SEM_P() InterlockedDecrement(&windowSem);while(windowSem<0);
+#define SEM_V() InterlockedIncrement(&windowSem);
+
+SEM_INIT()
 
 enum _menuType {
 	MT_SUB,
@@ -193,35 +202,20 @@ void sgSubWheel(int id, int dir);
 int checkThread();
 
 void _drawWidget(int fb);
-void _drawSubWidget(int id, int fb);
 void _drawButton(widgetObj *w);
-void _drawSubButton(int id, widgetObj *w);
 void _drawInput(widgetObj *w);
-void _drawSubInput(int id, widgetObj *w);
 void _drawDialog(widgetObj *w);
-void _drawSubDialog(int id, widgetObj *w);
 void _drawOutput(widgetObj *w);
-void _drawSubOutput(int id, widgetObj *w);
 void _drawList(widgetObj *w);
-void _drawSubList(int id, widgetObj *w);
 void _drawLable(widgetObj *w);
-void _drawSubLable(int id, widgetObj *w);
 void _drawPic(widgetObj *w);
-void _drawSubPic(int id, widgetObj *w);
 void _drawCheck(widgetObj *w);
-void _drawSubCheck(int id, widgetObj *w);
 void _drawProcess(widgetObj *w);
-void _drawSubProcess(int id, widgetObj *w);
 void _drawOption(widgetObj *w);
-void _drawSubOption(int id, widgetObj *w);
 void _drawDrag(widgetObj *w);
-void _drawSubDrag(int id, widgetObj *w);
 void _drawScrollVert(widgetObj *w);
-void _drawSubScrollVert(int id, widgetObj *w);
 void _drawScrollHoriz(widgetObj *w);
-void _drawSubScrollHoriz(int id, widgetObj *w);
 void _drawCombined(widgetObj *w);
-void _drawSubCombined(int id, widgetObj *w);
 
 
 #endif

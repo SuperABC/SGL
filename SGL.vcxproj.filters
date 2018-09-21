@@ -29,5 +29,8 @@
     <ClCompile Include="Code\cpp\frame.c">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Sample\7-Advance\window.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

@@ -12,12 +12,14 @@
  */
 
 
+
 #ifndef SGL_H
 #define SGL_H
 
+
 #define _CRT_SECURE_NO_WARNINGS
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
-#define _SGL_V310
+#define _SGL_V401
 
 #ifdef _DEBUG
 #define SG_LIB(name) name "d.lib"
@@ -45,7 +47,7 @@
 #endif
 
 
-//SG const macros
+//SG const macros.
 
 #define SG_PI 3.14159265358979323846
 #define SG_CHAR_WIDTH 8
@@ -63,7 +65,8 @@
 #define SG_MAX_WINDOW_NUM 256
 #define SG_MAX_PANEL_FUNCTION 12
 
-//SG io macros
+
+//SG io macros.
 
 #define SG_ACCURATE 0
 #define SG_COORDINATE 1
@@ -78,6 +81,9 @@
 #define SG_MIDDLE_BUTTON 0x04
 #define SG_MIDDLE_BUTTON_UP 0x08
 #define SG_MIDDLE_BUTTON_DOWN 0x10
+
+
+//SG system macros.
 
 #define SG_WINDOW 0
 #define SG_SCREEN 1
@@ -95,6 +101,7 @@
 
 #define PI 3.1415926535897932
 
+
 // Windows string.
 
 #ifdef UNICODE
@@ -102,12 +109,6 @@
 #else
 #define SGWINSTR  LPCSTR
 #endif
-
-//Syncronize and exclude.
-
-#define SEM_INIT() extern long semaphore;
-#define SEM_P() InterlockedDecrement(&semaphore);while(semaphore<0);
-#define SEM_V() InterlockedIncrement(&semaphore);
 
 
 //SG enums.
@@ -355,10 +356,9 @@ typedef struct _w{
 
 }widgetObj;
 
-//The active window id when dealing with widget events.
-extern int subWindow;
 
-SEM_INIT()
+//The active window id when dealing with widget events.
+extern int currentWindow;
 
 #ifdef __cplusplus
 extern "C" {
@@ -804,6 +804,10 @@ int createWindow(int width, int height, const char *title, vect setup, vect loop
 
 void closeWindow(int id);
 /* Close the sub window with the id given by createWindow. */
+
+void setCurrentWindow(int id);
+/* Select the window object to manipulate. If id is -1 then the main window
+ * is the object, or else sub window with this id is the object. */
 
 SGvoid setIcon(const char *ico);
 /* Set the running-time icon for the window. The icon will appear

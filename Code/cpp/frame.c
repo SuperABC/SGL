@@ -29,7 +29,7 @@ int _useTray = 0, _trayMenu = 0, _tmCreated = 0;
 int _inLoop = 0;
 int _enOpenGL = 0;
 
-int subWindow = -1;
+int currentWindow = -1;
 
 /*
 * Lattice font library for 256 asciis.
@@ -327,7 +327,7 @@ void vectDefault(void) {
 int tmpThread;
 vect threadFunc = vectDefault;
 int interval = 0, times = 0;
-long semaphore = 1;
+long windowSem = 1;
 
 /*
 * Global input panel info.
@@ -3178,33 +3178,72 @@ void setWindow(int left, int up) {
 	_Window->posUp = up;
 }
 void setResizeable() {
-	if (!_inLoop)
-		_scrResizeable = 1;
+	if (currentWindow == -1) {
+		if (!_inLoop)
+			_scrResizeable = 1;
+	}
+	else {
+		if (!_wndList[currentWindow].inLoop)
+			_wndList[currentWindow].scrResizeable = 1;
+	}
 }
 void resizeFuntion(void(*func)(int x, int y)) {
-	_resizeFunc = func;
+	if (currentWindow == -1) {
+		_resizeFunc = func;
+	}
+	else {
+		_wndList[currentWindow].resizeFunc = func;
+	}
 }
 int getWidth(int obj) {
-	switch (obj) {
-	case SG_WINDOW:
-		return _Window->winWidth;
-	case SG_SCREEN:
-		if (_inLoop)
-			return _Screen->buffer1->sizeX == _Screen->buffer2->sizeX ?
-			_Screen->buffer1->sizeX : SG_SIZE_MISMATCH;
-		else return _Window->winWidth;
+	if (currentWindow == -1) {
+		switch (obj) {
+		case SG_WINDOW:
+			return _Window->winWidth;
+		case SG_SCREEN:
+			if (_inLoop)
+				return _Screen->buffer1->sizeX == _Screen->buffer2->sizeX ?
+				_Screen->buffer1->sizeX : SG_SIZE_MISMATCH;
+			else return _Window->winWidth;
+		}
+	}
+	else {
+		switch (obj) {
+		case SG_WINDOW:
+			return _wndList[currentWindow].winWidth;
+		case SG_SCREEN:
+			if (_wndList[currentWindow].inLoop)
+				return _wndList[currentWindow].buffer1->sizeX == 
+					_wndList[currentWindow].buffer2->sizeX ?
+					_wndList[currentWindow].buffer1->sizeX : SG_SIZE_MISMATCH;
+			else return _wndList[currentWindow].winWidth;
+		}
 	}
 	return 0;
 }
 int getHeight(int obj) {
-	switch (obj) {
-	case SG_WINDOW:
-		return _Window->winHeight;
-	case SG_SCREEN:
-		if (_inLoop)
-			return _Screen->buffer1->sizeY == _Screen->buffer2->sizeY ?
-			_Screen->buffer1->sizeY : SG_SIZE_MISMATCH;
-		else return _Window->winHeight;
+	if (currentWindow == -1) {
+		switch (obj) {
+		case SG_WINDOW:
+			return _Window->winHeight;
+		case SG_SCREEN:
+			if (_inLoop)
+				return _Screen->buffer1->sizeY == _Screen->buffer2->sizeY ?
+				_Screen->buffer1->sizeY : SG_SIZE_MISMATCH;
+			else return _Window->winHeight;
+		}
+	}
+	else {
+		switch (obj) {
+		case SG_WINDOW:
+			return _wndList[currentWindow].winHeight;
+		case SG_SCREEN:
+			if (_wndList[currentWindow].inLoop)
+				return _wndList[currentWindow].buffer1->sizeY ==
+					_wndList[currentWindow].buffer2->sizeY ?
+					_wndList[currentWindow].buffer1->sizeY : SG_SIZE_MISMATCH;
+			else return _wndList[currentWindow].winHeight;
+		}
 	}
 	return 0;
 }
@@ -3257,29 +3296,48 @@ int createWindow(int width, int height, const char *title, vect setup, vect loop
 void closeWindow(int id) {
 	PostMessage(_wndList[id].hwnd, WM_CLOSE, 0, 0);
 }
+void setCurrentWindow(int id) {
+	SEM_P();
+	currentWindow = id;
+	SEM_V();
+}
 void initKey() {
 	_enKey = 1;
 }
 int biosKey(int cmd) {
 	word ret;
 
-	if (cmd == 1)return (_Key->front + 1) % 1024 != _Key->rear;
-	if (cmd != 0)return 0;
+	if (currentWindow == -1) {
+		if (cmd == 1)return (_Key->front + 1) % 1024 != _Key->rear;
+		if (cmd != 0)return 0;
 
-	while ((_Key->front + 1) % 1024 == _Key->rear);
-	ret = _Key->keyBuf[_Key->rear++];
-	_Key->rear %= 1024;
+		while ((_Key->front + 1) % 1024 == _Key->rear);
+		ret = _Key->keyBuf[_Key->rear++];
+		_Key->rear %= 1024;
+	}
+	else {
+		if (cmd == 1)
+			return (_wndList[currentWindow].key->front + 1) % 1024 !=
+			_wndList[currentWindow].key->rear;
+		if (cmd != 0)return 0;
+
+		while ((_wndList[currentWindow].key->front + 1) % 1024 ==
+			_wndList[currentWindow].key->rear);
+		ret = _wndList[currentWindow].key->
+			keyBuf[_wndList[currentWindow].key->rear++];
+		_wndList[currentWindow].key->rear %= 1024;
+	}
 
 	return ret;
 }
 void clearKeyBuffer() {
-	_Key->rear = (_Key->front + 1) % 1024;
-}
-void initMouse(int mode) {
-	if (mode&SG_COORDINATE)_Mouse->coord = 1;
-	else _Mouse->coord = 0;
-
-	_enMouse = 1;
+	if (currentWindow == -1) {
+		_Key->rear = (_Key->front + 1) % 1024;
+	}
+	else {
+		_wndList[currentWindow].key->rear =
+			(_wndList[currentWindow].key->front + 1) % 1024;
+	}
 }
 void enablePanel() {
 	_enPanel = 1;
@@ -3395,45 +3453,96 @@ int deletePanelItem(int id) {
 	}
 	return SG_OBJECT_NOT_FOUND;
 }
+void initMouse(int mode) {
+	if (mode&SG_COORDINATE)_Mouse->coord = 1;
+	else _Mouse->coord = 0;
+
+	_enMouse = 1;
+}
 int mouseStatus(int b) {
-	switch (b) {
-	case SG_LEFT_BUTTON:
-		return _Mouse->left;
-	case SG_RIGHT_BUTTON:
-		return _Mouse->right;
-	case SG_MIDDLE_BUTTON:
-		return _Mouse->middle;
-	default:
-		return 0;
+	if (currentWindow == -1) {
+		switch (b) {
+		case SG_LEFT_BUTTON:
+			return _Mouse->left;
+		case SG_RIGHT_BUTTON:
+			return _Mouse->right;
+		case SG_MIDDLE_BUTTON:
+			return _Mouse->middle;
+		default:
+			return 0;
+		}
+	}
+	else {
+		switch (b) {
+		case SG_LEFT_BUTTON:
+			return _wndList[currentWindow].mouse->left;
+		case SG_RIGHT_BUTTON:
+			return _wndList[currentWindow].mouse->right;
+		case SG_MIDDLE_BUTTON:
+			return _wndList[currentWindow].mouse->middle;
+		default:
+			return 0;
+		}
 	}
 }
 vec2 mousePos() {
 	vec2 ret;
 
-	ret.x = _Mouse->Pos.x;
-	ret.y = _Mouse->Pos.y;
+	if (currentWindow == -1) {
+		ret.x = _Mouse->Pos.x;
+		ret.y = _Mouse->Pos.y;
+	}
+	else {
+		ret.x = _wndList[currentWindow].mouse->Pos.x;
+		ret.y = _wndList[currentWindow].mouse->Pos.y;
+	}
 	return ret;
 }
 vec3 biosMouse(int cmd) {
 	vec3 ret;
 
-	if (cmd == 1) {
-		ret.z = (_Mouse->front + 1) % 1024 != _Mouse->rear;
-		return ret;
-	}
-	if (cmd != 0) {
-		ret.z = 0;
-		return ret;
-	}
+	if (currentWindow == -1) {
+		if (cmd == 1) {
+			ret.z = (_Mouse->front + 1) % 1024 != _Mouse->rear;
+			return ret;
+		}
+		if (cmd != 0) {
+			ret.z = 0;
+			return ret;
+		}
 
-	while ((_Mouse->front + 1) % 1024 == _Mouse->rear);
-	ret = _Mouse->mouseBuf[_Mouse->rear++];
-	_Mouse->rear %= 1024;
+		while ((_Mouse->front + 1) % 1024 == _Mouse->rear);
+		ret = _Mouse->mouseBuf[_Mouse->rear++];
+		_Mouse->rear %= 1024;
+	}
+	else {
+		if (cmd == 1) {
+			ret.z =(_wndList[currentWindow].mouse->front + 1) % 1024 !=
+				_wndList[currentWindow].mouse->rear;
+			return ret;
+		}
+		if (cmd != 0) {
+			ret.z = 0;
+			return ret;
+		}
+
+		while ((_wndList[currentWindow].mouse->front + 1) % 1024 ==
+			_wndList[currentWindow].mouse->rear);
+		ret = _wndList[currentWindow].mouse->
+			mouseBuf[_wndList[currentWindow].mouse->rear++];
+		_wndList[currentWindow].mouse->rear %= 1024;
+	}
 
 	return ret;
 }
 void clearMouseBuffer() {
-	_Mouse->rear = (_Mouse->front + 1) % 1024;
+	if (currentWindow == -1) {
+		_Mouse->rear = (_Mouse->front + 1) % 1024;
+	}
+	else {
+		_wndList[currentWindow].mouse->rear =
+			(_wndList[currentWindow].mouse->front + 1) % 1024;
+	}
 }
 void delay(int t) {
 	clock_t st, en;
@@ -3506,24 +3615,47 @@ void hideMouse() {
 void setMousePos(int x, int y) {
 	LPPOINT point;
 
-	point = (LPPOINT)malloc(sizeof(POINT));
-	point->x = x;
-	point->y = y;
+	if (currentWindow == -1) {
+		point = (LPPOINT)malloc(sizeof(POINT));
+		point->x = x;
+		point->y = y;
 
-	ClientToScreen(_Window->hwnd, point);
-	SetCursorPos(point->x, point->y);
-	free(point);
+		ClientToScreen(_Window->hwnd, point);
+		SetCursorPos(point->x, point->y);
+		free(point);
+	}
+	else {
+		point = (LPPOINT)malloc(sizeof(POINT));
+		point->x = x;
+		point->y = y;
+
+		ClientToScreen(_wndList[currentWindow].hwnd, point);
+		SetCursorPos(point->x, point->y);
+		free(point);
+	}
 }
 void setMouseIcon(SGWINSTR icon) {
 	SetSystemCursor(LoadCursor(NULL, icon), 0);
 }
 void setActivePage(int page) {
-	if (page != 0 && page != 1)return;
-	_activePage = page;
+	if (currentWindow == -1) {
+		if (page != 0 && page != 1)return;
+		_activePage = page;
+	}
+	else {
+		if (page != 0 && page != 1)return;
+		_wndList[currentWindow].activePage = page;
+	}
 }
 void setVisualPage(int page) {
-	if (page != 0 && page != 1)return;
-	_visualPage = page;
+	if (currentWindow == -1) {
+		if (page != 0 && page != 1)return;
+		_visualPage = page;
+	}
+	else {
+		if (page != 0 && page != 1)return;
+		_wndList[currentWindow].visualPage = page;
+	}
 }
 int selectFile(char name[], char start[], char format[], int idx) {
 	OPENFILENAME ofn = { 0 };
@@ -3950,12 +4082,24 @@ void closeSocket(SOCKET s) {
 	closesocket(s);
 }
 void hideCaption() {
-	LONG lStyle = GetWindowLong(_Window->hwnd, GWL_STYLE);
-	SetWindowLong(_Window->hwnd, GWL_STYLE, lStyle & ~WS_CAPTION);
+	if (currentWindow == -1) {
+		LONG lStyle = GetWindowLong(_Window->hwnd, GWL_STYLE);
+		SetWindowLong(_Window->hwnd, GWL_STYLE, lStyle & ~WS_CAPTION);
+	}
+	else {
+		LONG lStyle = GetWindowLong(_wndList[currentWindow].hwnd, GWL_STYLE);
+		SetWindowLong(_wndList[currentWindow].hwnd, GWL_STYLE, lStyle & ~WS_CAPTION);
+	}
 }
 void showCaption() {
-	LONG lStyle = GetWindowLong(_Window->hwnd, GWL_STYLE);
-	SetWindowLong(_Window->hwnd, GWL_STYLE, lStyle | WS_CAPTION);
+	if (currentWindow == -1) {
+		LONG lStyle = GetWindowLong(_Window->hwnd, GWL_STYLE);
+		SetWindowLong(_Window->hwnd, GWL_STYLE, lStyle | WS_CAPTION);
+	}
+	else {
+		LONG lStyle = GetWindowLong(_wndList[currentWindow].hwnd, GWL_STYLE);
+		SetWindowLong(_wndList[currentWindow].hwnd, GWL_STYLE, lStyle | WS_CAPTION);
+	}
 }
 void addTray() {
 	NOTIFYICONDATA nid;
@@ -4057,28 +4201,59 @@ int finishPopupMenu(int id) {
 int showPopupMenu(int menu, int x, int y) {
 	int i;
 	struct tagPOINT p;
-	for (i = 0; i < _popupNum; i++) {
-		if (popupMenu[i].id == menu)break;
-	}
-	if (i == _popupNum)return SG_OBJECT_NOT_FOUND;
-	if (!_scrResizeable) {
-		p.x = x * _Window->winWidth / _Screen->buffer1->sizeX;
-		p.y = y * _Window->winHeight / _Screen->buffer1->sizeY;
+
+	if (currentWindow == -1) {
+		for (i = 0; i < _popupNum; i++) {
+			if (popupMenu[i].id == menu)break;
+		}
+		if (i == _popupNum)return SG_OBJECT_NOT_FOUND;
+		if (!_scrResizeable) {
+			p.x = x * _Window->winWidth / _Screen->buffer1->sizeX;
+			p.y = y * _Window->winHeight / _Screen->buffer1->sizeY;
+		}
+		else {
+			p.x = x;
+			p.y = y;
+		}
+		ClientToScreen(_Window->hwnd, &p);
+		TrackPopupMenu(popupMenu[i].hm, TPM_LEFTALIGN,
+			p.x, p.y, 0, _Window->hwnd, NULL);
 	}
 	else {
-		p.x = x;
-		p.y = y;
+		for (i = 0; i < _popupNum; i++) {
+			if (popupMenu[i].id == menu)break;
+		}
+		if (i == _popupNum)return SG_OBJECT_NOT_FOUND;
+		if (_wndList[currentWindow].scrResizeable) {
+			p.x = x * _wndList[currentWindow].winWidth /
+				_wndList[currentWindow].buffer1->sizeX;
+			p.y = y * _wndList[currentWindow].winHeight /
+				_wndList[currentWindow].buffer1->sizeY;
+		}
+		else {
+			p.x = x;
+			p.y = y;
+		}
+		ClientToScreen(_wndList[currentWindow].hwnd, &p);
+		TrackPopupMenu(popupMenu[i].hm, TPM_LEFTALIGN,
+			p.x, p.y, 0, _wndList[currentWindow].hwnd, NULL);
 	}
-	ClientToScreen(_Window->hwnd, &p);
-	TrackPopupMenu(popupMenu[i].hm, TPM_LEFTALIGN,
-		p.x, p.y, 0, _Window->hwnd, NULL);
+
 	return SG_NO_ERORR;
 }
 void setIcon(const char *ico) {
 	SGWINSTR _wd = NULL;
-	_Window->hIcon = LoadImage(NULL, _wd = _widen(ico), IMAGE_ICON, 0, 0,
-		LR_LOADFROMFILE | LR_DEFAULTSIZE);
-	free((void *)_wd);
+	if (currentWindow == -1) {
+		_Window->hIcon = LoadImage(NULL, _wd = _widen(ico), IMAGE_ICON, 0, 0,
+			LR_LOADFROMFILE | LR_DEFAULTSIZE);
+		free((void *)_wd);
+	}
+	else {
+		_wndList[currentWindow].hIcon =
+			LoadImage(NULL, _wd = _widen(ico), IMAGE_ICON, 0, 0,
+			LR_LOADFROMFILE | LR_DEFAULTSIZE);
+		free((void *)_wd);
+	}
 }
 bitMap *copyPic(bitMap *src) {
 	bitMap *dst = (bitMap*)malloc(sizeof(bitMap));
@@ -4290,91 +4465,194 @@ bitMap *contrastPic(bitMap *src, int delta) {
 */
 void setColor(int r, int g, int b) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
-	if (checkThread())return;
 
-	_Screen->rgb[0] = r % 256;
-	_Screen->rgb[1] = g % 256;
-	_Screen->rgb[2] = b % 256;
+	if (currentWindow == -1) {
+		if (checkThread())return;
 
-	tf.color.r = r;
-	tf.color.g = g;
-	tf.color.b = b;
+		_Screen->rgb[0] = r % 256;
+		_Screen->rgb[1] = g % 256;
+		_Screen->rgb[2] = b % 256;
+
+		tf.color.r = r;
+		tf.color.g = g;
+		tf.color.b = b;
+	}
+	else {
+		_wndList[currentWindow].rgb[0] = r % 256;
+		_wndList[currentWindow].rgb[1] = g % 256;
+		_wndList[currentWindow].rgb[2] = b % 256;
+
+		_wndList[currentWindow].tf.color.r = r;
+		_wndList[currentWindow].tf.color.g = g;
+		_wndList[currentWindow].tf.color.b = b;
+	}
 }
 void setFontSize(int height) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
-	if (checkThread())return;
 
-	if (height<SG_MAX_FONT_LENGTH)tf.size = height;
-	else tf.size = SG_MAX_FONT_LENGTH;
+	if (currentWindow == -1) {
+		if (checkThread())return;
 
-	DeleteObject(text.font);
-	text.font = CreateFont(tf.size, 0, 0, 0, FW_THIN, tf.coeff & FONT_ITALIC,
-		tf.coeff & FONT_UNDERLINE, tf.coeff & FONT_STRIKEOUT,
-		DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS,
-		DEFAULT_QUALITY, FF_MODERN, tf.name);
-	SelectObject(text.memDC, text.font);
+		if (height<SG_MAX_FONT_LENGTH)tf.size = height;
+		else tf.size = SG_MAX_FONT_LENGTH;
+
+		DeleteObject(text.font);
+		text.font = CreateFont(tf.size, 0, 0, 0, FW_THIN, tf.coeff & FONT_ITALIC,
+			tf.coeff & FONT_UNDERLINE, tf.coeff & FONT_STRIKEOUT,
+			DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS,
+			DEFAULT_QUALITY, FF_MODERN, tf.name);
+		SelectObject(text.memDC, text.font);
+	}
+	else {
+		if (height<SG_MAX_FONT_LENGTH)_wndList[currentWindow].tf.size = height;
+		else _wndList[currentWindow].tf.size = SG_MAX_FONT_LENGTH;
+
+		DeleteObject(_wndList[currentWindow].text.font);
+		_wndList[currentWindow].text.font = 
+			CreateFont(_wndList[currentWindow].tf.size, 0, 0, 0, FW_THIN,
+			_wndList[currentWindow].tf.coeff & FONT_ITALIC,
+			_wndList[currentWindow].tf.coeff & FONT_UNDERLINE,
+			_wndList[currentWindow].tf.coeff & FONT_STRIKEOUT,
+			DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS,
+			DEFAULT_QUALITY, FF_MODERN, _wndList[currentWindow].tf.name);
+		SelectObject(_wndList[currentWindow].text.memDC,
+			_wndList[currentWindow].text.font);
+	}
 }
 void setFontName(const char *name) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
-	if (checkThread())return;
 
-	if (tf.name)free((void *)tf.name);
-	tf.name = _widen(name);
+	if (currentWindow == -1) {
+		if (checkThread())return;
 
-	DeleteObject(text.font);
-	text.font = CreateFont(tf.size, 0, 0, 0, FW_THIN, tf.coeff & FONT_ITALIC,
-		tf.coeff & FONT_UNDERLINE, tf.coeff & FONT_STRIKEOUT,
-		DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS,
-		DEFAULT_QUALITY, FF_MODERN, tf.name);
-	SelectObject(text.memDC, text.font);
+		if (tf.name)free((void *)tf.name);
+		tf.name = _widen(name);
+
+		DeleteObject(text.font);
+		text.font = CreateFont(tf.size, 0, 0, 0, FW_THIN, tf.coeff & FONT_ITALIC,
+			tf.coeff & FONT_UNDERLINE, tf.coeff & FONT_STRIKEOUT,
+			DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS,
+			DEFAULT_QUALITY, FF_MODERN, tf.name);
+		SelectObject(text.memDC, text.font);
+	}
+	else {
+		if (_wndList[currentWindow].tf.name)
+			free((void *)_wndList[currentWindow].tf.name);
+		_wndList[currentWindow].tf.name = _widen(name);
+
+		DeleteObject(_wndList[currentWindow].text.font);
+		_wndList[currentWindow].text.font =
+			CreateFont(_wndList[currentWindow].tf.size, 0, 0, 0, FW_THIN,
+			_wndList[currentWindow].tf.coeff & FONT_ITALIC,
+			_wndList[currentWindow].tf.coeff & FONT_UNDERLINE,
+			_wndList[currentWindow].tf.coeff & FONT_STRIKEOUT,
+			DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS,
+			DEFAULT_QUALITY, FF_MODERN, _wndList[currentWindow].tf.name);
+		SelectObject(_wndList[currentWindow].text.memDC,
+			_wndList[currentWindow].text.font);
+	}
 }
 void setFontStyle(int coeff) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
-	if (checkThread())return;
 
-	tf.coeff = coeff;
+	if (currentWindow == -1) {
+		if (checkThread())return;
 
-	DeleteObject(text.font);
-	text.font = CreateFont(tf.size, 0, 0, 0, FW_THIN, tf.coeff & FONT_ITALIC,
-		tf.coeff & FONT_UNDERLINE, tf.coeff & FONT_STRIKEOUT,
-		DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS,
-		DEFAULT_QUALITY, FF_MODERN, tf.name);
-	SelectObject(text.memDC, text.font);
+		tf.coeff = coeff;
+
+		DeleteObject(text.font);
+		text.font = CreateFont(tf.size, 0, 0, 0, FW_THIN, tf.coeff & FONT_ITALIC,
+			tf.coeff & FONT_UNDERLINE, tf.coeff & FONT_STRIKEOUT,
+			DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS,
+			DEFAULT_QUALITY, FF_MODERN, tf.name);
+		SelectObject(text.memDC, text.font);
+	}
+	else {
+		_wndList[currentWindow].tf.coeff = coeff;
+
+		DeleteObject(_wndList[currentWindow].text.font);
+		_wndList[currentWindow].text.font =
+			CreateFont(_wndList[currentWindow].tf.size, 0, 0, 0, FW_THIN,
+			_wndList[currentWindow].tf.coeff & FONT_ITALIC,
+			_wndList[currentWindow].tf.coeff & FONT_UNDERLINE,
+			_wndList[currentWindow].tf.coeff & FONT_STRIKEOUT,
+			DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS,
+			DEFAULT_QUALITY, FF_MODERN, _wndList[currentWindow].tf.name);
+		SelectObject(_wndList[currentWindow].text.memDC,
+			_wndList[currentWindow].text.font);
+	}
 }
 void setAlpha(float alpha) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
-	if (checkThread())return;
 
-	_Screen->alpha = alpha;
+	if (currentWindow == -1) {
+		if (checkThread())return;
+
+		_Screen->alpha = alpha;
+	}
+	else {
+		_wndList[currentWindow].alpha = alpha;
+	}
 }
 float getAlpha() {
 	if (_sglMode != BIT_MAP && !_innerFunc)return 0.f;
 
-	return _Screen->alpha;
+	if (currentWindow == -1) {
+		return _Screen->alpha;
+	}
+	else {
+		return _wndList[currentWindow].alpha;
+	}
 }
 void clearScreen() {
 	int i;
 	bitMap *buf;
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
-	if (checkThread())return;
 
-	if (_activePage == 0) buf = _Screen->buffer1;
-	else buf = _Screen->buffer2;
+	if (currentWindow == -1) {
+		if (checkThread())return;
 
-	if ((_Screen->rgb[0] & _Screen->rgb[1] & _Screen->rgb[2]) == 255) {
-		memset(buf->data, -1, 3 * buf->sizeX*buf->sizeY);
-		return;
+		if (_activePage == 0) buf = _Screen->buffer1;
+		else buf = _Screen->buffer2;
+
+		if ((_Screen->rgb[0] & _Screen->rgb[1] & _Screen->rgb[2]) == 255) {
+			memset(buf->data, -1, 3 * buf->sizeX*buf->sizeY);
+			return;
+		}
+		if ((_Screen->rgb[0] | _Screen->rgb[1] | _Screen->rgb[2]) == 0) {
+			memset(buf->data, 0, 3 * buf->sizeX*buf->sizeY);
+			return;
+		}
+
+		for (i = 0; i < 3 * buf->sizeX*buf->sizeY; i += 3) {
+			buf->data[i] = _Screen->rgb[2];
+			buf->data[i + 1] = _Screen->rgb[1];
+			buf->data[i + 2] = _Screen->rgb[0];
+		}
 	}
-	if ((_Screen->rgb[0] | _Screen->rgb[1] | _Screen->rgb[2]) == 0) {
-		memset(buf->data, 0, 3 * buf->sizeX*buf->sizeY);
-		return;
-	}
+	else {
+		if (_wndList[currentWindow].activePage == 0) buf = _wndList[currentWindow].buffer1;
+		else buf = _wndList[currentWindow].buffer2;
 
-	for (i = 0; i < 3 * buf->sizeX*buf->sizeY; i += 3) {
-		buf->data[i] = _Screen->rgb[2];
-		buf->data[i + 1] = _Screen->rgb[1];
-		buf->data[i + 2] = _Screen->rgb[0];
+		if ((_wndList[currentWindow].rgb[0] &
+			_wndList[currentWindow].rgb[1] &
+			_wndList[currentWindow].rgb[2]) == 255) {
+			memset(buf->data, -1, 3 * buf->sizeX*buf->sizeY);
+			return;
+		}
+		if ((_wndList[currentWindow].rgb[0] |
+			_wndList[currentWindow].rgb[1] |
+			_wndList[currentWindow].rgb[2]) == 0) {
+			memset(buf->data, 0, 3 * buf->sizeX*buf->sizeY);
+			return;
+		}
+
+		for (i = 0; i < 3 * buf->sizeX*buf->sizeY; i += 3) {
+			buf->data[i] = _wndList[currentWindow].rgb[2];
+			buf->data[i + 1] = _wndList[currentWindow].rgb[1];
+			buf->data[i + 2] = _wndList[currentWindow].rgb[0];
+		}
 	}
 }
 int putPixel(int x, int y) {
@@ -4382,26 +4660,54 @@ int putPixel(int x, int y) {
 	int p;
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return SG_INVALID_MODE;
-	if (checkThread())return SG_WRONG_THREAD;
 
-	if (_activePage == 0) buf = _Screen->buffer1;
-	else buf = _Screen->buffer2;
+	if (currentWindow == -1) {
+		if (checkThread())return SG_WRONG_THREAD;
 
-	if (x < 0 || x >= buf->sizeX || y < 0 || y >= buf->sizeY)return SG_OUT_OF_RANGE;
+		if (_activePage == 0) buf = _Screen->buffer1;
+		else buf = _Screen->buffer2;
 
-	p = (y * buf->sizeX + x) * 3;
-	if (_Screen->alpha == 1.f) {
-		buf->data[p] = _Screen->rgb[2];
-		buf->data[p + 1] = _Screen->rgb[1];
-		buf->data[p + 2] = _Screen->rgb[0];
+		if (x < 0 || x >= buf->sizeX || y < 0 || y >= buf->sizeY)return SG_OUT_OF_RANGE;
+
+		p = (y * buf->sizeX + x) * 3;
+		if (_Screen->alpha == 1.f) {
+			buf->data[p] = _Screen->rgb[2];
+			buf->data[p + 1] = _Screen->rgb[1];
+			buf->data[p + 2] = _Screen->rgb[0];
+		}
+		else {
+			buf->data[p] = (int)(buf->data[p] * (1.f - _Screen->alpha));
+			buf->data[p] += (int)(_Screen->rgb[2] * (_Screen->alpha));
+			buf->data[p + 1] = (int)(buf->data[p + 1] * (1.f - _Screen->alpha));
+			buf->data[p + 1] += (int)(_Screen->rgb[1] * (_Screen->alpha));
+			buf->data[p + 2] = (int)(buf->data[p + 2] * (1.f - _Screen->alpha));
+			buf->data[p + 2] += (int)(_Screen->rgb[0] * (_Screen->alpha));
+		}
 	}
 	else {
-		buf->data[p] = (int)(buf->data[p] * (1.f - _Screen->alpha));
-		buf->data[p] += (int)(_Screen->rgb[2] * (_Screen->alpha));
-		buf->data[p + 1] = (int)(buf->data[p + 1] * (1.f - _Screen->alpha));
-		buf->data[p + 1] += (int)(_Screen->rgb[1] * (_Screen->alpha));
-		buf->data[p + 2] = (int)(buf->data[p + 2] * (1.f - _Screen->alpha));
-		buf->data[p + 2] += (int)(_Screen->rgb[0] * (_Screen->alpha));
+		if (_wndList[currentWindow].activePage == 0)
+			buf = _wndList[currentWindow].buffer1;
+		else buf = _wndList[currentWindow].buffer2;
+
+		if (x < 0 || x >= buf->sizeX || y < 0 || y >= buf->sizeY)return SG_OUT_OF_RANGE;
+
+		p = (y * buf->sizeX + x) * 3;
+		if (_wndList[currentWindow].alpha == 1.f) {
+			buf->data[p] = _wndList[currentWindow].rgb[2];
+			buf->data[p + 1] = _wndList[currentWindow].rgb[1];
+			buf->data[p + 2] = _wndList[currentWindow].rgb[0];
+		}
+		else {
+			buf->data[p] = (int)(buf->data[p] * (1.f - _wndList[currentWindow].alpha));
+			buf->data[p] +=
+				(int)(_wndList[currentWindow].rgb[2] * (_wndList[currentWindow].alpha));
+			buf->data[p + 1] = (int)(buf->data[p + 1] * (1.f - _wndList[currentWindow].alpha));
+			buf->data[p + 1] +=
+				(int)(_wndList[currentWindow].rgb[1] * (_wndList[currentWindow].alpha));
+			buf->data[p + 2] = (int)(buf->data[p + 2] * (1.f - _wndList[currentWindow].alpha));
+			buf->data[p + 2] +=
+				(int)(_wndList[currentWindow].rgb[0] * (_wndList[currentWindow].alpha));
+		}
 	}
 
 	return SG_NO_ERORR;
@@ -4415,21 +4721,37 @@ RGB getPixel(int x, int y) {
 		im.r = im.g = im.b = SG_INVALID_MODE;
 		return im;
 	}
-	if (checkThread()) {
-		im.r = im.g = im.b = SG_WRONG_THREAD;
-		return im;
+
+	if (currentWindow == -1) {
+		if (checkThread()) {
+			im.r = im.g = im.b = SG_WRONG_THREAD;
+			return im;
+		}
+
+		if (_activePage == 0) buf = _Screen->buffer1;
+		else buf = _Screen->buffer2;
+
+		ret.r = ret.g = ret.b = SG_OUT_OF_RANGE;
+
+		if (x < 0 || x >= buf->sizeX || y < 0 || y >= buf->sizeY)return ret;
+		p = (y*buf->sizeX + x) * 3;
+		ret.r = buf->data[p++];
+		ret.g = buf->data[p++];
+		ret.b = buf->data[p++];
 	}
+	else {
+		if (_wndList[currentWindow].activePage == 0)
+			buf = _wndList[currentWindow].buffer1;
+		else buf = _wndList[currentWindow].buffer2;
 
-	if (_activePage == 0) buf = _Screen->buffer1;
-	else buf = _Screen->buffer2;
+		ret.r = ret.g = ret.b = SG_OUT_OF_RANGE;
 
-	ret.r = ret.g = ret.b = SG_OUT_OF_RANGE;
-
-	if (x < 0 || x >= buf->sizeX || y < 0 || y >= buf->sizeY)return ret;
-	p = (y*buf->sizeX + x) * 3;
-	ret.r = buf->data[p++];
-	ret.g = buf->data[p++];
-	ret.b = buf->data[p++];
+		if (x < 0 || x >= buf->sizeX || y < 0 || y >= buf->sizeY)return ret;
+		p = (y*buf->sizeX + x) * 3;
+		ret.r = buf->data[p++];
+		ret.g = buf->data[p++];
+		ret.b = buf->data[p++];
+	}
 
 	return ret;
 }
@@ -4437,64 +4759,123 @@ void putLine(int x1, int y1, int x2, int y2, int mode) {
 	int dx, dy, ux, uy, x, y, eps;
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
-	if (checkThread())return;
 
 #define ABS(x) ((x > 0) ? (x) : (-x))
 
-	dx = x2 - x1;
-	dy = y2 - y1;
+	if (currentWindow == -1) {
+		if (checkThread())return;
 
-	ux = ((dx > 0) << 1) - 1;
-	uy = ((dy > 0) << 1) - 1;
+		dx = x2 - x1;
+		dy = y2 - y1;
 
-	x = x1;
-	y = y1;
+		ux = ((dx > 0) << 1) - 1;
+		uy = ((dy > 0) << 1) - 1;
 
-	eps = 0;
-	dx = ABS(dx);
-	dy = ABS(dy);
+		x = x1;
+		y = y1;
 
-	if (dx > dy) {
-		for (x = x1; x != x2 + ux; x += ux) {
-			putPixel(x, y);
-			eps += dy;
-			if ((eps << 1) >= dx) {
-				y += uy;
-				eps -= dx;
+		eps = 0;
+		dx = ABS(dx);
+		dy = ABS(dy);
+
+		if (dx > dy) {
+			for (x = x1; x != x2 + ux; x += ux) {
+				putPixel(x, y);
+				eps += dy;
+				if ((eps << 1) >= dx) {
+					y += uy;
+					eps -= dx;
+				}
+			}
+		}
+		else {
+			for (y = y1; y != y2 + uy; y += uy) {
+				putPixel(x, y);
+				eps += dx;
+				if ((eps << 1) >= dy) {
+					x += ux;
+					eps -= dy;
+				}
 			}
 		}
 	}
 	else {
-		for (y = y1; y != y2 + uy; y += uy) {
-			putPixel(x, y);
-			eps += dx;
-			if ((eps << 1) >= dy) {
-				x += ux;
-				eps -= dy;
+		dx = x2 - x1;
+		dy = y2 - y1;
+
+		ux = ((dx > 0) << 1) - 1;
+		uy = ((dy > 0) << 1) - 1;
+
+		x = x1;
+		y = y1;
+
+		eps = 0;
+		dx = ABS(dx);
+		dy = ABS(dy);
+
+		if (dx > dy) {
+			for (x = x1; x != x2 + ux; x += ux) {
+				putPixel(x, y);
+				eps += dy;
+				if ((eps << 1) >= dx) {
+					y += uy;
+					eps -= dx;
+				}
+			}
+		}
+		else {
+			for (y = y1; y != y2 + uy; y += uy) {
+				putPixel(x, y);
+				eps += dx;
+				if ((eps << 1) >= dy) {
+					x += ux;
+					eps -= dy;
+				}
 			}
 		}
 	}
+
 #undef ABS
 }
 void putQuad(int x1, int y1, int x2, int y2, int mode) {
 	int i, j;
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
-	if (checkThread())return;
 
-	if (mode == SOLID_FILL)
-		for (i = x1; i <= x2; i++)
-			for (j = y1; j <= y2; j++)
-				putPixel(i, j);
+	if (currentWindow == -1) {
+		if (checkThread())return;
 
-	if (mode == EMPTY_FILL) {
-		for (i = x1; i <= x2; i++) {
-			putPixel(i, y1);
-			putPixel(i, y2);
+		if (mode == SOLID_FILL)
+			for (i = x1; i <= x2; i++)
+				for (j = y1; j <= y2; j++)
+					putPixel(i, j);
+
+		if (mode == EMPTY_FILL) {
+			for (i = x1; i <= x2; i++) {
+				putPixel(i, y1);
+				putPixel(i, y2);
+			}
+			for (j = y1; j <= y2; j++) {
+				putPixel(x1, j);
+				putPixel(x2, j);
+			}
 		}
-		for (j = y1; j <= y2; j++) {
-			putPixel(x1, j);
-			putPixel(x2, j);
+	}
+	else {
+		if (mode == SOLID_FILL)
+			for (i = x1; i <= x2; i++)
+				for (j = y1; j <= y2; j++)
+					putPixel(i, j);
+
+		if (mode == EMPTY_FILL) {
+			for (i = x1; i <= x2; i++) {
+				putPixel(i, y1);
+				putPixel(i, y2);
+			}
+			for (j = y1; j <= y2; j++) {
+				putPixel(x1, j);
+				putPixel(x2, j);
+			}
 		}
 	}
 }
@@ -4502,87 +4883,171 @@ void putTriangle(int x1, int y1, int x2, int y2, int x3, int y3, int mode) {
 	RGB c;
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
-	if (checkThread())return;
 
-	c.r = _Screen->rgb[0];
-	c.g = _Screen->rgb[1];
-	c.b = _Screen->rgb[2];
-	putLine(x1, y1, x2, y2, SOLID_LINE);
-	putLine(x1, y1, x3, y3, SOLID_LINE);
-	putLine(x2, y2, x3, y3, SOLID_LINE);
-	if (mode == SOLID_FILL)floodFill((x1 + x2 + x3) / 3, (y1 + y2 + y3) / 3, c);
+	if (currentWindow == -1) {
+		if (checkThread())return;
+
+		c.r = _Screen->rgb[0];
+		c.g = _Screen->rgb[1];
+		c.b = _Screen->rgb[2];
+		putLine(x1, y1, x2, y2, SOLID_LINE);
+		putLine(x1, y1, x3, y3, SOLID_LINE);
+		putLine(x2, y2, x3, y3, SOLID_LINE);
+		if (mode == SOLID_FILL)floodFill((x1 + x2 + x3) / 3, (y1 + y2 + y3) / 3, c);
+	}
+	else {
+		c.r = _wndList[currentWindow].rgb[0];
+		c.g = _wndList[currentWindow].rgb[1];
+		c.b = _wndList[currentWindow].rgb[2];
+		putLine(x1, y1, x2, y2, SOLID_LINE);
+		putLine(x1, y1, x3, y3, SOLID_LINE);
+		putLine(x2, y2, x3, y3, SOLID_LINE);
+		if (mode == SOLID_FILL)floodFill((x1 + x2 + x3) / 3, (y1 + y2 + y3) / 3, c);
+	}
 }
 void putCircle(int xc, int yc, int r, int mode) {
 	int x, y, yi, d;
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
-	if (checkThread())return;
 
-	x = 0;
-	y = r;
-	d = 3 - 2 * r;
+	if (currentWindow == -1) {
+		if (checkThread())return;
 
-	if (mode == SOLID_FILL) {
-		putPixel(xc, yc);
-		while (x <= y) {
-			if (x == 0) {
-				for (yi = x + 1; yi <= y; yi++) {
-					putPixel(xc + x, yc + yi);
-					putPixel(xc + x, yc - yi);
-					putPixel(xc + yi, yc + x);
-					putPixel(xc - yi, yc + x);
+		x = 0;
+		y = r;
+		d = 3 - 2 * r;
+
+		if (mode == SOLID_FILL) {
+			putPixel(xc, yc);
+			while (x <= y) {
+				if (x == 0) {
+					for (yi = x + 1; yi <= y; yi++) {
+						putPixel(xc + x, yc + yi);
+						putPixel(xc + x, yc - yi);
+						putPixel(xc + yi, yc + x);
+						putPixel(xc - yi, yc + x);
+					}
 				}
-			}
-			else {
-				putPixel(xc + x, yc + x);
-				putPixel(xc + x, yc - x);
-				putPixel(xc - x, yc - x);
-				putPixel(xc - x, yc + x);
-				for (yi = x + 1; yi <= y; yi++) {
-					putPixel(xc + x, yc + yi);
-					putPixel(xc + x, yc - yi);
-					putPixel(xc - x, yc - yi);
-					putPixel(xc - x, yc + yi);
-					putPixel(xc + yi, yc + x);
-					putPixel(xc + yi, yc - x);
-					putPixel(xc - yi, yc - x);
-					putPixel(xc - yi, yc + x);
+				else {
+					putPixel(xc + x, yc + x);
+					putPixel(xc + x, yc - x);
+					putPixel(xc - x, yc - x);
+					putPixel(xc - x, yc + x);
+					for (yi = x + 1; yi <= y; yi++) {
+						putPixel(xc + x, yc + yi);
+						putPixel(xc + x, yc - yi);
+						putPixel(xc - x, yc - yi);
+						putPixel(xc - x, yc + yi);
+						putPixel(xc + yi, yc + x);
+						putPixel(xc + yi, yc - x);
+						putPixel(xc - yi, yc - x);
+						putPixel(xc - yi, yc + x);
+					}
 				}
-			}
 
-			if (d < 0)d = d + 4 * x + 6;
-			else {
-				d = d + 4 * (x - y) + 10;
-				y--;
+				if (d < 0)d = d + 4 * x + 6;
+				else {
+					d = d + 4 * (x - y) + 10;
+					y--;
+				}
+				x++;
 			}
-			x++;
+		}
+		if (mode == EMPTY_FILL) {
+			while (x <= y) {
+				if (x == 0) {
+					putPixel(xc + x, yc + y);
+					putPixel(xc + x, yc - y);
+					putPixel(xc + y, yc + x);
+					putPixel(xc - y, yc + x);
+				}
+				else {
+					putPixel(xc + x, yc + y);
+					putPixel(xc + x, yc - y);
+					putPixel(xc - x, yc - y);
+					putPixel(xc - x, yc + y);
+					putPixel(xc + y, yc + x);
+					putPixel(xc + y, yc - x);
+					putPixel(xc - y, yc - x);
+					putPixel(xc - y, yc + x);
+				}
+
+				if (d < 0)d = d + 4 * x + 6;
+				else {
+					d = d + 4 * (x - y) + 10;
+					y--;
+				}
+				x++;
+			}
 		}
 	}
-	if (mode == EMPTY_FILL) {
-		while (x <= y) {
-			if (x == 0) {
-				putPixel(xc + x, yc + y);
-				putPixel(xc + x, yc - y);
-				putPixel(xc + y, yc + x);
-				putPixel(xc - y, yc + x);
-			}
-			else {
-				putPixel(xc + x, yc + y);
-				putPixel(xc + x, yc - y);
-				putPixel(xc - x, yc - y);
-				putPixel(xc - x, yc + y);
-				putPixel(xc + y, yc + x);
-				putPixel(xc + y, yc - x);
-				putPixel(xc - y, yc - x);
-				putPixel(xc - y, yc + x);
-			}
+	else {
+		x = 0;
+		y = r;
+		d = 3 - 2 * r;
 
-			if (d < 0)d = d + 4 * x + 6;
-			else {
-				d = d + 4 * (x - y) + 10;
-				y--;
+		if (mode == SOLID_FILL) {
+			putPixel(xc, yc);
+			while (x <= y) {
+				if (x == 0) {
+					for (yi = x + 1; yi <= y; yi++) {
+						putPixel(xc + x, yc + yi);
+						putPixel(xc + x, yc - yi);
+						putPixel(xc + yi, yc + x);
+						putPixel(xc - yi, yc + x);
+					}
+				}
+				else {
+					putPixel(xc + x, yc + x);
+					putPixel(xc + x, yc - x);
+					putPixel(xc - x, yc - x);
+					putPixel(xc - x, yc + x);
+					for (yi = x + 1; yi <= y; yi++) {
+						putPixel(xc + x, yc + yi);
+						putPixel(xc + x, yc - yi);
+						putPixel(xc - x, yc - yi);
+						putPixel(xc - x, yc + yi);
+						putPixel(xc + yi, yc + x);
+						putPixel(xc + yi, yc - x);
+						putPixel(xc - yi, yc - x);
+						putPixel(xc - yi, yc + x);
+					}
+				}
+
+				if (d < 0)d = d + 4 * x + 6;
+				else {
+					d = d + 4 * (x - y) + 10;
+					y--;
+				}
+				x++;
 			}
-			x++;
+		}
+		if (mode == EMPTY_FILL) {
+			while (x <= y) {
+				if (x == 0) {
+					putPixel(xc + x, yc + y);
+					putPixel(xc + x, yc - y);
+					putPixel(xc + y, yc + x);
+					putPixel(xc - y, yc + x);
+				}
+				else {
+					putPixel(xc + x, yc + y);
+					putPixel(xc + x, yc - y);
+					putPixel(xc - x, yc - y);
+					putPixel(xc - x, yc + y);
+					putPixel(xc + y, yc + x);
+					putPixel(xc + y, yc - x);
+					putPixel(xc - y, yc - x);
+					putPixel(xc - y, yc + x);
+				}
+
+				if (d < 0)d = d + 4 * x + 6;
+				else {
+					d = d + 4 * (x - y) + 10;
+					y--;
+				}
+				x++;
+			}
 		}
 	}
 }
@@ -4590,48 +5055,39 @@ void putEllipse(int xc, int yc, int a, int b, int mode) {
 	int sqa, sqb, x, y, d, P_x, xi, jmp;
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
-	if (checkThread())return;
 
-	sqa = a * a;
-	sqb = b * b;
-	x = 0;
-	y = b;
-	d = 2 * sqb - 2 * b * sqa + sqa;
-	P_x = (int)((double)sqa / sqrt((double)(sqa + sqb)));
+	if (currentWindow == -1) {
+		if (checkThread())return;
 
-	if (mode == SOLID_FILL) {
-		putPixel(xc, yc);
-		for (xi = 1; xi < b; xi++) {
-			putPixel(xc, yc + xi);
-			putPixel(xc, yc - xi);
-		}
-		for (xi = 1; xi < a; xi++) {
-			putPixel(xc + xi, yc);
-			putPixel(xc - xi, yc);
-		}
-		while (x <= P_x) {
-			if (d < 0) {
-				d += 2 * sqb * (2 * x + 3);
+		sqa = a * a;
+		sqb = b * b;
+		x = 0;
+		y = b;
+		d = 2 * sqb - 2 * b * sqa + sqa;
+		P_x = (int)((double)sqa / sqrt((double)(sqa + sqb)));
+
+		if (mode == SOLID_FILL) {
+			putPixel(xc, yc);
+			for (xi = 1; xi < b; xi++) {
+				putPixel(xc, yc + xi);
+				putPixel(xc, yc - xi);
+			}
+			for (xi = 1; xi < a; xi++) {
+				putPixel(xc + xi, yc);
+				putPixel(xc - xi, yc);
+			}
+			while (x <= P_x) {
+				if (d < 0) {
+					d += 2 * sqb * (2 * x + 3);
+					x++;
+					continue;
+				}
+				else {
+					d += 2 * sqb * (2 * x + 3) - 4 * sqa * (y - 1);
+					y--;
+				}
 				x++;
-				continue;
-			}
-			else {
-				d += 2 * sqb * (2 * x + 3) - 4 * sqa * (y - 1);
-				y--;
-			}
-			x++;
 
-			for (xi = 1; xi <= x; xi++) {
-				putPixel(xc + xi, yc + y);
-				putPixel(xc - xi, yc + y);
-				putPixel(xc + xi, yc - y);
-				putPixel(xc - xi, yc - y);
-			}
-		}
-		d = sqb * (x * x + x) + sqa * (y * y - y) - sqa * sqb;
-		jmp = y;
-		while (y > 0) {
-			if (jmp != y) {
 				for (xi = 1; xi <= x; xi++) {
 					putPixel(xc + xi, yc + y);
 					putPixel(xc - xi, yc + y);
@@ -4639,48 +5095,152 @@ void putEllipse(int xc, int yc, int a, int b, int mode) {
 					putPixel(xc - xi, yc - y);
 				}
 			}
-			y--;
-
-			if (d < 0) {
-				x++;
-				d = d - 2 * sqa * y - sqa + 2 * sqb * x + 2 * sqb;
-			}
-			else d = d - 2 * sqa * y - sqa;
-		}
-	}
-	if (mode == EMPTY_FILL) {
-		putPixel(xc + x, yc + y);
-		putPixel(xc - x, yc - y);
-		while (x <= P_x) {
-			if (d < 0) d += 2 * sqb * (2 * x + 3);
-			else {
-				d += 2 * sqb * (2 * x + 3) - 4 * sqa * (y - 1);
+			d = sqb * (x * x + x) + sqa * (y * y - y) - sqa * sqb;
+			jmp = y;
+			while (y > 0) {
+				if (jmp != y) {
+					for (xi = 1; xi <= x; xi++) {
+						putPixel(xc + xi, yc + y);
+						putPixel(xc - xi, yc + y);
+						putPixel(xc + xi, yc - y);
+						putPixel(xc - xi, yc - y);
+					}
+				}
 				y--;
+
+				if (d < 0) {
+					x++;
+					d = d - 2 * sqa * y - sqa + 2 * sqb * x + 2 * sqb;
+				}
+				else d = d - 2 * sqa * y - sqa;
 			}
-			x++;
-			putPixel(xc + x, yc + y);
-			putPixel(xc - x, yc + y);
-			putPixel(xc + x, yc - y);
-			putPixel(xc - x, yc - y);
 		}
-		d = sqb * (x * x + x) + sqa * (y * y - y) - sqa * sqb;
-		jmp = y;
-		while (y > 0) {
-			if (jmp != y) {
+		if (mode == EMPTY_FILL) {
+			putPixel(xc + x, yc + y);
+			putPixel(xc - x, yc - y);
+			while (x <= P_x) {
+				if (d < 0) d += 2 * sqb * (2 * x + 3);
+				else {
+					d += 2 * sqb * (2 * x + 3) - 4 * sqa * (y - 1);
+					y--;
+				}
+				x++;
 				putPixel(xc + x, yc + y);
 				putPixel(xc - x, yc + y);
 				putPixel(xc + x, yc - y);
 				putPixel(xc - x, yc - y);
 			}
-			y--;
-			if (d < 0) {
-				x++;
-				d = d - 2 * sqa * y - sqa + 2 * sqb * x + 2 * sqb;
+			d = sqb * (x * x + x) + sqa * (y * y - y) - sqa * sqb;
+			jmp = y;
+			while (y > 0) {
+				if (jmp != y) {
+					putPixel(xc + x, yc + y);
+					putPixel(xc - x, yc + y);
+					putPixel(xc + x, yc - y);
+					putPixel(xc - x, yc - y);
+				}
+				y--;
+				if (d < 0) {
+					x++;
+					d = d - 2 * sqa * y - sqa + 2 * sqb * x + 2 * sqb;
+				}
+				else d = d - 2 * sqa * y - sqa;
 			}
-			else d = d - 2 * sqa * y - sqa;
+			putPixel(xc + x, yc + y);
+			putPixel(xc - x, yc - y);
 		}
-		putPixel(xc + x, yc + y);
-		putPixel(xc - x, yc - y);
+	}
+	else {
+		sqa = a * a;
+		sqb = b * b;
+		x = 0;
+		y = b;
+		d = 2 * sqb - 2 * b * sqa + sqa;
+		P_x = (int)((double)sqa / sqrt((double)(sqa + sqb)));
+
+		if (mode == SOLID_FILL) {
+			putPixel(xc, yc);
+			for (xi = 1; xi < b; xi++) {
+				putPixel(xc, yc + xi);
+				putPixel(xc, yc - xi);
+			}
+			for (xi = 1; xi < a; xi++) {
+				putPixel(xc + xi, yc);
+				putPixel(xc - xi, yc);
+			}
+			while (x <= P_x) {
+				if (d < 0) {
+					d += 2 * sqb * (2 * x + 3);
+					x++;
+					continue;
+				}
+				else {
+					d += 2 * sqb * (2 * x + 3) - 4 * sqa * (y - 1);
+					y--;
+				}
+				x++;
+
+				for (xi = 1; xi <= x; xi++) {
+					putPixel(xc + xi, yc + y);
+					putPixel(xc - xi, yc + y);
+					putPixel(xc + xi, yc - y);
+					putPixel(xc - xi, yc - y);
+				}
+			}
+			d = sqb * (x * x + x) + sqa * (y * y - y) - sqa * sqb;
+			jmp = y;
+			while (y > 0) {
+				if (jmp != y) {
+					for (xi = 1; xi <= x; xi++) {
+						putPixel(xc + xi, yc + y);
+						putPixel(xc - xi, yc + y);
+						putPixel(xc + xi, yc - y);
+						putPixel(xc - xi, yc - y);
+					}
+				}
+				y--;
+
+				if (d < 0) {
+					x++;
+					d = d - 2 * sqa * y - sqa + 2 * sqb * x + 2 * sqb;
+				}
+				else d = d - 2 * sqa * y - sqa;
+			}
+		}
+		if (mode == EMPTY_FILL) {
+			putPixel(xc + x, yc + y);
+			putPixel(xc - x, yc - y);
+			while (x <= P_x) {
+				if (d < 0) d += 2 * sqb * (2 * x + 3);
+				else {
+					d += 2 * sqb * (2 * x + 3) - 4 * sqa * (y - 1);
+					y--;
+				}
+				x++;
+				putPixel(xc + x, yc + y);
+				putPixel(xc - x, yc + y);
+				putPixel(xc + x, yc - y);
+				putPixel(xc - x, yc - y);
+			}
+			d = sqb * (x * x + x) + sqa * (y * y - y) - sqa * sqb;
+			jmp = y;
+			while (y > 0) {
+				if (jmp != y) {
+					putPixel(xc + x, yc + y);
+					putPixel(xc - x, yc + y);
+					putPixel(xc + x, yc - y);
+					putPixel(xc - x, yc - y);
+				}
+				y--;
+				if (d < 0) {
+					x++;
+					d = d - 2 * sqa * y - sqa + 2 * sqb * x + 2 * sqb;
+				}
+				else d = d - 2 * sqa * y - sqa;
+			}
+			putPixel(xc + x, yc + y);
+			putPixel(xc - x, yc - y);
+		}
 	}
 }
 void putBitmap(int x, int y, bitMap bmp) {
@@ -4689,19 +5249,37 @@ void putBitmap(int x, int y, bitMap bmp) {
 	byte *vp;
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
-	if (checkThread())return;
 
-	if (_activePage == 0) buf = _Screen->buffer1;
-	else buf = _Screen->buffer2;
-	vp = buf->data + (y*buf->sizeX + x) * 3;
+	if (currentWindow == -1) {
+		if (checkThread())return;
 
-	width = bmp.sizeX;
-	height = bmp.sizeY;
-	for (i = height - 1; i >= 0; i--) {
-		lines = i * buf->sizeX * 3;
-		if (x + width > buf->sizeX)
-			memcpy(vp + lines, bmp.data + i * width * 3, (buf->sizeX - x) * 3);
-		else memcpy(vp + lines, bmp.data + i * width * 3, width * 3);
+		if (_activePage == 0) buf = _Screen->buffer1;
+		else buf = _Screen->buffer2;
+		vp = buf->data + (y*buf->sizeX + x) * 3;
+
+		width = bmp.sizeX;
+		height = bmp.sizeY;
+		for (i = height - 1; i >= 0; i--) {
+			lines = i * buf->sizeX * 3;
+			if (x + width > buf->sizeX)
+				memcpy(vp + lines, bmp.data + i * width * 3, (buf->sizeX - x) * 3);
+			else memcpy(vp + lines, bmp.data + i * width * 3, width * 3);
+		}
+	}
+	else{
+		if (_wndList[currentWindow].activePage == 0)
+			buf = _wndList[currentWindow].buffer1;
+		else buf = _wndList[currentWindow].buffer2;
+		vp = buf->data + (y*buf->sizeX + x) * 3;
+
+		width = bmp.sizeX;
+		height = bmp.sizeY;
+		for (i = height - 1; i >= 0; i--) {
+			lines = i * buf->sizeX * 3;
+			if (x + width > buf->sizeX)
+				memcpy(vp + lines, bmp.data + i * width * 3, (buf->sizeX - x) * 3);
+			else memcpy(vp + lines, bmp.data + i * width * 3, width * 3);
+		}
 	}
 }
 int drawBmp(int x, int y, const char *filename) {
@@ -4715,40 +5293,79 @@ int drawBmp(int x, int y, const char *filename) {
 	char buffer = 0;
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return SG_INVALID_MODE;
-	if (checkThread())return SG_WRONG_THREAD;
 
-	if (_activePage == 0) buf = _Screen->buffer1;
-	else buf = _Screen->buffer2;
-	vp = buf->data + (y*buf->sizeX + x) * 3;
+	if (currentWindow == -1) {
+		if (checkThread())return SG_WRONG_THREAD;
 
-	if (x < 0 || y < 0)goto displayError;
-	p = (SGstring)malloc(2048 * 3 * sizeof(char));
-	if (p == NULL)goto displayError;
-	fp = fopen(filename, "rb");
-	if (fp == NULL)goto displayError;
+		if (_activePage == 0) buf = _Screen->buffer1;
+		else buf = _Screen->buffer2;
+		vp = buf->data + (y*buf->sizeX + x) * 3;
 
-	fread(p, 1, 0x36, fp);
-	if (*(word *)p != 0x4D42)goto displayError;
-	if (*(word *)(p + 0x1C) != 24)goto displayError;
+		if (x < 0 || y < 0)goto displayError;
+		p = (SGstring)malloc(2048 * 3 * sizeof(char));
+		if (p == NULL)goto displayError;
+		fp = fopen(filename, "rb");
+		if (fp == NULL)goto displayError;
 
-	width = *(dword *)(p + 0x12);
-	height = *(dword *)(p + 0x16);
-	dataOffset = *(dword *)(p + 0x0A);
-	lineBytes = (width * 3 + 3) / 4 * 4;
+		fread(p, 1, 0x36, fp);
+		if (*(word *)p != 0x4D42)goto displayError;
+		if (*(word *)(p + 0x1C) != 24)goto displayError;
 
-	if (y + height > buf->sizeY) {
-		fseek(fp, dataOffset + (y + height - buf->sizeY)*lineBytes, SEEK_SET);
-		height = buf->sizeY - y;
+		width = *(dword *)(p + 0x12);
+		height = *(dword *)(p + 0x16);
+		dataOffset = *(dword *)(p + 0x0A);
+		lineBytes = (width * 3 + 3) / 4 * 4;
+
+		if (y + height > buf->sizeY) {
+			fseek(fp, dataOffset + (y + height - buf->sizeY)*lineBytes, SEEK_SET);
+			height = buf->sizeY - y;
+		}
+		else fseek(fp, dataOffset, SEEK_SET);
+
+		for (i = height - 1; i >= 0; i--) {
+			fread(p, 1, lineBytes, fp);
+			lines = i * buf->sizeX * 3;
+			tmp = p;
+			if (x + width > buf->sizeX)
+				memcpy(vp + lines, p, (buf->sizeX - x) * 3);
+			else memcpy(vp + lines, p, width * 3);
+		}
 	}
-	else fseek(fp, dataOffset, SEEK_SET);
+	else {
+		if (_wndList[currentWindow].activePage == 0)
+			buf = _wndList[currentWindow].buffer1;
+		else buf = _wndList[currentWindow].buffer2;
+		vp = buf->data + (y*buf->sizeX + x) * 3;
 
-	for (i = height - 1; i >= 0; i--) {
-		fread(p, 1, lineBytes, fp);
-		lines = i * buf->sizeX * 3;
-		tmp = p;
-		if (x + width > buf->sizeX)
-			memcpy(vp + lines, p, (buf->sizeX - x) * 3);
-		else memcpy(vp + lines, p, width * 3);
+		if (x < 0 || y < 0)goto displayError;
+		p = (SGstring)malloc(2048 * 3 * sizeof(char));
+		if (p == NULL)goto displayError;
+		fp = fopen(filename, "rb");
+		if (fp == NULL)goto displayError;
+
+		fread(p, 1, 0x36, fp);
+		if (*(word *)p != 0x4D42)goto displayError;
+		if (*(word *)(p + 0x1C) != 24)goto displayError;
+
+		width = *(dword *)(p + 0x12);
+		height = *(dword *)(p + 0x16);
+		dataOffset = *(dword *)(p + 0x0A);
+		lineBytes = (width * 3 + 3) / 4 * 4;
+
+		if (y + height > buf->sizeY) {
+			fseek(fp, dataOffset + (y + height - buf->sizeY)*lineBytes, SEEK_SET);
+			height = buf->sizeY - y;
+		}
+		else fseek(fp, dataOffset, SEEK_SET);
+
+		for (i = height - 1; i >= 0; i--) {
+			fread(p, 1, lineBytes, fp);
+			lines = i * buf->sizeX * 3;
+			tmp = p;
+			if (x + width > buf->sizeX)
+				memcpy(vp + lines, p, (buf->sizeX - x) * 3);
+			else memcpy(vp + lines, p, width * 3);
+		}
 	}
 
 	free(p);
@@ -4809,21 +5426,31 @@ void putChar(char ch, int x, int y) {
 	int j, k;
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
-	if (checkThread())return;
 
-	for (j = 0; j < 8; j++)
-		for (k = 7; k >= 0; k--)
-			if ((letters[ch][j] >> k) & 1) {
-				putPixel(x + 7 - k, y + 2 * j);
-				putPixel(x + 7 - k, y + 2 * j + 1);
-			}
+	if (currentWindow == -1) {
+		if (checkThread())return;
+
+		for (j = 0; j < 8; j++)
+			for (k = 7; k >= 0; k--)
+				if ((letters[ch][j] >> k) & 1) {
+					putPixel(x + 7 - k, y + 2 * j);
+					putPixel(x + 7 - k, y + 2 * j + 1);
+				}
+	}
+	else {
+		for (j = 0; j < 8; j++)
+			for (k = 7; k >= 0; k--)
+				if ((letters[ch][j] >> k) & 1) {
+					putPixel(x + 7 - k, y + 2 * j);
+					putPixel(x + 7 - k, y + 2 * j + 1);
+				}
+	}
 }
 void putString(const char *str, int x, int y) {
 	unsigned int tab = 0, i, j;
 	char *tmp;
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
-	if (checkThread())return;
 	if (str == NULL)return;
 	if (strlen(str) == 0)return;
 
@@ -4840,42 +5467,90 @@ void putString(const char *str, int x, int y) {
 		else tmp[j++] = str[i];
 	}
 
-	SGWINSTR _wd = NULL;
-	GetTextExtentPoint32(text.memDC, _wd = _widen(tmp), _strlenW(tmp), &text.strRect);
-	free((void *)_wd);
-	memset(text.bitBuf, 0, text.bufSize);
-	RECT imgRect = { 0, 0, text.strRect.cx, text.strRect.cy };
-	FillRect(text.memDC, &imgRect, (HBRUSH)GetStockObject(BLACK_BRUSH));
+	if (currentWindow == -1) {
+		if (checkThread())return;
 
-	TextOut(text.memDC, 0, 0, _wd = _widen(tmp), _strlenW(tmp));
-	free((void *)_wd);
-	_hbmImage(text.memDC, text.hbm, x, y, tmp);
-	free(tmp);
+		SGWINSTR _wd = NULL;
+		GetTextExtentPoint32(text.memDC, _wd = _widen(tmp), _strlenW(tmp), &text.strRect);
+		free((void *)_wd);
+		memset(text.bitBuf, 0, text.bufSize);
+		RECT imgRect = { 0, 0, text.strRect.cx, text.strRect.cy };
+		FillRect(text.memDC, &imgRect, (HBRUSH)GetStockObject(BLACK_BRUSH));
+
+		TextOut(text.memDC, 0, 0, _wd = _widen(tmp), _strlenW(tmp));
+		free((void *)_wd);
+		_hbmImage(text.memDC, text.hbm, x, y, tmp);
+		free(tmp);
+	}
+	else {
+		SGWINSTR _wd = NULL;
+		GetTextExtentPoint32(_wndList[currentWindow].text.memDC, _wd = _widen(tmp),
+			_strlenW(tmp), &_wndList[currentWindow].text.strRect);
+		free((void *)_wd);
+		memset(_wndList[currentWindow].text.bitBuf, 0,
+			_wndList[currentWindow].text.bufSize);
+		RECT imgRect = { 0, 0, _wndList[currentWindow].text.strRect.cx,
+			_wndList[currentWindow].text.strRect.cy };
+		FillRect(_wndList[currentWindow].text.memDC, &imgRect,
+			(HBRUSH)GetStockObject(BLACK_BRUSH));
+
+		TextOut(_wndList[currentWindow].text.memDC, 0, 0,
+			_wd = _widen(tmp), _strlenW(tmp));
+		free((void *)_wd);
+		_hbmSubImage(currentWindow, _wndList[currentWindow].text.memDC,
+			_wndList[currentWindow].text.hbm, x, y, tmp);
+		free(tmp);
+	}
 }
 void putNumber(int n, int x, int y, char lr) {
 	int s[20], sn = 0;
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
-	if (checkThread())return;
 
-	if (lr == 'l') {
-		if (n == 0)putChar('0', x, y);
-		while (n > 0) {
-			s[sn++] = n % 10;
-			n /= 10;
+	if (currentWindow == -1) {
+		if (checkThread())return;
+
+		if (lr == 'l') {
+			if (n == 0)putChar('0', x, y);
+			while (n > 0) {
+				s[sn++] = n % 10;
+				n /= 10;
+			}
+
+			while (sn > 0) {
+				putChar((char)(s[--sn] + '0'), x, y);
+				x += 8;
+			}
 		}
-
-		while (sn > 0) {
-			putChar((char)(s[--sn] + '0'), x, y);
-			x += 8;
+		else if (lr == 'r') {
+			if (n == 0)putChar('0', x - 8, y);
+			while (n > 0) {
+				x -= 8;
+				putChar((char)(n % 10 + '0'), x, y);
+				n /= 10;
+			}
 		}
 	}
-	else if (lr == 'r') {
-		if (n == 0)putChar('0', x - 8, y);
-		while (n > 0) {
-			x -= 8;
-			putChar((char)(n % 10 + '0'), x, y);
-			n /= 10;
+	else {
+		if (lr == 'l') {
+			if (n == 0)putChar('0', x, y);
+			while (n > 0) {
+				s[sn++] = n % 10;
+				n /= 10;
+			}
+
+			while (sn > 0) {
+				putChar((char)(s[--sn] + '0'), x, y);
+				x += 8;
+			}
+		}
+		else if (lr == 'r') {
+			if (n == 0)putChar('0', x - 8, y);
+			while (n > 0) {
+				x -= 8;
+				putChar((char)(n % 10 + '0'), x, y);
+				n /= 10;
+			}
 		}
 	}
 }
@@ -4914,44 +5589,89 @@ void putStringFormat(const char *str, int x, int y, ...) {
 	va_list ap;
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
-	if (checkThread())return;
 
-	va_start(ap, y);
-	cnt = _stringPrintf(str, ap, x, y);
-	va_end(ap);
+	if (currentWindow == -1) {
+		if (checkThread())return;
+
+		va_start(ap, y);
+		cnt = _stringPrintf(str, ap, x, y);
+		va_end(ap);
+	}
+	else {
+		va_start(ap, y);
+		cnt = _stringPrintf(str, ap, x, y);
+		va_end(ap);
+	}
 }
 int putStringConstraint(const char *str, int x, int y, int start, int constraint) {
 	int len, i;
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return SG_INVALID_MODE;
-	if (checkThread())return SG_WRONG_THREAD;
 	if (str == NULL)return SG_NULL_POINTER;
 
-	len = _strlenW(str) - start > constraint / 5 ? constraint / 5 : _strlenW(str) - start;
-	if (len <= 0)return 0;
+	if (currentWindow == -1) {
+		if (checkThread())return SG_WRONG_THREAD;
 
-	SGWINSTR _wd = NULL;
-	GetTextExtentPoint32(text.memDC, (_wd = _widen(str)) + start, len, &text.strRect);
-	free((void *)_wd);
-	while (text.strRect.cx > constraint) {
-		len--;
+		len = _strlenW(str) - start > constraint / 5 ? constraint / 5 : _strlenW(str) - start;
+		if (len <= 0)return 0;
+
+		SGWINSTR _wd = NULL;
 		GetTextExtentPoint32(text.memDC, (_wd = _widen(str)) + start, len, &text.strRect);
 		free((void *)_wd);
+		while (text.strRect.cx > constraint) {
+			len--;
+			GetTextExtentPoint32(text.memDC, (_wd = _widen(str)) + start, len, &text.strRect);
+			free((void *)_wd);
+		}
+		len = _wcharAt(str, len);
+		if (len <= 1)len = 1;
+		i = 1;
+		while (str[i++] != '\n')
+			if (i >= len)break;
+		len = i;
+
+		memset(text.bitBuf, 0, text.bufSize);
+		RECT imgRect = { 0, 0, text.strRect.cx, text.strRect.cy };
+		FillRect(text.memDC, &imgRect, (HBRUSH)GetStockObject(BLACK_BRUSH));
+
+		TextOut(text.memDC, 0, 0, (_wd = _widen(str)) + start, _scharAt(str, len));
+		free((void *)_wd);
+		_hbmImage(text.memDC, text.hbm, x, y, str);
 	}
-	len = _wcharAt(str, len);
-	if (len <= 1)len = 1;
-	i = 1;
-	while (str[i++] != '\n')
-		if (i >= len)break;
-	len = i;
+	else {
+		len = _strlenW(str) - start > constraint / 5 ? constraint / 5 : _strlenW(str) - start;
+		if (len <= 0)return 0;
 
-	memset(text.bitBuf, 0, text.bufSize);
-	RECT imgRect = { 0, 0, text.strRect.cx, text.strRect.cy };
-	FillRect(text.memDC, &imgRect, (HBRUSH)GetStockObject(BLACK_BRUSH));
+		SGWINSTR _wd = NULL;
+		GetTextExtentPoint32(_wndList[currentWindow].text.memDC,
+			(_wd = _widen(str)) + start, len, &_wndList[currentWindow].text.strRect);
+		free((void *)_wd);
+		while (_wndList[currentWindow].text.strRect.cx > constraint) {
+			len--;
+			GetTextExtentPoint32(_wndList[currentWindow].text.memDC,
+				(_wd = _widen(str)) + start, len, &_wndList[currentWindow].text.strRect);
+			free((void *)_wd);
+		}
+		len = _wcharAt(str, len);
+		if (len <= 1)len = 1;
+		i = 1;
+		while (str[i++] != '\n')
+			if (i >= len)break;
+		len = i;
 
-	TextOut(text.memDC, 0, 0, (_wd = _widen(str)) + start, _scharAt(str, len));
-	free((void *)_wd);
-	_hbmImage(text.memDC, text.hbm, x, y, str);
+		memset(_wndList[currentWindow].text.bitBuf, 0,
+			_wndList[currentWindow].text.bufSize);
+		RECT imgRect = { 0, 0, _wndList[currentWindow].text.strRect.cx,
+			_wndList[currentWindow].text.strRect.cy };
+		FillRect(_wndList[currentWindow].text.memDC, &imgRect,
+			(HBRUSH)GetStockObject(BLACK_BRUSH));
+
+		TextOut(_wndList[currentWindow].text.memDC, 0, 0,
+			(_wd = _widen(str)) + start, _scharAt(str, len));
+		free((void *)_wd);
+		_hbmSubImage(currentWindow, _wndList[currentWindow].text.memDC,
+			_wndList[currentWindow].text.hbm, x, y, str);
+	}
 
 	return len;
 }
@@ -4960,29 +5680,57 @@ int getImage(int left, int top, int right, int bottom, bitMap *bitmap) {
 	bitMap *buf;
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return SG_INVALID_MODE;
-	if (checkThread())return SG_WRONG_THREAD;
 
-	if (_activePage == 0) buf = _Screen->buffer1;
-	else buf = _Screen->buffer2;
+	if (currentWindow == -1) {
+		if (checkThread())return SG_WRONG_THREAD;
 
-	if (right <left)left ^= right ^= left ^= right;
-	if (bottom < top)top ^= bottom ^= top ^= bottom;
+		if (_activePage == 0) buf = _Screen->buffer1;
+		else buf = _Screen->buffer2;
 
-	if (right >= buf->sizeX)right = buf->sizeX - 1;
-	if (left < 0)left = 0;
-	if (bottom >= buf->sizeY)bottom = buf->sizeY - 1;
-	if (top < 0)top = 0;
+		if (right < left)left ^= right ^= left ^= right;
+		if (bottom < top)top ^= bottom ^= top ^= bottom;
 
-	deltaX = right - left + 1;
-	deltaY = bottom - top + 1;
+		if (right >= buf->sizeX)right = buf->sizeX - 1;
+		if (left < 0)left = 0;
+		if (bottom >= buf->sizeY)bottom = buf->sizeY - 1;
+		if (top < 0)top = 0;
 
-	bitmap->sizeX = deltaX;
-	bitmap->sizeY = deltaY;
-	bitmap->data = (byte*)malloc(deltaX * deltaY * 3 * sizeof(byte));
-	if (bitmap->data == NULL)return SG_NO_LOAD_MEM;
+		deltaX = right - left + 1;
+		deltaY = bottom - top + 1;
 
-	for (i = 0; i < deltaY; i++) {
-		memcpy(bitmap->data + bitmap->sizeX * i * 3, buf->data + (buf->sizeX * (i + top) + left) * 3, deltaX * 3 * sizeof(char));
+		bitmap->sizeX = deltaX;
+		bitmap->sizeY = deltaY;
+		bitmap->data = (byte*)malloc(deltaX * deltaY * 3 * sizeof(byte));
+		if (bitmap->data == NULL)return SG_NO_LOAD_MEM;
+
+		for (i = 0; i < deltaY; i++) {
+			memcpy(bitmap->data + bitmap->sizeX * i * 3, buf->data + (buf->sizeX * (i + top) + left) * 3, deltaX * 3 * sizeof(char));
+		}
+	}
+	else {
+		if (_wndList[currentWindow].activePage == 0)
+			buf = _wndList[currentWindow].buffer1;
+		else buf = _wndList[currentWindow].buffer2;
+
+		if (right <left)left ^= right ^= left ^= right;
+		if (bottom < top)top ^= bottom ^= top ^= bottom;
+
+		if (right >= buf->sizeX)right = buf->sizeX - 1;
+		if (left < 0)left = 0;
+		if (bottom >= buf->sizeY)bottom = buf->sizeY - 1;
+		if (top < 0)top = 0;
+
+		deltaX = right - left + 1;
+		deltaY = bottom - top + 1;
+
+		bitmap->sizeX = deltaX;
+		bitmap->sizeY = deltaY;
+		bitmap->data = (byte*)malloc(deltaX * deltaY * 3 * sizeof(byte));
+		if (bitmap->data == NULL)return SG_NO_LOAD_MEM;
+
+		for (i = 0; i < deltaY; i++) {
+			memcpy(bitmap->data + bitmap->sizeX * i * 3, buf->data + (buf->sizeX * (i + top) + left) * 3, deltaX * 3 * sizeof(char));
+		}
 	}
 
 	return SG_NO_ERORR;
@@ -4992,84 +5740,153 @@ void putImage(int left, int top, bitMap *bitmap, int op) {
 	bitMap *buf;
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
-	if (checkThread())return;
 
-	if (_activePage == 0) buf = _Screen->buffer1;
-	else buf = _Screen->buffer2;
+	if (currentWindow == -1) {
+		if (checkThread())return;
 
-	if (left >= buf->sizeX || top >= buf->sizeY)return;
-	if (left + bitmap->sizeX <= 0 || top + bitmap->sizeY <= 0)return;
+		if (_activePage == 0) buf = _Screen->buffer1;
+		else buf = _Screen->buffer2;
 
-	if (left < 0)x1 = 0;
-	else x1 = left;
-	if (top < 0)y1 = 0;
-	else y1 = top;
+		if (left >= buf->sizeX || top >= buf->sizeY)return;
+		if (left + bitmap->sizeX <= 0 || top + bitmap->sizeY <= 0)return;
 
-	if (left + bitmap->sizeX >= buf->sizeX)x2 = buf->sizeX - 1;
-	else x2 = left + bitmap->sizeX - 1;
-	if (top + bitmap->sizeY >= buf->sizeY)y2 = buf->sizeY - 1;
-	else y2 = top + bitmap->sizeY - 1;
+		if (left < 0)x1 = 0;
+		else x1 = left;
+		if (top < 0)y1 = 0;
+		else y1 = top;
 
-	switch (op) {
-	case COPY_PUT:
-		for (i = 0; i < y2 - y1 + 1; i++) {
-			memcpy(buf->data + (buf->sizeX * (i + y1) + x1) * 3,
-				bitmap->data + (bitmap->sizeX * (i + y1 - top) + x1 - left) * 3,
-				(x2 - x1 + 1) * 3 * sizeof(char));
-		}
-		break;
+		if (left + bitmap->sizeX >= buf->sizeX)x2 = buf->sizeX - 1;
+		else x2 = left + bitmap->sizeX - 1;
+		if (top + bitmap->sizeY >= buf->sizeY)y2 = buf->sizeY - 1;
+		else y2 = top + bitmap->sizeY - 1;
 
-	case AND_PUT:
-		for (i = 0; i < y2 - y1 + 1; i++) {
-			for (j = 0; j < x2 - x1 + 1; j++) {
-				buf->data[(buf->sizeX * (i + y1) + x1 + j) * 3] &=
-					bitmap->data[(bitmap->sizeX * (i + y1 - top) + x1 - left + j) * 3];
-				buf->data[(buf->sizeX * (i + y1) + x1 + j) * 3 + 1] &=
-					bitmap->data[(bitmap->sizeX * (i + y1 - top) + x1 - left + j) * 3 + 1];
-				buf->data[(buf->sizeX * (i + y1) + x1 + j) * 3 + 2] &=
-					bitmap->data[(bitmap->sizeX * (i + y1 - top) + x1 - left + j) * 3 + 2];
+		switch (op) {
+		case COPY_PUT:
+			for (i = 0; i < y2 - y1 + 1; i++) {
+				memcpy(buf->data + (buf->sizeX * (i + y1) + x1) * 3,
+					bitmap->data + (bitmap->sizeX * (i + y1 - top) + x1 - left) * 3,
+					(x2 - x1 + 1) * 3 * sizeof(char));
 			}
-		}
-		break;
+			break;
 
-	case OR_PUT:
-		for (i = 0; i < y2 - y1 + 1; i++) {
-			for (j = 0; j < x2 - x1 + 1; j++) {
-				buf->data[(buf->sizeX * (i + y1) + x1 + j) * 3] |=
-					bitmap->data[(bitmap->sizeX * (i + y1 - top) + x1 - left + j) * 3];
-				buf->data[(buf->sizeX * (i + y1) + x1 + j) * 3 + 1] |=
-					bitmap->data[(bitmap->sizeX * (i + y1 - top) + x1 - left + j) * 3 + 1];
-				buf->data[(buf->sizeX * (i + y1) + x1 + j) * 3 + 2] |=
-					bitmap->data[(bitmap->sizeX * (i + y1 - top) + x1 - left + j) * 3 + 2];
+		case AND_PUT:
+			for (i = 0; i < y2 - y1 + 1; i++) {
+				for (j = 0; j < x2 - x1 + 1; j++) {
+					buf->data[(buf->sizeX * (i + y1) + x1 + j) * 3] &=
+						bitmap->data[(bitmap->sizeX * (i + y1 - top) + x1 - left + j) * 3];
+					buf->data[(buf->sizeX * (i + y1) + x1 + j) * 3 + 1] &=
+						bitmap->data[(bitmap->sizeX * (i + y1 - top) + x1 - left + j) * 3 + 1];
+					buf->data[(buf->sizeX * (i + y1) + x1 + j) * 3 + 2] &=
+						bitmap->data[(bitmap->sizeX * (i + y1 - top) + x1 - left + j) * 3 + 2];
+				}
 			}
-		}
-		break;
+			break;
 
-	case XOR_PUT:
-		for (i = 0; i < y2 - y1 + 1; i++) {
-			for (j = 0; j < x2 - x1 + 1; j++) {
-				buf->data[(buf->sizeX * (i + y1) + x1 + j) * 3] ^=
-					bitmap->data[(bitmap->sizeX * (i + y1 - top) + x1 - left + j) * 3];
-				buf->data[(buf->sizeX * (i + y1) + x1 + j) * 3 + 1] ^=
-					bitmap->data[(bitmap->sizeX * (i + y1 - top) + x1 - left + j) * 3 + 1];
-				buf->data[(buf->sizeX * (i + y1) + x1 + j) * 3 + 2] ^=
-					bitmap->data[(bitmap->sizeX * (i + y1 - top) + x1 - left + j) * 3 + 2];
+		case OR_PUT:
+			for (i = 0; i < y2 - y1 + 1; i++) {
+				for (j = 0; j < x2 - x1 + 1; j++) {
+					buf->data[(buf->sizeX * (i + y1) + x1 + j) * 3] |=
+						bitmap->data[(bitmap->sizeX * (i + y1 - top) + x1 - left + j) * 3];
+					buf->data[(buf->sizeX * (i + y1) + x1 + j) * 3 + 1] |=
+						bitmap->data[(bitmap->sizeX * (i + y1 - top) + x1 - left + j) * 3 + 1];
+					buf->data[(buf->sizeX * (i + y1) + x1 + j) * 3 + 2] |=
+						bitmap->data[(bitmap->sizeX * (i + y1 - top) + x1 - left + j) * 3 + 2];
+				}
 			}
-		}
-		break;
+			break;
 
-	case NOT_PUT:
-		for (i = 0; i < y2 - y1 + 1; i++) {
-			for (j = 0; j < x2 - x1 + 1; j++) {
-				buf->data[(buf->sizeX * (i + y1) + x1 + j) * 3] =
-					~bitmap->data[(bitmap->sizeX * (i + y1 - top) + x1 - left + j) * 3];
-				buf->data[(buf->sizeX * (i + y1) + x1 + j) * 3 + 1] =
-					~bitmap->data[(bitmap->sizeX * (i + y1 - top) + x1 - left + j) * 3 + 1];
-				buf->data[(buf->sizeX * (i + y1) + x1 + j) * 3 + 2] =
-					~bitmap->data[(bitmap->sizeX * (i + y1 - top) + x1 - left + j) * 3 + 2];
+		case XOR_PUT:
+			for (i = 0; i < y2 - y1 + 1; i++) {
+				for (j = 0; j < x2 - x1 + 1; j++) {
+					buf->data[(buf->sizeX * (i + y1) + x1 + j) * 3] ^=
+						bitmap->data[(bitmap->sizeX * (i + y1 - top) + x1 - left + j) * 3];
+					buf->data[(buf->sizeX * (i + y1) + x1 + j) * 3 + 1] ^=
+						bitmap->data[(bitmap->sizeX * (i + y1 - top) + x1 - left + j) * 3 + 1];
+					buf->data[(buf->sizeX * (i + y1) + x1 + j) * 3 + 2] ^=
+						bitmap->data[(bitmap->sizeX * (i + y1 - top) + x1 - left + j) * 3 + 2];
+				}
 			}
+			break;
+
+		case NOT_PUT:
+			for (i = 0; i < y2 - y1 + 1; i++) {
+				for (j = 0; j < x2 - x1 + 1; j++) {
+					buf->data[(buf->sizeX * (i + y1) + x1 + j) * 3] =
+						~bitmap->data[(bitmap->sizeX * (i + y1 - top) + x1 - left + j) * 3];
+					buf->data[(buf->sizeX * (i + y1) + x1 + j) * 3 + 1] =
+						~bitmap->data[(bitmap->sizeX * (i + y1 - top) + x1 - left + j) * 3 + 1];
+					buf->data[(buf->sizeX * (i + y1) + x1 + j) * 3 + 2] =
+						~bitmap->data[(bitmap->sizeX * (i + y1 - top) + x1 - left + j) * 3 + 2];
+				}
+			}
+			break;
 		}
-		break;
+	}
+	else {
+		if (_wndList[currentWindow].activePage == 0)
+			buf = _wndList[currentWindow].buffer1;
+		else buf = _wndList[currentWindow].buffer2;
+
+		if (left >= buf->sizeX || top >= buf->sizeY)return;
+		if (left + bitmap->sizeX <= 0 || top + bitmap->sizeY <= 0)return;
+
+		if (left < 0)x1 = 0;
+		else x1 = left;
+		if (top < 0)y1 = 0;
+		else y1 = top;
+
+		if (left + bitmap->sizeX >= buf->sizeX)x2 = buf->sizeX - 1;
+		else x2 = left + bitmap->sizeX - 1;
+		if (top + bitmap->sizeY >= buf->sizeY)y2 = buf->sizeY - 1;
+		else y2 = top + bitmap->sizeY - 1;
+
+		switch (op) {
+		case COPY_PUT:
+			for (i = 0; i < y2 - y1 + 1; i++) {
+				memcpy(buf->data + (buf->sizeX * (i + top) + left) * 3, bitmap->data + bitmap->sizeX * i * 3, (x2 - x1 + 1) * 3 * sizeof(char));
+			}
+			break;
+
+		case AND_PUT:
+			for (i = 0; i < y2 - y1 + 1; i++) {
+				for (j = 0; j < x2 - x1 + 1; j++) {
+					buf->data[(buf->sizeX * (i + top) + left + j) * 3] &= bitmap->data[(bitmap->sizeX*i + j) * 3];
+					buf->data[(buf->sizeX * (i + top) + left + j) * 3 + 1] &= bitmap->data[(bitmap->sizeX*i + j) * 3 + 1];
+					buf->data[(buf->sizeX * (i + top) + left + j) * 3 + 2] &= bitmap->data[(bitmap->sizeX*i + j) * 3 + 2];
+				}
+			}
+			break;
+
+		case OR_PUT:
+			for (i = 0; i < y2 - y1 + 1; i++) {
+				for (j = 0; j < x2 - x1 + 1; j++) {
+					buf->data[(buf->sizeX * (i + top) + left + j) * 3] |= bitmap->data[(bitmap->sizeX*i + j) * 3];
+					buf->data[(buf->sizeX * (i + top) + left + j) * 3 + 1] |= bitmap->data[(bitmap->sizeX*i + j) * 3 + 1];
+					buf->data[(buf->sizeX * (i + top) + left + j) * 3 + 2] |= bitmap->data[(bitmap->sizeX*i + j) * 3 + 2];
+				}
+			}
+			break;
+
+		case XOR_PUT:
+			for (i = 0; i < y2 - y1 + 1; i++) {
+				for (j = 0; j < x2 - x1 + 1; j++) {
+					buf->data[(buf->sizeX * (i + top) + left + j) * 3] ^= bitmap->data[(bitmap->sizeX*i + j) * 3];
+					buf->data[(buf->sizeX * (i + top) + left + j) * 3 + 1] ^= bitmap->data[(bitmap->sizeX*i + j) * 3 + 1];
+					buf->data[(buf->sizeX * (i + top) + left + j) * 3 + 2] ^= bitmap->data[(bitmap->sizeX*i + j) * 3 + 2];
+				}
+			}
+			break;
+
+		case NOT_PUT:
+			for (i = 0; i < y2 - y1 + 1; i++) {
+				for (j = 0; j < x2 - x1 + 1; j++) {
+					buf->data[(buf->sizeX * (i + top) + left + j) * 3] = ~bitmap->data[(bitmap->sizeX*i + j) * 3];
+					buf->data[(buf->sizeX * (i + top) + left + j) * 3 + 1] = ~bitmap->data[(bitmap->sizeX*i + j) * 3 + 1];
+					buf->data[(buf->sizeX * (i + top) + left + j) * 3 + 2] = ~bitmap->data[(bitmap->sizeX*i + j) * 3 + 2];
+				}
+			}
+			break;
+		}
 	}
 }
 void funcMap(int x1, int x2, int y1, int y2, float(*vect)(float x)) {
@@ -5082,49 +5899,98 @@ void funcMap(int x1, int x2, int y1, int y2, float(*vect)(float x)) {
 
 #define XCHG(a, b) {tmp = a; a = b; b = tmp;}
 
-	if (x1 > x2)XCHG(x1, x2);
-	if (y1 > y2)XCHG(y1, y2);
+	if (currentWindow == -1) {
+		if (x1 > x2)XCHG(x1, x2);
+		if (y1 > y2)XCHG(y1, y2);
 
-	pre = (int)vect((float)x1);
-	for (i = x1; i <= x2; i++) {
-		y = vect((float)i);
-		if (y < y1) {
-			pre = y1;
-			continue;
-		}
-		if (y > y2) {
-			pre = y2;
-			continue;
-		}
-		if (y - (int)y > 0.5) {
-			putPixel(i, (int)(y + 1));
-			addition = 1;
-		}
-		else {
-			putPixel(i, (int)y);
-			addition = 0;
-		}
-		if (y > pre) {
-			if ((addition && y - pre > 1) || (!addition && y - pre > 2)) {
-				for (j = pre + 1; j < (y + pre) / 2; j++) {
-					putPixel(i - 1, j);
-				}
-				for (; j < y; j++) {
-					putPixel(i, j);
-				}
+		pre = (int)vect((float)x1);
+		for (i = x1; i <= x2; i++) {
+			y = vect((float)i);
+			if (y < y1) {
+				pre = y1;
+				continue;
 			}
-			pre = addition ? (int)(y + 1) : (int)y;
-		}
-		else {
-			if ((addition && pre - y > 2) || (!addition && pre - y > 1)) {
-				for (j = pre - 1; j > (y + pre) / 2; j--) {
-					putPixel(i - 1, j);
-				}
-				for (; j >= y; j--) {
-					putPixel(i, j);
-				}
+			if (y > y2) {
+				pre = y2;
+				continue;
 			}
-			pre = addition ? (int)(y + 1) : (int)y;
+			if (y - (int)y > 0.5) {
+				putPixel(i, (int)(y + 1));
+				addition = 1;
+			}
+			else {
+				putPixel(i, (int)y);
+				addition = 0;
+			}
+			if (y > pre) {
+				if ((addition && y - pre > 1) || (!addition && y - pre > 2)) {
+					for (j = pre + 1; j < (y + pre) / 2; j++) {
+						putPixel(i - 1, j);
+					}
+					for (; j < y; j++) {
+						putPixel(i, j);
+					}
+				}
+				pre = addition ? (int)(y + 1) : (int)y;
+			}
+			else {
+				if ((addition && pre - y > 2) || (!addition && pre - y > 1)) {
+					for (j = pre - 1; j > (y + pre) / 2; j--) {
+						putPixel(i - 1, j);
+					}
+					for (; j >= y; j--) {
+						putPixel(i, j);
+					}
+				}
+				pre = addition ? (int)(y + 1) : (int)y;
+			}
+		}
+	}
+	else {
+		if (x1 > x2)XCHG(x1, x2);
+		if (y1 > y2)XCHG(y1, y2);
+
+		pre = (int)vect((float)x1);
+		for (i = x1; i <= x2; i++) {
+			y = vect((float)i);
+			if (y < y1) {
+				pre = y1;
+				continue;
+			}
+			if (y > y2) {
+				pre = y2;
+				continue;
+			}
+			if (y - (int)y > 0.5) {
+				putPixel(i, (int)(y + 1));
+				addition = 1;
+			}
+			else {
+				putPixel(i, (int)y);
+				addition = 0;
+			}
+			if (y > pre) {
+				if ((addition && y - pre > 1) || (!addition && y - pre > 2)) {
+					for (j = pre + 1; j < (y + pre) / 2; j++) {
+						putPixel(i - 1, j);
+					}
+					for (; j < y; j++) {
+						putPixel(i, j);
+					}
+				}
+				pre = addition ? (int)(y + 1) : (int)y;
+			}
+			else {
+				if ((addition && pre - y > 2) || (!addition && pre - y > 1)) {
+					for (j = pre - 1; j > (y + pre) / 2; j--) {
+						putPixel(i - 1, j);
+					}
+					for (; j >= y; j--) {
+						putPixel(i, j);
+					}
+				}
+				pre = addition ? (int)(y + 1) : (int)y;
+			}
 		}
 	}
 
@@ -5138,35 +6004,68 @@ void floodFill(int x, int y, RGB c) {
 	bitMap *buf;
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
-	if (checkThread())return;
 
 #define ENQUE(x) Q[(++front)%SG_QSIZE] = x
 #define DEQUE() Q[(rear++)%SG_QSIZE]
 #define ISEMPTY() ((front+1)%SG_QSIZE==(rear%SG_QSIZE))
 
-	if (_activePage == 0) buf = _Screen->buffer1;
-	else buf = _Screen->buffer2;
+	if (currentWindow == -1) {
+		if (checkThread())return;
 
-	tmp.x = x;
-	tmp.y = y;
-	ENQUE(tmp);
+		if (_activePage == 0) buf = _Screen->buffer1;
+		else buf = _Screen->buffer2;
 
-	while (!ISEMPTY()) {
-		tmp = DEQUE();
-		p = (tmp.y*buf->sizeX + tmp.x) * 3;
-		if ((buf->data[p] == c.b&&buf->data[p + 1] == c.g&&buf->data[p + 2] == c.r) || (buf->data[p] == _Screen->rgb[2] && buf->data[p + 1] == _Screen->rgb[1] && buf->data[p + 2] == _Screen->rgb[0]))continue;
-		if (tmp.x < 0 || tmp.x >= buf->sizeX)continue;
-		if (tmp.y < 0 || tmp.y >= buf->sizeY)continue;
-		putPixel(tmp.x, tmp.y);
-		tmp.x--;
+		tmp.x = x;
+		tmp.y = y;
 		ENQUE(tmp);
-		tmp.x += 2;
+
+		while (!ISEMPTY()) {
+			tmp = DEQUE();
+			p = (tmp.y*buf->sizeX + tmp.x) * 3;
+			if ((buf->data[p] == c.b&&buf->data[p + 1] == c.g&&buf->data[p + 2] == c.r) || (buf->data[p] == _Screen->rgb[2] && buf->data[p + 1] == _Screen->rgb[1] && buf->data[p + 2] == _Screen->rgb[0]))continue;
+			if (tmp.x < 0 || tmp.x >= buf->sizeX)continue;
+			if (tmp.y < 0 || tmp.y >= buf->sizeY)continue;
+			putPixel(tmp.x, tmp.y);
+			tmp.x--;
+			ENQUE(tmp);
+			tmp.x += 2;
+			ENQUE(tmp);
+			tmp.x--;
+			tmp.y++;
+			ENQUE(tmp);
+			tmp.y -= 2;
+			ENQUE(tmp);
+		}
+	}
+	else {
+		if (_wndList[currentWindow].activePage == 0)
+			buf = _wndList[currentWindow].buffer1;
+		else buf = _wndList[currentWindow].buffer2;
+
+		tmp.x = x;
+		tmp.y = y;
 		ENQUE(tmp);
-		tmp.x--;
-		tmp.y++;
-		ENQUE(tmp);
-		tmp.y -= 2;
-		ENQUE(tmp);
+
+		while (!ISEMPTY()) {
+			tmp = DEQUE();
+			p = (tmp.y*buf->sizeX + tmp.x) * 3;
+			if ((buf->data[p] == c.b&&buf->data[p + 1] == c.g&&buf->data[p + 2] == c.r) ||
+				(buf->data[p] == _wndList[currentWindow].rgb[2] &&
+					buf->data[p + 1] == _wndList[currentWindow].rgb[1] &&
+					buf->data[p + 2] == _wndList[currentWindow].rgb[0]))continue;
+			if (tmp.x < 0 || tmp.x >= buf->sizeX)continue;
+			if (tmp.y < 0 || tmp.y >= buf->sizeY)continue;
+			putPixel(tmp.x, tmp.y);
+			tmp.x--;
+			ENQUE(tmp);
+			tmp.x += 2;
+			ENQUE(tmp);
+			tmp.x--;
+			tmp.y++;
+			ENQUE(tmp);
+			tmp.y -= 2;
+			ENQUE(tmp);
+		}
 	}
 
 #undef ENQUE
