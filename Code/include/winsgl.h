@@ -374,6 +374,9 @@ SGvoid debugf(const char *format, ...);
 void vectDefault(void);
 /* An empty function. */
 
+void mouseUserDefault(widgetObj *w);
+void keyUserDefault(widgetObj *w, int key);
+
 void mouseMoveDefault(widgetObj *w, int x, int y);
 void mouseMoveList(widgetObj *w, int x, int y);
 void mouseMoveOption(widgetObj *w, int x, int y);
@@ -384,7 +387,6 @@ void mouseMoveCombined(widgetObj *w, int x, int y);
 /* Used when the cursor moves no matter in or out of the widgets.
  * Parameter w for the widget object, x and y for the coordinate. */
 
-void mouseClickUserDefault(widgetObj *w, int x, int y, int status);
 void mouseClickDefault(widgetObj *w, int x, int y, int status);
 void mouseClickInput(widgetObj *w, int x, int y, int status);
 void mouseClickDialog(widgetObj *w, int x, int y, int status);

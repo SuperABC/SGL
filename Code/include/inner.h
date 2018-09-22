@@ -202,6 +202,7 @@ void sgSubWheel(int id, int dir);
 int checkThread();
 
 void _drawWidget(int fb);
+void _drawSubWidget(int id, int fb);
 void _drawButton(widgetObj *w);
 void _drawInput(widgetObj *w);
 void _drawDialog(widgetObj *w);

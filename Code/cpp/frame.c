@@ -409,7 +409,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		return 0;
 
 	case WM_PAINT:
-		//_drawWidget(WIDGET_FRONT);
+		_drawWidget(WIDGET_FRONT);
 		_drawPanel();
 
 		hdc = BeginPaint(hwnd, &ps);
@@ -418,7 +418,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		EndPaint(hwnd, &ps);
 
 		_clearPanel();
-		//_drawWidget(WIDGET_BACK);
+		_drawWidget(WIDGET_BACK);
 		return 0;
 
 	case WM_TIMER:
@@ -545,14 +545,21 @@ LRESULT CALLBACK SubWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
 		return 0;
 
 	case WM_PAINT:
-		//_drawSubWidget(index, WIDGET_FRONT);
+		debugf("lock1\n");
+		_drawSubWidget(index, WIDGET_FRONT);
+		debugf("unlock1\n");
+
 		hdc = BeginPaint(hwnd, &ps);
 		if (_wndList[index].visualPage == 0) _makeSubBitmap(hdc, index, _wndList[index].buffer1->data,
 			_wndList[index].buffer1->sizeX, _wndList[index].buffer1->sizeY, 24);
 		else _makeSubBitmap(hdc, index, _wndList[index].buffer2->data,
 			_wndList[index].buffer2->sizeX, _wndList[index].buffer2->sizeY, 24);
 		EndPaint(hwnd, &ps);
-		//_drawSubWidget(index, WIDGET_BACK);
+
+		debugf("lock2\n");
+		_drawSubWidget(index, WIDGET_BACK);
+		debugf("unlock2\n");
+
 		return 0;
 
 	case WM_TIMER:
@@ -659,7 +666,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	free((void *)_wd);
 
 	ShowWindow(hwnd, nCmdShow);
-	UpdateWindow(hwnd);
 
 	_inLoop = 1;
 	while (GetMessage(&msg, NULL, 0, 0) > 0) {
@@ -3289,7 +3295,6 @@ int createWindow(int width, int height, const char *title, vect setup, vect loop
 	free((void *)_wn);
 
 	ShowWindow(_wndList[subNum].hwnd, SW_NORMAL);
-	UpdateWindow(_wndList[subNum].hwnd);
 
 	return subNum++;
 }

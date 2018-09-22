@@ -9,10 +9,14 @@ void sgSubLoop() {
 	static int first = 1000;
 	if (first == 0)closeWindow(sub);
 	else {
+		debugf("lock3\n");
 		startSubWindow(sub);
 		setColor(0, 0, 0);
 		clearScreen();
+		setColor(255, 255, 255);
+		putQuad(100, 100, 200, 200, SOLID_FILL);
 		endSubWindow();
+		debugf("unlock3\n");
 	}
 
 	first--;
