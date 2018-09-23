@@ -5,6 +5,8 @@
 
 extern int _sglMode;
 extern struct _text text;
+extern struct _Sub _wndList[SG_MAX_WINDOW_NUM];
+
 
 widgetObj *newWidget(int type, const char *name) {
 	widgetObj *ret = (widgetObj *)malloc(sizeof(widgetObj));
@@ -201,7 +203,12 @@ int registerWidget(widgetObj *obj) {
 
 	if (obj == NULL)return SG_NULL_POINTER;
 	if (obj->name == NULL || obj->name[0] == 0)return SG_INCOMPLETE_STRUCT;
-	if (Widget->count >= SG_QSIZE)return SG_OUT_OF_RANGE;
+	if (currentWindow == -1) {
+		if (Widget->count >= SG_QSIZE)return SG_OUT_OF_RANGE;
+	}
+	else
+		if (_wndList[currentWindow].widget->count >= SG_QSIZE)return SG_OUT_OF_RANGE;
+	
 
 	tmp = (widgetObj *)malloc(sizeof(widgetObj));
 	memcpy(tmp, obj, sizeof(widgetObj));
@@ -235,38 +242,83 @@ int registerWidget(widgetObj *obj) {
 		sub->next = NULL;
 	}
 
-	Widget->obj[Widget->count] = tmp;
+	if (currentWindow == -1) {
+		Widget->obj[Widget->count] = tmp;
 
-	len = (int)strlen(tmp->name);
-	for (i = 0; i < len; i++)sum += tmp->name[i];
-	sum %= 256;
-	end = Widget->hash[sum];
-	if (end == NULL) {
-		Widget->hash[sum] = (struct _hash *)malloc(sizeof(struct _hash));
-		Widget->hash[sum]->content = (char *)malloc(strlen(tmp->name) + 1);
-		strcpy(Widget->hash[sum]->content, tmp->name);
-		Widget->hash[sum]->value = Widget->count;
-		Widget->hash[sum]->next = NULL;
+		len = (int)strlen(tmp->name);
+		for (i = 0; i < len; i++)sum += tmp->name[i];
+		sum %= 256;
+		end = Widget->hash[sum];
+		if (end == NULL) {
+			Widget->hash[sum] = (struct _hash *)malloc(sizeof(struct _hash));
+			Widget->hash[sum]->content = (char *)malloc(strlen(tmp->name) + 1);
+			strcpy(Widget->hash[sum]->content, tmp->name);
+			Widget->hash[sum]->value = Widget->count;
+			Widget->hash[sum]->next = NULL;
+		}
+		else {
+			while (end->next != NULL) {
+				if (strcmp(end->content, obj->name) == 0)return SG_MULTY_VALUE;
+				end = end->next;
+			}
+			end->next = (struct _hash *)malloc(sizeof(struct _hash));
+			end->next->content = (char *)malloc(strlen(tmp->name) + 1);
+			strcpy(end->next->content, tmp->name);
+			end->next->value = Widget->count;
+			end->next->next = NULL;
+		}
+		return Widget->count++;
 	}
 	else {
-		while (end->next != NULL) {
-			if (strcmp(end->content, obj->name) == 0)return SG_MULTY_VALUE;
-			end = end->next;
+		_wndList[currentWindow].widget->obj[_wndList[currentWindow].widget->count] = tmp;
+
+		len = (int)strlen(tmp->name);
+		for (i = 0; i < len; i++)sum += tmp->name[i];
+		sum %= 256;
+		end = _wndList[currentWindow].widget->hash[sum];
+		if (end == NULL) {
+			_wndList[currentWindow].widget->hash[sum] = (struct _hash *)malloc(sizeof(struct _hash));
+			_wndList[currentWindow].widget->hash[sum]->content = (char *)malloc(strlen(tmp->name) + 1);
+			strcpy(_wndList[currentWindow].widget->hash[sum]->content, tmp->name);
+			_wndList[currentWindow].widget->hash[sum]->value = _wndList[currentWindow].widget->count;
+			_wndList[currentWindow].widget->hash[sum]->next = NULL;
 		}
-		end->next = (struct _hash *)malloc(sizeof(struct _hash));
-		end->next->content = (char *)malloc(strlen(tmp->name) + 1);
-		strcpy(end->next->content, tmp->name);
-		end->next->value = Widget->count;
-		end->next->next = NULL;
+		else {
+			while (end->next != NULL) {
+				if (strcmp(end->content, obj->name) == 0)return SG_MULTY_VALUE;
+				end = end->next;
+			}
+			end->next = (struct _hash *)malloc(sizeof(struct _hash));
+			end->next->content = (char *)malloc(strlen(tmp->name) + 1);
+			strcpy(end->next->content, tmp->name);
+			end->next->value = _wndList[currentWindow].widget->count;
+			end->next->next = NULL;
+		}
+		return _wndList[currentWindow].widget->count++;
 	}
-	return Widget->count++;
 }
 int inWidget(widgetObj *obj, int x, int y) {
 	if (obj == NULL)return 0;
 	return (x >= obj->pos.x&&x < obj->pos.x + obj->size.x) &&
 		(y >= obj->pos.y&&y < obj->pos.y + obj->size.y);
 }
-int easyWidget(enum _control type, const char *name,
+int crossWidget(widgetObj *obj, int left, int top, int right, int bottom) {
+	int horizontal = 0, vertical = 0;
+	if (obj == NULL)return 0;
+
+	if (left >= obj->pos.x && left < obj->pos.x + obj->size.x)horizontal = 1;
+	if (right >= obj->pos.x && right < obj->pos.x + obj->size.x)horizontal = 1;
+	if (obj->pos.x >= left && obj->pos.x < right)horizontal = 1;
+	if (obj->pos.x + obj->size.x >= left && obj->pos.x + obj->size.x < right)horizontal = 1;
+
+	if (top >= obj->pos.y && top < obj->pos.y + obj->size.y)vertical = 1;
+	if (bottom >= obj->pos.y && bottom < obj->pos.y + obj->size.y)vertical = 1;
+	if (obj->pos.y >= top && obj->pos.y < bottom)vertical = 1;
+	if (obj->pos.y + obj->size.y >= top && obj->pos.y + obj->size.y < bottom)vertical = 1;
+
+	return horizontal && vertical;
+}
+int easyWidget(int type, const char *name,
 	int x, int y, int width, int height, const char *content, mouseClickUser click) {
 	widgetObj *tmp;
 
@@ -297,6 +349,59 @@ int easyWidget(enum _control type, const char *name,
 	}
 	return registerWidget(tmp);
 }
+widgetObj *getWidgetByIndex(int index) {
+	if (index < 0 || index >= Widget->count)return NULL;
+	return Widget->obj[index];
+}
+widgetObj *getWidgetByName(const char *name) {
+	int i, len, sum = 0;
+	struct _hash *end;
+	len = (int)strlen(name);
+	for (i = 0; i < len; i++)sum += name[i];
+	sum %= 256;
+	end = Widget->hash[sum];
+	while (end != NULL) {
+		if (strcmp(end->content, name) == 0)return Widget->obj[end->value];
+		end = end->next;
+	}
+	return NULL;
+}
+int getIndexByName(const char *name) {
+	int i, len, sum = 0;
+	struct _hash *end;
+	len = (int)strlen(name);
+	for (i = 0; i < len; i++)sum += name[i];
+	sum %= 256;
+	end = Widget->hash[sum];
+	while (end != NULL) {
+		if (strcmp(end->content, name) == 0)return end->value;
+		end = end->next;
+	}
+	return SG_OBJECT_NOT_FOUND;
+}
+void showWidget(const char *name) {
+	widgetObj *obj = getWidgetByName(name);
+	if (obj == NULL)return;
+	if (obj->visible == TRUE) return;
+	obj->visible = TRUE;
+}
+void ceaseWidget(const char *name) {
+	widgetObj *obj = getWidgetByName(name);
+	if (obj == NULL)return;
+	if (obj->visible == FALSE)return;
+	obj->status = 0;
+	obj->visible = FALSE;
+}
+void moveWidgetByIndex(int index, int xDelta, int yDelta) {
+	widgetObj *tmp = getWidgetByIndex(index);
+	tmp->pos.x += xDelta;
+	tmp->pos.y += yDelta;
+}
+void moveWidgetByName(const char *name, int xDelta, int yDelta) {
+	widgetObj *tmp = getWidgetByName(name);
+	tmp->pos.x += xDelta;
+	tmp->pos.y += yDelta;
+}
 
 
 /*
@@ -313,7 +418,13 @@ void keyUserDefault(widgetObj *w, int key) {
 }
 
 void mouseMoveDefault(widgetObj *w, int x, int y) {
-	
+	if (inWidget(w, x, y)) {
+		w->status |= WIDGET_PASS;
+	}
+	else {
+		w->status &= 0xFF ^ WIDGET_PASS;
+		w->status &= 0xFF ^ WIDGET_PRESSED;
+	}
 }
 void mouseMoveList(widgetObj *w, int x, int y) {
 
@@ -338,7 +449,27 @@ void mouseClickUserDefault(widgetObj *w, int x, int y, int status) {
 
 }
 void mouseClickDefault(widgetObj *w, int x, int y, int status) {
-
+	if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON))w->status &= 0xFF ^ WIDGET_PRESSED;
+	if (x >= w->pos.x&&x<w->pos.x + w->size.x&&y >= w->pos.y&&y < w->pos.y + w->size.y) {
+		if (status & SG_LEFT_BUTTON)Widget->active = getIndexByName(w->name);
+		if (status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON))w->status |= WIDGET_PRESSED;
+		if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON))w->status |= WIDGET_SELECTED;
+	}
+	else {
+		if (status & SG_LEFT_BUTTON && Widget->active != -1 &&
+			strcmp(w->name, getWidgetByIndex(Widget->active)->name) == 0)
+			Widget->active = -1;
+		w->status &= 0xFF ^ WIDGET_SELECTED;
+	}
+	switch (w->type) {
+	case SG_BUTTON:
+		if (w->status & WIDGET_PRESSED &&
+			status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON))
+			w->mouseUser(w);
+		break;
+	default:
+		break;
+	}
 }
 void mouseClickInput(widgetObj *w, int x, int y, int status) {
 
@@ -372,7 +503,11 @@ void mouseClickCombined(widgetObj *w, int x, int y, int status) {
 }
 
 void keyDefault(widgetObj *w, int key) {
-
+	if (w->associate) {
+		if (key == (SG_ENTER | 0x8000)) {
+			w->associate->mouseUser(w->associate);
+		}
+	}
 }
 void keyInput(widgetObj *w, int key) {
 
@@ -466,8 +601,8 @@ void _drawSubWidget(int id, int fb) {
 
 	if (_sglMode == BIT_MAP) {
 		startSubWindow(id);
-		for (i = 0; i < Widget->count; i++) {
-			current = Widget->obj[i];
+		for (i = 0; i < _wndList[currentWindow].widget->count; i++) {
+			current = _wndList[currentWindow].widget->obj[i];
 			if (!current || !current->visible || current->priority != fb)continue;
 
 			if (current->valid)continue;

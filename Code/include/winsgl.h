@@ -799,6 +799,9 @@ int easyWidget(int type, const char *name,
 SGint inWidget(widgetObj *obj, int x, int y);
 /* Judge if coordinate (x, y) is in widget obj. */
 
+SGint crossWidget(widgetObj *obj, int left, int top, int right, int bottom);
+/* Judge if rectangle (left, top, right, bottom) is crossing widget obj. */
+
 widgetObj *getWidgetByIndex(int index);
 /* Returns the widget pointer with the given index. */
 

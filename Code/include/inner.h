@@ -148,6 +148,34 @@ struct _panel {
 	struct _function *shiftctrlPanel[SG_MAX_PANEL_FUNCTION];
 };
 
+typedef LRESULT(*subWndProc)(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+struct _Sub {
+	int winWidth, winHeight;
+	HWND hwnd;
+	HICON hIcon;
+	char *winName;
+	int scrResizeable;
+	int inLoop;
+
+	void(*resizeFunc)(int x, int y);
+	subWndProc wndProc;
+
+	bitMap *buffer1, *buffer2;
+	byte rgb[3];
+	float alpha;
+
+	font tf;
+	struct _text text;
+
+	int visualPage, activePage;
+	vect loop;
+
+	struct _key *key;
+	struct _mouse *mouse;
+
+	struct _widget *widget;
+};
+
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
 
 void _makeBitmap(HDC hdc, LPBYTE lpBits, long width, long height, WORD wBitCount);

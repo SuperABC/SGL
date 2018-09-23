@@ -340,36 +340,7 @@ int _enPanel = 0;
  * Sub window info.
  * Started in v4.0.0.
  */
-typedef LRESULT(*subWndProc)
-	(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
-struct _Sub {
-	int winWidth, winHeight;
-	HWND hwnd;
-	HICON hIcon;
-	char *winName;
-	int scrResizeable;
-	int inLoop;
-
-	void(*resizeFunc)(int x, int y);
-	subWndProc wndProc;
-
-	bitMap *buffer1, *buffer2;
-	byte rgb[3];
-	float alpha;
-
-	font tf;
-	struct _text text;
-
-	int visualPage, activePage;
-	vect loop;
-
-	struct _key *key;
-	struct _mouse *mouse;
-
-	struct _widget *widget;
-	int passWidget;
-	int tipShowing;
-} _wndList[SG_MAX_WINDOW_NUM];
+struct _Sub _wndList[SG_MAX_WINDOW_NUM];
 int subNum = 0;
 
 /*
@@ -1470,8 +1441,6 @@ void sgSubInit(vect setup) {
 	_wndList[subNum].rgb[1] = 0;
 	_wndList[subNum].rgb[2] = 0;
 	_wndList[subNum].alpha = 1.f;
-	_wndList[subNum].tipShowing = -1;
-	_wndList[subNum].passWidget = -1;
 }
 void sgSubKey(int id, int cAscii, int x, int y) {
 	widgetObj *tmp;
@@ -3285,7 +3254,8 @@ int createWindow(int width, int height, const char *title, vect setup, vect loop
 	_wndList[subNum].activePage = 0;
 	_wndList[subNum].hwnd = CreateWindow(wc.lpszClassName, _wd = _widen(title),
 		WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT, CW_USEDEFAULT, width, height,
+		CW_USEDEFAULT, CW_USEDEFAULT,
+		width + 16, height + 16 + GetSystemMetrics(SM_CYCAPTION),
 		_Window->hwnd, NULL, NULL, NULL);
 	free((void *)_wd);
 	free((void *)_wn);
@@ -4660,7 +4630,7 @@ void clearScreen() {
 }
 int putPixel(int x, int y) {
 	bitMap *buf;
-	int p;
+	int p, i;
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return SG_INVALID_MODE;
 
@@ -4686,6 +4656,11 @@ int putPixel(int x, int y) {
 			buf->data[p + 2] = (int)(buf->data[p + 2] * (1.f - _Screen->alpha));
 			buf->data[p + 2] += (int)(_Screen->rgb[0] * (_Screen->alpha));
 		}
+
+		for (i = 0; i < Widget->count; i++) {
+			if (!Widget->obj[i]->valid)continue;
+			if (inWidget(Widget->obj[i], x, y))Widget->obj[i]->valid = 0;
+		}
 	}
 	else {
 		if (_wndList[currentWindow].activePage == 0)
@@ -4710,6 +4685,11 @@ int putPixel(int x, int y) {
 			buf->data[p + 2] = (int)(buf->data[p + 2] * (1.f - _wndList[currentWindow].alpha));
 			buf->data[p + 2] +=
 				(int)(_wndList[currentWindow].rgb[0] * (_wndList[currentWindow].alpha));
+		}
+		for (i = 0; i < _wndList[currentWindow].widget->count; i++) {
+			if (!_wndList[currentWindow].widget->obj[i]->valid)continue;
+			if (inWidget(_wndList[currentWindow].widget->obj[i], x, y))
+				_wndList[currentWindow].widget->obj[i]->valid = 0;
 		}
 	}
 

@@ -3,10 +3,14 @@
 int sub;
 
 void sgSubSetup() {
-
 }
 void sgSubLoop() {
 	static int first = 1000;
+	if(first == 1000){
+		startSubWindow(sub);
+		easyWidget(SG_BUTTON, "button", 40, 40, 160, 100, "hello", vectDefault);
+		endSubWindow();
+	}
 	if (first == 0)closeWindow(sub);
 	else {
 		startSubWindow(sub);
@@ -20,12 +24,13 @@ void sgSubLoop() {
 
 void sgSetup() {
 	initWindow(640, 480, "SGL Sample", BIT_MAP);
+	initMouse(SG_COORDINATE);
 }
 void sgLoop() {
 	static int first = 1;
 	if (first) {
 		first = 0;
-		//sub = createWindow(320, 240, "Sub window", (vect)sgSubSetup, (vect)sgSubLoop);
+		sub = createWindow(320, 240, "Sub window", (vect)sgSubSetup, (vect)sgSubLoop);
 		easyWidget(SG_BUTTON, "button", 100, 100, 200, 200, "hello", vectDefault);
 	}
 	setColor(255, 255, 255);
