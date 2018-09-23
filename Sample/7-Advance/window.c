@@ -9,14 +9,10 @@ void sgSubLoop() {
 	static int first = 1000;
 	if (first == 0)closeWindow(sub);
 	else {
-		debugf("lock3\n");
 		startSubWindow(sub);
 		setColor(0, 0, 0);
 		clearScreen();
-		setColor(255, 255, 255);
-		putQuad(100, 100, 200, 200, SOLID_FILL);
 		endSubWindow();
-		debugf("unlock3\n");
 	}
 
 	first--;
@@ -29,7 +25,8 @@ void sgLoop() {
 	static int first = 1;
 	if (first) {
 		first = 0;
-		sub = createWindow(320, 240, "Sub window", (vect)sgSubSetup, (vect)sgSubLoop);
+		//sub = createWindow(320, 240, "Sub window", (vect)sgSubSetup, (vect)sgSubLoop);
+		easyWidget(SG_BUTTON, "button", 100, 100, 200, 200, "hello", vectDefault);
 	}
 	setColor(255, 255, 255);
 	clearScreen();

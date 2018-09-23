@@ -266,6 +266,37 @@ int inWidget(widgetObj *obj, int x, int y) {
 	return (x >= obj->pos.x&&x < obj->pos.x + obj->size.x) &&
 		(y >= obj->pos.y&&y < obj->pos.y + obj->size.y);
 }
+int easyWidget(enum _control type, const char *name,
+	int x, int y, int width, int height, const char *content, mouseClickUser click) {
+	widgetObj *tmp;
+
+	tmp = newWidget(type, name);
+	tmp->pos.x = x;
+	tmp->pos.y = y;
+	tmp->size.x = width;
+	tmp->size.y = height;
+
+	strcpy(tmp->content, content);
+	if (click)tmp->mouseUser = click;
+
+	switch (type) {
+	case SG_BUTTON:
+	case SG_INPUT:
+	case SG_DIALOG:
+	case SG_OUTPUT:
+	case SG_LIST:
+	case SG_LABEL:
+	case SG_PIC:
+	case SG_CHECK:
+	case SG_PROCESS:
+	case SG_OPTION:
+	case SG_DRAG:
+		break;
+	default:
+		return SG_INVALID_MODE;
+	}
+	return registerWidget(tmp);
+}
 
 
 /*
@@ -372,6 +403,7 @@ void _drawWidget(int fb) {
 	widgetObj *current;
 
 	if (_sglMode == BIT_MAP) {
+		startSubWindow(-1);
 		for (i = 0; i < Widget->count; i++) {
 			current = Widget->obj[i];
 			if (!current || !current->visible || current->priority != fb)continue;
@@ -425,6 +457,7 @@ void _drawWidget(int fb) {
 				break;
 			}
 		}
+		endSubWindow();
 	}
 }
 void _drawSubWidget(int id, int fb) {

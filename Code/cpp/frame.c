@@ -545,9 +545,7 @@ LRESULT CALLBACK SubWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
 		return 0;
 
 	case WM_PAINT:
-		debugf("lock1\n");
 		_drawSubWidget(index, WIDGET_FRONT);
-		debugf("unlock1\n");
 
 		hdc = BeginPaint(hwnd, &ps);
 		if (_wndList[index].visualPage == 0) _makeSubBitmap(hdc, index, _wndList[index].buffer1->data,
@@ -556,9 +554,7 @@ LRESULT CALLBACK SubWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
 			_wndList[index].buffer2->sizeX, _wndList[index].buffer2->sizeY, 24);
 		EndPaint(hwnd, &ps);
 
-		debugf("lock2\n");
 		_drawSubWidget(index, WIDGET_BACK);
-		debugf("unlock2\n");
 
 		return 0;
 
