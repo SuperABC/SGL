@@ -7,6 +7,8 @@ extern int _sglMode;
 extern struct _text text;
 extern struct _Sub _wndList[SG_MAX_WINDOW_NUM];
 
+void(*backgroundRefresh)(int left, int top, int right, int bottom);
+
 
 widgetObj *newWidget(int type, const char *name) {
 	widgetObj *ret = (widgetObj *)malloc(sizeof(widgetObj));
@@ -349,6 +351,9 @@ int easyWidget(int type, const char *name,
 	}
 	return registerWidget(tmp);
 }
+void setBackgroundRefresh(void(*refresh)(int left, int top, int right, int bottom)) {
+	backgroundRefresh = refresh;
+}
 widgetObj *getWidgetByIndex(int index) {
 	if (index < 0 || index >= Widget->count)return NULL;
 	return Widget->obj[index];
@@ -384,6 +389,7 @@ void showWidget(const char *name) {
 	if (obj == NULL)return;
 	if (obj->visible == TRUE) return;
 	obj->visible = TRUE;
+	obj->valid = 0;
 }
 void ceaseWidget(const char *name) {
 	widgetObj *obj = getWidgetByName(name);
@@ -391,14 +397,25 @@ void ceaseWidget(const char *name) {
 	if (obj->visible == FALSE)return;
 	obj->status = 0;
 	obj->visible = FALSE;
+
+	backgroundRefresh(
+		obj->pos.x, obj->pos.y, obj->pos.x + obj->size.x, obj->pos.y + obj->size.y);
 }
 void moveWidgetByIndex(int index, int xDelta, int yDelta) {
 	widgetObj *tmp = getWidgetByIndex(index);
+
+	backgroundRefresh(
+		tmp->pos.x, tmp->pos.y, tmp->pos.x + tmp->size.x, tmp->pos.y + tmp->size.y);
+
 	tmp->pos.x += xDelta;
 	tmp->pos.y += yDelta;
 }
 void moveWidgetByName(const char *name, int xDelta, int yDelta) {
 	widgetObj *tmp = getWidgetByName(name);
+
+	backgroundRefresh(
+		tmp->pos.x, tmp->pos.y, tmp->pos.x + tmp->size.x, tmp->pos.y + tmp->size.y);
+
 	tmp->pos.x += xDelta;
 	tmp->pos.y += yDelta;
 }
@@ -463,8 +480,8 @@ void mouseClickDefault(widgetObj *w, int x, int y, int status) {
 	}
 	switch (w->type) {
 	case SG_BUTTON:
-		if (w->status & WIDGET_PRESSED &&
-			status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON))
+		if (w->status & WIDGET_PASS &&
+			status == (SG_BUTTON_UP | SG_LEFT_BUTTON))
 			w->mouseUser(w);
 		break;
 	default:
@@ -472,10 +489,78 @@ void mouseClickDefault(widgetObj *w, int x, int y, int status) {
 	}
 }
 void mouseClickInput(widgetObj *w, int x, int y, int status) {
+	int i = 0, len;
+	SIZE tmp;
+	SGWINSTR _wd = NULL;
+	len = _strlenW(w->content);
 
+	if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON))w->status &= 0xFF ^ WIDGET_PRESSED;
+	if (x >= w->pos.x&&x<w->pos.x + w->size.x&&y >= w->pos.y&&y < w->pos.y + w->size.y) {
+		if (status & SG_LEFT_BUTTON)Widget->active = getIndexByName(w->name);
+		if (status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON)) {
+			w->status |= WIDGET_PRESSED;
+			w->status |= WIDGET_FOCUSED;
+		}
+		if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON)) {
+			w->status |= WIDGET_SELECTED;
+			if (((char *)w->content)[0] == '\0')w->value = 0;
+			else if (x >= w->pos.x + 2 && x < w->pos.x + w->size.x - 2) {
+				GetTextExtentPoint32(text.memDC, _wd = _widen(w->content), w->hide, &tmp);
+				free((void *)_wd);
+				w->value = (x - w->pos.x) / 20 + w->hide;
+				x += tmp.cx - w->pos.x;
+				do {
+					w->value++;
+					GetTextExtentPoint32(text.memDC, _wd = _widen(w->content), w->value, &tmp);
+					free((void *)_wd);
+				} while (tmp.cx < x - 4);
+				w->value--;
+				if (w->value >= len)w->value = len;
+			}
+		}
+	}
+	else {
+		if (status & SG_LEFT_BUTTON && Widget->active != -1 &&
+			strcmp(w->name, getWidgetByIndex(Widget->active)->name) == 0)
+			Widget->active = -1;
+		w->status &= 0xFF ^ WIDGET_SELECTED;
+		w->status &= 0xFF ^ WIDGET_FOCUSED;
+	}
 }
 void mouseClickDialog(widgetObj *w, int x, int y, int status) {
-
+	if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON))w->status &= 0xFF ^ WIDGET_PRESSED;
+	if (x >= w->pos.x&&x<w->pos.x + w->size.x&&y >= w->pos.y&&y < w->pos.y + w->size.y) {
+		if (status & SG_LEFT_BUTTON)Widget->active = getIndexByName(w->name);
+		if (status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON)) {
+			if (x >= w->pos.x + w->size.x - 2 * (SG_CHAR_WIDTH + 1) &&
+				x < w->pos.x + w->size.x - 2 &&
+				y >= w->pos.y + 2 &&
+				y < w->pos.y + SG_CHAR_HEIGHT + 2) {
+				w->status |= WIDGET_PRESSED;
+			}
+			else {
+				w->status |= WIDGET_FOCUSED;
+			}
+		}
+		if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON)) {
+			if (x >= w->pos.x + w->size.x - 2 * (SG_CHAR_WIDTH + 1) &&
+				x < w->pos.x + w->size.x - 2 &&
+				y >= w->pos.y + 2 &&
+				y < w->pos.y + SG_CHAR_HEIGHT + 2) {
+				ceaseWidget(w->name);
+				Widget->active = -1;
+				return;
+			}
+			w->status |= WIDGET_SELECTED;
+		}
+	}
+	else {
+		if (status & SG_LEFT_BUTTON && Widget->active != -1 &&
+			strcmp(w->name, getWidgetByIndex(Widget->active)->name) == 0)
+			Widget->active = -1;
+		w->status &= 0xFF ^ WIDGET_SELECTED;
+		w->status &= 0xFF ^ WIDGET_FOCUSED;
+	}
 }
 void mouseClickList(widgetObj *w, int x, int y, int status) {
 
@@ -510,7 +595,43 @@ void keyDefault(widgetObj *w, int key) {
 	}
 }
 void keyInput(widgetObj *w, int key) {
+	int i, len;
 
+	if (key == SG_LEFT)
+		if (w->value)w->value--;
+	if (key == SG_RIGHT)
+		if (w->value < _strlenW(w->content))
+			w->value++;
+
+	len = _strlenW(w->content);
+
+	if (key >= 0x80)return;
+
+	int lenW = _wcharAt(w->content, len);
+	if (key == SG_BACKS && w->value != 0) {
+		w->value--;
+		if (((char *)w->content)[i = _wcharAt(w->content, w->value)] >= 0x80) {
+			for (; i < lenW; i++) {
+				((char *)w->content)[i] = ((char *)w->content)[i + 2];
+			}
+		}
+		else {
+			for (; i < lenW; i++) {
+				((char *)w->content)[i] = ((char *)w->content)[i + 1];
+			}
+		}
+	}
+	if (key >= 0x20) {
+		if (w->value == len) {
+			((char *)w->content)[_wcharAt(w->content, w->value) + 1] = '\0';
+		}
+		else {
+			for (i = lenW + 1; i > _wcharAt(w->content, w->value); i--) {
+				((char *)w->content)[i] = ((char *)w->content)[i - 1];
+			}
+		}
+		((char *)w->content)[_wcharAt(w->content, w->value++)] = key;
+	}
 }
 void keyList(widgetObj *w, int key) {
 
@@ -699,10 +820,136 @@ void _drawButton(widgetObj *w) {
 	}
 }
 void _drawInput(widgetObj *w) {
+	w->valid = 0;
+	switch (w->style) {
+	case SG_DESIGN:
+		if (w->status&(WIDGET_PRESSED | WIDGET_SELECTED))
+			setColor(w->pressColor.r, w->pressColor.g, w->pressColor.b);
+		else if (w->status&WIDGET_PASS)
+			setColor(w->passColor.r, w->passColor.g, w->passColor.b);
+		else setColor(w->bgColor.r, w->bgColor.g, w->bgColor.b);
+		putQuad(w->pos.x, w->pos.y,
+			w->pos.x + w->size.x - 1, w->pos.y + w->size.y - 1, SOLID_FILL);
+		setColor(0, 0, 0);
+		putQuad(w->pos.x, w->pos.y,
+			w->pos.x + w->size.x - 1, w->pos.y + w->size.y - 1, EMPTY_FILL);
+		if (w->status&WIDGET_FOCUSED) {
+			setColor(127, 127, 127);
+			putQuad(w->pos.x + 1, w->pos.y + 1,
+				w->pos.x + w->size.x - 2, w->pos.y + w->size.y - 2, EMPTY_FILL);
+		}
 
+		SIZE tmp1, tmp2;
+		setFontSize(20);
+		setFontName("Î¢ÈíÑÅºÚ");
+		if (w->hide >= _strlenW(w->content)) {
+			w->value = _strlenW(w->content);
+			w->hide = w->value - 1;
+			if (w->hide < 0)w->hide = 0;
+		}
+		if (w->value <= w->hide && w->value)w->hide = w->value - 1;
+		SGWINSTR _wd = NULL;
+		GetTextExtentPoint32(text.memDC, _wd = _widen(w->content), w->value, &tmp1);
+		free((void *)_wd);
+		GetTextExtentPoint32(text.memDC, _wd = _widen(w->content), w->hide, &tmp2);
+		free((void *)_wd);
+		if (tmp1.cx > tmp2.cx + w->size.x - 2 * SG_CHAR_WIDTH) {
+			do {
+				w->hide++;
+				GetTextExtentPoint32(text.memDC, _wd = _widen(w->content), w->value, &tmp1);
+				free((void *)_wd);
+				GetTextExtentPoint32(text.memDC, _wd = _widen(w->content), w->hide, &tmp2);
+				free((void *)_wd);
+			} while (tmp1.cx > tmp2.cx + w->size.x - 2 * SG_CHAR_WIDTH);
+		}
+		setColor(w->fgColor.r, w->fgColor.g, w->fgColor.b);
+		putStringConstraint(w->content,
+			w->pos.x + SG_CHAR_WIDTH,
+			w->size.y > 2 * SG_CHAR_HEIGHT ?
+			w->pos.y + SG_CHAR_HEIGHT / 2 - 2 :
+			w->pos.y + w->size.y / 2 - SG_CHAR_HEIGHT / 2 - 2,
+			w->hide, w->size.x - 2 * SG_CHAR_WIDTH);
+		if ((w->status&WIDGET_FOCUSED) && (clock() % 1000 > 500)) {
+			setColor(w->fgColor.r, w->fgColor.g, w->fgColor.b);
+			putLine(w->pos.x + SG_CHAR_WIDTH + tmp1.cx - tmp2.cx,
+				w->size.y > 2 * SG_CHAR_HEIGHT ?
+				w->pos.y + SG_CHAR_HEIGHT / 2 - 1 :
+				w->pos.y + w->size.y / 2 - SG_CHAR_HEIGHT / 2 - 1,
+				w->pos.x + SG_CHAR_WIDTH + tmp1.cx - tmp2.cx,
+				w->size.y > 2 * SG_CHAR_HEIGHT ?
+				w->pos.y + SG_CHAR_HEIGHT / 2 + SG_CHAR_HEIGHT :
+				w->pos.y + w->size.y / 2 + SG_CHAR_HEIGHT / 2,
+				SOLID_LINE);
+		}
+		break;
+	case WIN_XP:
+		break;
+	case WIN_10:
+		break;
+	case LINUX:
+		break;
+	case WEBSITE:
+		break;
+	case ANDROID:
+		break;
+	}
 }
 void _drawDialog(widgetObj *w) {
+	int row, total, tmp;
 
+	switch (w->style) {
+	case SG_DESIGN:
+		setColor(w->bgColor.r, w->bgColor.g, w->bgColor.b);
+		putQuad(w->pos.x, w->pos.y,
+			w->pos.x + w->size.x - 1, w->pos.y + w->size.y - 1, SOLID_FILL);
+		setColor(223, 223, 223);
+		putQuad(w->pos.x, w->pos.y,
+			w->pos.x + w->size.x - 1, w->pos.y + SG_CHAR_HEIGHT + 3, SOLID_FILL);
+		if (w->status&WIDGET_PRESSED)setColor(191, 63, 63);
+		else setColor(255, 63, 63);
+		putQuad(w->pos.x + w->size.x - 2 * (SG_CHAR_WIDTH + 1), w->pos.y + 2,
+			w->pos.x + w->size.x - 3, w->pos.y + SG_CHAR_HEIGHT + 1, SOLID_FILL);
+		setColor(255, 255, 255);
+		putLine(w->pos.x + w->size.x - 2 * (SG_CHAR_WIDTH + 1), w->pos.y + 2,
+			w->pos.x + w->size.x - 2, w->pos.y + SG_CHAR_HEIGHT + 1, SOLID_LINE);
+		putLine(w->pos.x + w->size.x - 2 * (SG_CHAR_WIDTH + 1), w->pos.y + SG_CHAR_HEIGHT + 2,
+			w->pos.x + w->size.x - 2, w->pos.y + 1, SOLID_LINE);
+		setColor(127, 127, 127);
+		putQuad(w->pos.x, w->pos.y,
+			w->pos.x + w->size.x - 1, w->pos.y + w->size.y - 1, EMPTY_FILL);
+
+		if (w->status&WIDGET_FOCUSED) {
+			setColor(127, 127, 127);
+			putQuad(w->pos.x + 1, w->pos.y + 1,
+				w->pos.x + w->size.x - 2, w->pos.y + w->size.y - 2, EMPTY_FILL);
+		}
+
+		row = 0;
+		total = 0;
+		tmp = 0;
+		setColor(w->fgColor.r, w->fgColor.g, w->fgColor.b);
+		setFontSize(20);
+		setFontName("Î¢ÈíÑÅºÚ");
+		while (tmp = putStringConstraint((char *)w->content + total,
+			w->pos.x + SG_CHAR_WIDTH,
+			w->pos.y + (row + 1) * SG_LINE_DELTA_DEFAULT + 8, 0,
+			w->size.x - 2 * SG_CHAR_WIDTH)) {
+			total += tmp;
+			row++;
+			if ((row + 2) * SG_LINE_DELTA_DEFAULT > w->size.y)break;
+		}
+		break;
+	case WIN_XP:
+		break;
+	case WIN_10:
+		break;
+	case LINUX:
+		break;
+	case WEBSITE:
+		break;
+	case ANDROID:
+		break;
+	}
 }
 void _drawOutput(widgetObj *w) {
 

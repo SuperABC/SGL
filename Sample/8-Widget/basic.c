@@ -1,17 +1,18 @@
 #include "winsgl.h"
 
-void createDialog(widgetObj *w, int x, int y, int status) {
+void bgRedraw(int left, int top, int right, int bottom) {
+	setColor(255, 255, 255);
+	clearScreen();
+}
+void createDialog(widgetObj *w) {
 	char *tmp;
 	tmp = malloc(10);
 	strcpy(tmp, "Input");
 	tmp[5] = w->name[6];
 	tmp[6] = 0;
 
-	mouseClickDefault(w, x, y, status);
-	if (w->status&WIDGET_SELECTED) {
-		strcpy(getWidgetByName("Dialog")->content, getWidgetByName(tmp)->content);
-		showWidget("Dialog");
-	}
+	strcpy(getWidgetByName("Dialog")->content, getWidgetByName(tmp)->content);
+	showWidget("Dialog");
 
 	free(tmp);
 }
@@ -25,7 +26,7 @@ void layoutWidget() {
 	Button->pos.y = 420;
 	Button->size.x = 60;
 	Button->size.y = 24;
-	Button->mouseClick = createDialog;
+	Button->mouseUser = createDialog;
 	strcpy(Button->content, "确 认");
 	registerWidget(Button);
 	free(Button);
@@ -35,7 +36,7 @@ void layoutWidget() {
 	Button->pos.y = 380;
 	Button->size.x = 60;
 	Button->size.y = 24;
-	Button->mouseClick = createDialog;
+	Button->mouseUser = createDialog;
 	strcpy(Button->content, "确 认");
 	registerWidget(Button);
 	free(Button);
@@ -45,7 +46,7 @@ void layoutWidget() {
 	Button->pos.y = 340;
 	Button->size.x = 60;
 	Button->size.y = 24;
-	Button->mouseClick = createDialog;
+	Button->mouseUser = createDialog;
 	strcpy(Button->content, "确 认");
 	registerWidget(Button);
 	free(Button);
@@ -95,6 +96,7 @@ void sgSetup() {
 	initMouse(SG_COORDINATE);
 	initKey();
 	layoutWidget();
+	setBackgroundRefresh(bgRedraw);
 }
 void sgLoop() {
 	return;

@@ -149,7 +149,7 @@
   <ItemGroup>
     <ClCompile Include="Code\cpp\frame.c" />
     <ClCompile Include="Code\cpp\widget.c" />
-    <ClCompile Include="Sample\7-Advance\window.c" />
+    <ClCompile Include="Sample\8-Widget\basic.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

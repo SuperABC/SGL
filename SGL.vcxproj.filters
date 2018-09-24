@@ -29,7 +29,7 @@
     <ClCompile Include="Code\cpp\frame.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Sample\7-Advance\window.c">
+    <ClCompile Include="Sample\8-Widget\basic.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

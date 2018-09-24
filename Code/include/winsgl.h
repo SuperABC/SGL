@@ -802,6 +802,11 @@ SGint inWidget(widgetObj *obj, int x, int y);
 SGint crossWidget(widgetObj *obj, int left, int top, int right, int bottom);
 /* Judge if rectangle (left, top, right, bottom) is crossing widget obj. */
 
+SGvoid setBackgroundRefresh(void(*refresh)(int left, int top, int right, int bottom));
+/* When widgets changes and the background need to be redrew, 
+ * the function refresh will be called. The parameter of refresh is
+ * the area that need to be redrew. */
+
 widgetObj *getWidgetByIndex(int index);
 /* Returns the widget pointer with the given index. */
 

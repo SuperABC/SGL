@@ -1221,7 +1221,6 @@ void sgClick(int button, int state, int x, int y) {
 					if (tmp->visible == FALSE)continue;
 					if (inWidget(tmp, x, y))continue;
 					if (Widget->active == i)continue;
-					tmp->mouseUser(Widget->obj[i]);
 					tmp->mouseUp(Widget->obj[i], _Mouse->Pos.x, _Mouse->Pos.y, SG_BUTTON_UP | SG_LEFT_BUTTON);
 				}
 			}
@@ -1229,7 +1228,6 @@ void sgClick(int button, int state, int x, int y) {
 				for (i = 0; i < Widget->count; i++) {
 					tmp = Widget->obj[i];
 					if (tmp->visible == FALSE)continue;
-					tmp->mouseUser(Widget->obj[i]);
 					tmp->mouseUp(Widget->obj[i], _Mouse->Pos.x, _Mouse->Pos.y, SG_BUTTON_UP | SG_LEFT_BUTTON);
 				}
 			}
@@ -1297,7 +1295,6 @@ void sgClick(int button, int state, int x, int y) {
 					tmp = Widget->obj[i];
 					if (tmp->visible == FALSE)continue;
 					if (inWidget(tmp, x, y))continue;
-					tmp->mouseUser(Widget->obj[i]);
 					tmp->mouseUp(Widget->obj[i], _Mouse->Pos.x, _Mouse->Pos.y, SG_BUTTON_UP | SG_RIGHT_BUTTON);
 				}
 			}
@@ -1305,7 +1302,6 @@ void sgClick(int button, int state, int x, int y) {
 				for (i = 0; i < Widget->count; i++) {
 					tmp = Widget->obj[i];
 					if (tmp->visible == FALSE)continue;
-					tmp->mouseUser(Widget->obj[i]);
 					tmp->mouseUp(Widget->obj[i], _Mouse->Pos.x, _Mouse->Pos.y, SG_BUTTON_UP | SG_RIGHT_BUTTON);
 				}
 			}
