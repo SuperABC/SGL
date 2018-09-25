@@ -174,6 +174,7 @@ struct _Sub {
 	struct _mouse *mouse;
 
 	struct _widget *widget;
+	void(*background)(int left, int top, int right, int bottom);
 };
 
 LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
@@ -201,6 +202,7 @@ DWORD WINAPI _timerFunc(LPVOID pM);
 int _stringPrintf(const char *format, va_list ap, int x, int y);
 void _drawPanel();
 void _clearPanel();
+void _bgDrawDefault(int left, int top, int right, int bottom);
 
 void _textLoop(void);
 void _textRenew(short c, int x, int y);

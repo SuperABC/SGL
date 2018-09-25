@@ -3,35 +3,29 @@
 int loading = 0;
 char *clipboard;
 
-void buttonLoad(widgetObj *w, int x, int y, int status) {
-	mouseClickDefault(w, x, y, status);
-	if (w->status&WIDGET_SELECTED) {
-		showWidget("Process");
-		getWidgetByName("Process")->value = 0;
-		loading = 1;
-	}
+void buttonLoad(widgetObj *w) {
+	showWidget("Process");
+	getWidgetByName("Process")->value = 0;
+	loading = 1;
 }
-void optionChoose(widgetObj *w, int x, int y, int status) {
-	mouseClickOption(w, x, y, status);
-	if (status&SG_LEFT_BUTTON && status & SG_BUTTON_UP) {
-		widgetObj *tmp = getWidgetByName("Input");
-		switch (w->value) {
-		case 0:
-			strcpy(tmp->content, "");
-			break;
-		case 1:
-			strcpy(clipboard, tmp->content);
-			strcpy(tmp->content, "");
-			break;
-		case 2:
-			strcpy(clipboard, tmp->content);
-			break;
-		case 3:
-			strcpy(tmp->content, clipboard);
-			break;
-		case 4:
-			break;
-		}
+void optionChoose(widgetObj *w) {
+	widgetObj *tmp = getWidgetByName("Input");
+	switch (w->value) {
+	case 0:
+		strcpy(tmp->content, "");
+		break;
+	case 1:
+		strcpy(clipboard, tmp->content);
+		strcpy(tmp->content, "");
+		break;
+	case 2:
+		strcpy(clipboard, tmp->content);
+		break;
+	case 3:
+		strcpy(tmp->content, clipboard);
+		break;
+	case 4:
+		break;
 	}
 }
 void load() {
@@ -62,7 +56,7 @@ void layoutWidget() {
 	Button->pos.y = 40;
 	Button->size.x = 60;
 	Button->size.y = 24;
-	Button->mouseClick = buttonLoad;
+	Button->mouseUser = buttonLoad;
 	strcpy(Button->content, "ÔØÈë");
 	registerWidget(Button);
 	free(Button);
@@ -90,7 +84,7 @@ void layoutWidget() {
 	Option->hide = 5;
 	memcpy(Option->content, "Çå¿Õ\0¼ôÇÐ\0¸´ÖÆ\0Õ³Ìù\0³·Ïú", 25);
 	Option->associate = getWidgetByName("Input");
-	Option->mouseClick = optionChoose;
+	Option->mouseUser = optionChoose;
 	registerWidget(Option);
 	free(Option);
 }

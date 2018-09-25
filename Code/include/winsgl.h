@@ -829,6 +829,9 @@ SGint deleteWidgetByIndex(int index);
 SGint deleteWidgetByName(const char *name);
 /* Delete the widget with the given name. */
 
+SGvoid deleteSubWidget(widgetObj *widget);
+/* Delete the child widget of the given parameter. */
+
 void moveWidgetByIndex(int index, int xDelta, int yDelta);
 /* Move the widget to (x + xDelta, y + yDelta) with the given index. */
 

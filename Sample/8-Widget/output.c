@@ -1,15 +1,14 @@
 #include "winsgl.h"
 
-void sendMessage(widgetObj *w, int x, int y, int status) {
+void sendMessage(widgetObj *w) {
 	widgetObj *dst = getWidgetByName("Output");
 	widgetObj *src = getWidgetByName("Input");
-	mouseClickDefault(w, x, y, status);
-	if (src->content[0] == '\0')return;
-	if (w->status&WIDGET_SELECTED) {
-		strcat(dst->content, src->content);
-		strcat(dst->content, "\n");
-		src->content[0] = '\0';
-	}
+
+	if (((char *)src->content)[0] == '\0')return;
+
+	strcat(dst->content, src->content);
+	strcat(dst->content, "\n");
+	((char *)src->content)[0] = '\0';
 }
 void layoutWidget() {
 	widgetObj *Button;
@@ -21,7 +20,7 @@ void layoutWidget() {
 	Button->pos.y = 420;
 	Button->size.x = 60;
 	Button->size.y = 24;
-	Button->mouseClick = sendMessage;
+	Button->mouseUser = sendMessage;
 	strcpy(Button->content, "х╥хо");
 	registerWidget(Button);
 	free(Button);

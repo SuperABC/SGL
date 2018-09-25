@@ -11,6 +11,8 @@ void moveVert(widgetObj *w, int x, int y) {
 			putCircle(baseX, baseY, 10, SOLID_FILL);
 
 			baseY = 600 - w->value * 40;
+			setColor(0, 0, 0);
+			putCircle(baseX, baseY, 10, SOLID_FILL);
 		}
 	}
 }
@@ -23,6 +25,8 @@ void moveHoriz(widgetObj *w, int x, int y) {
 			putCircle(baseX, baseY, 10, SOLID_FILL);
 
 			baseX = 800 - w->value;
+			setColor(0, 0, 0);
+			putCircle(baseX, baseY, 10, SOLID_FILL);
 		}
 	}
 }
@@ -53,7 +57,11 @@ void sgSetup() {
 	layoutWidget();
 }
 void sgLoop() {
-	setColor(0, 0, 0);
-	putCircle(baseX, baseY, 10, SOLID_FILL);
+	static int first = 1;
+	if (first) {
+		first = 0;
+		setColor(0, 0, 0);
+		putCircle(baseX, baseY, 10, SOLID_FILL);
+	}
 	return;
 }

@@ -770,6 +770,8 @@ void sgInit() {
 	else _Window->posUp = (winPy - _Window->winHeight) / 2;
 
 	tmpThread = GetThreadId(GetCurrentThread());
+
+	setBackgroundRefresh(_bgDrawDefault);
 }
 void sgKey(int cAscii, int x, int y) {
 	widgetObj *tmp;
@@ -1290,7 +1292,7 @@ void sgClick(int button, int state, int x, int y) {
 			if (Widget->active != -1 && inWidget(Widget->obj[Widget->active], x, y)) {
 				Widget->obj[Widget->active]->mouseUser(Widget->obj[Widget->active]);
 				Widget->obj[Widget->active]->mouseUp(Widget->obj[Widget->active],
-					_Mouse->Pos.x, _Mouse->Pos.y, SG_BUTTON_DOWN | SG_RIGHT_BUTTON);
+					_Mouse->Pos.x, _Mouse->Pos.y, SG_BUTTON_UP | SG_RIGHT_BUTTON);
 				for (i = 0; i < Widget->count; i++) {
 					tmp = Widget->obj[i];
 					if (tmp->visible == FALSE)continue;
@@ -1437,6 +1439,8 @@ void sgSubInit(vect setup) {
 	_wndList[subNum].rgb[1] = 0;
 	_wndList[subNum].rgb[2] = 0;
 	_wndList[subNum].alpha = 1.f;
+
+	_wndList[subNum].background = _bgDrawDefault;
 }
 void sgSubKey(int id, int cAscii, int x, int y) {
 	widgetObj *tmp;
@@ -3024,6 +3028,10 @@ void _clearPanel() {
 		panel.cover->data = NULL;
 	}
 
+}
+void _bgDrawDefault(int left, int top, int right, int bottom) {
+	setColor(255, 255, 255);
+	putQuad(left, top, right, bottom, SOLID_FILL);
 }
 
 /*

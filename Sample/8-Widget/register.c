@@ -4,22 +4,19 @@ static char *Manager = "Manager";
 static char *Vip = "Vip";
 static char *Usual = "Usual";
 
-void createDialog(widgetObj *w, int x, int y, int status) {
-	mouseClickDefault(w, x, y, status);
-	if (w->status&WIDGET_SELECTED) {
-		if (strcmp(getWidgetByName("InputPw")->content, Manager) == 0&&
-			getWidgetByName("List")->value==0)
-			strcpy(getWidgetByName("Dialog")->content, "Manager login success!");
-		else if (strcmp(getWidgetByName("InputPw")->content, Vip) == 0 &&
-			getWidgetByName("List")->value == 1)
-			strcpy(getWidgetByName("Dialog")->content, "Vip login success!");
-		else if (strcmp(getWidgetByName("InputPw")->content, Usual) == 0 &&
-			getWidgetByName("List")->value == 2)
-			strcpy(getWidgetByName("Dialog")->content, "Usual login success!");
-		else
-			strcpy(getWidgetByName("Dialog")->content, "Wrong password!");
-		showWidget("Dialog");
-	}
+void createDialog(widgetObj *w) {
+	if (strcmp(getWidgetByName("InputPw")->content, Manager) == 0&&
+		getWidgetByName("List")->value==0)
+		strcpy(getWidgetByName("Dialog")->content, "Manager login success!");
+	else if (strcmp(getWidgetByName("InputPw")->content, Vip) == 0 &&
+		getWidgetByName("List")->value == 1)
+		strcpy(getWidgetByName("Dialog")->content, "Vip login success!");
+	else if (strcmp(getWidgetByName("InputPw")->content, Usual) == 0 &&
+		getWidgetByName("List")->value == 2)
+		strcpy(getWidgetByName("Dialog")->content, "Usual login success!");
+	else
+		strcpy(getWidgetByName("Dialog")->content, "Wrong password!");
+	showWidget("Dialog");
 }
 void layoutWidget() {
 	widgetObj *Button;
@@ -75,7 +72,7 @@ void layoutWidget() {
 	Button->pos.y = 120;
 	Button->size.x = 60;
 	Button->size.y = 24;
-	Button->mouseClick = createDialog;
+	Button->mouseUser = createDialog;
 	strcpy(Button->content, "µÇÂ¼");
 	registerWidget(Button);
 	free(Button);
