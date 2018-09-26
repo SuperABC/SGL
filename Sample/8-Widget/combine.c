@@ -3,6 +3,8 @@
 int cardNum = 0;
 
 void addCard(widgetObj *w) {
+	if (cardNum >= 10)return;
+
 	widgetObj *color, *num, *back;
 	color = newWidget(SG_LABEL, "color");
 	strcpy(color->content, "ºìÌÒ");

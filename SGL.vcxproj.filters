@@ -32,5 +32,8 @@
     <ClCompile Include="Sample\8-Widget\combine.c">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Code\cpp\data.c">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
