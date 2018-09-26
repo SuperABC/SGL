@@ -1215,7 +1215,6 @@ void sgClick(int button, int state, int x, int y) {
 
 		if (_sglMode == BIT_MAP) {
 			if (Widget->active != -1 && inWidget(Widget->obj[Widget->active], x, y)) {
-				Widget->obj[Widget->active]->mouseUser(Widget->obj[Widget->active]);
 				Widget->obj[Widget->active]->mouseUp(Widget->obj[Widget->active],
 					_Mouse->Pos.x, _Mouse->Pos.y, SG_BUTTON_UP | SG_LEFT_BUTTON);
 				for (i = 0; i < Widget->count; i++) {
@@ -1290,7 +1289,6 @@ void sgClick(int button, int state, int x, int y) {
 
 		if (_sglMode == BIT_MAP) {
 			if (Widget->active != -1 && inWidget(Widget->obj[Widget->active], x, y)) {
-				Widget->obj[Widget->active]->mouseUser(Widget->obj[Widget->active]);
 				Widget->obj[Widget->active]->mouseUp(Widget->obj[Widget->active],
 					_Mouse->Pos.x, _Mouse->Pos.y, SG_BUTTON_UP | SG_RIGHT_BUTTON);
 				for (i = 0; i < Widget->count; i++) {

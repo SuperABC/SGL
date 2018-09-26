@@ -7,7 +7,7 @@ extern int _sglMode;
 extern struct _text text;
 extern struct _Sub _wndList[SG_MAX_WINDOW_NUM];
 
-void(*backgroundRefresh)(int left, int top, int right, int bottom);
+void(*backgroundRefresh)(int left, int top, int right, int bottom);	
 
 
 widgetObj *newWidget(int type, const char *name) {
@@ -190,7 +190,7 @@ widgetObj *newCombinedWidget(int num, const char *name, ...) {
 	iter = ret;
 	iter->child = va_arg(ap, widgetObj*);
 	iter = iter->child;
-	while (num--) {
+	while (--num) {
 		iter->next = va_arg(ap, widgetObj*);
 		iter = iter->next;
 	}
@@ -227,21 +227,37 @@ int registerWidget(widgetObj *obj) {
 		offx = obj->pos.x;
 		offy = obj->pos.y;
 		if (obj->size.x == 0 || obj->size.y == 0)fit = 1;
-		while (obj->next) {
-			sub->next = (widgetObj *)malloc(sizeof(widgetObj));
-			memcpy(sub->next, obj->next, sizeof(widgetObj));
+		if (obj->child) {
+			sub->child = (widgetObj *)malloc(sizeof(widgetObj));
+			memcpy(sub->child, obj->child, sizeof(widgetObj));
 			if (fit) {
-				if (sub->next->pos.x + sub->next->size.x > tmp->size.x)
-					tmp->size.x = sub->next->pos.x + sub->next->size.x;
-				if (sub->next->pos.y + sub->next->size.y > tmp->size.y)
-					tmp->size.y = sub->next->pos.y + sub->next->size.y;
+				if (sub->child->pos.x + sub->child->size.x > tmp->size.x)
+					tmp->size.x = sub->child->pos.x + sub->child->size.x;
+				if (sub->child->pos.y + sub->child->size.y > tmp->size.y)
+					tmp->size.y = sub->child->pos.y + sub->child->size.y;
 			}
-			sub->next->pos.x += offx;
-			sub->next->pos.y += offy;
-			sub = sub->next;
-			obj = obj->next;
+			sub->child->pos.x += offx;
+			sub->child->pos.y += offy;
+			sub = sub->child;
+			obj = obj->child;
+
+			while (obj->next) {
+				sub->next = (widgetObj *)malloc(sizeof(widgetObj));
+				memcpy(sub->next, obj->next, sizeof(widgetObj));
+				if (fit) {
+					if (sub->next->pos.x + sub->next->size.x > tmp->size.x)
+						tmp->size.x = sub->next->pos.x + sub->next->size.x;
+					if (sub->next->pos.y + sub->next->size.y > tmp->size.y)
+						tmp->size.y = sub->next->pos.y + sub->next->size.y;
+				}
+				sub->next->pos.x += offx;
+				sub->next->pos.y += offy;
+				sub = sub->next;
+				obj = obj->next;
+			}
+			sub->next = NULL;
 		}
-		sub->next = NULL;
+		else sub->child = NULL;
 	}
 
 	if (currentWindow == -1) {

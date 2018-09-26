@@ -1,26 +1,35 @@
 #include "winsgl.h"
 
+int cardNum = 0;
+
 void addCard(widgetObj *w) {
 	widgetObj *color, *num, *back;
 	color = newWidget(SG_LABEL, "color");
-	color->pos.x = color->pos.y = 40;
-	color->size.x = color->size.y = 0;
 	strcpy(color->content, "ºìÌÒ");
 	num = newWidget(SG_LABEL, "num");
-	num->pos.x = 80;
-	num->pos.y = 40;
-	num->size.x = num->size.y = 0;
+	num->pos.x = 40;
 	strcpy(num->content, "A");
 	back = newWidget(SG_OUTPUT, "back");
-	back->pos.x = back->pos.y = 40;
 	back->size.x = 60;
 	back->size.y = 100;
 
-	widgetObj *card = newCombinedWidget(3, "card", back, num, color);
+	char name[8];
+	sprintf(name, "card%d", cardNum++);
+	widgetObj *card = newCombinedWidget(3, name, back, num, color);
+	card->pos.x = cardNum * 40;
+	card->pos.y = 40;
 	registerWidget(card);
 }
+void subCard(widgetObj *w) {
+	if (cardNum <= 0)return;
+
+	char name[8];
+	sprintf(name, "card%d", --cardNum);
+	deleteWidgetByName(name);
+}
 void layoutWidget() {
-	easyWidget(SG_BUTTON, "add", 520, 440, 80, 20, "ÃþÅÆ", addCard);
+	easyWidget(SG_BUTTON, "add", 400, 440, 80, 20, "ÃþÅÆ", addCard);
+	easyWidget(SG_BUTTON, "add", 520, 440, 80, 20, "ÆúÅÆ", subCard);
 }
 
 void sgSetup() {
