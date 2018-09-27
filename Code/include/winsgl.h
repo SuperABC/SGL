@@ -364,17 +364,14 @@ enum JSON_Type {
 	JSON_FLOAT,
 	JSON_CHAR,
 	JSON_BOOL,
-	JSON_STRING,
-	JSON_OBJECT
+	JSON_STRING
 };
 union JSON_Data {
-	void *json_valid;
 	SGint json_int;
 	SGfloat json_float;
 	SGchar json_char;
 	SGbool json_bool;
 	SGstring json_string;
-	SGvoid *json_object;
 };
 struct JSON_Item {
 	enum Type t;
@@ -1013,6 +1010,23 @@ SGint getText(int left, int top, int right, int bottom, textMap *text);
 
 SGvoid putText(int left, int top, textMap *text);
 /* Paste the text messages at (left, top). */
+
+
+/*
+* SG data interfaces
+* These functions are used to deal with big data.
+*/
+
+struct JSON *createJson();
+struct JSON *readJson(const char *json);
+char *writeJson(struct JSON *json);
+union JSON_Data getElement(struct JSON *json, const char *name);
+void deleteElement(struct JSON *json, const char *name);
+void setIntElement(struct JSON *json, const char *name, SGint i);
+void setFloatElement(struct JSON *json, const char *name, SGfloat f);
+void setCharElement(struct JSON *json, const char *name, SGchar c);
+void setBoolElement(struct JSON *json, const char *name, SGbool b);
+void setStringElement(struct JSON *json, const char *name, SGstring s);
 
 
 //User main functions.
