@@ -150,7 +150,7 @@
     <ClCompile Include="Code\cpp\data.c" />
     <ClCompile Include="Code\cpp\frame.c" />
     <ClCompile Include="Code\cpp\widget.c" />
-    <ClCompile Include="Sample\8-Widget\combine.c" />
+    <ClCompile Include="Sample\10-Data\json.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -54,6 +54,7 @@
 #define SG_CHAR_HEIGHT 16
 #define SG_LINE_DELTA_DEFAULT 20
 #define SG_QSIZE 32768
+#define SG_HASH_NUM 256
 #define SG_MAX_FONT_SIZE 128
 #define SG_MAX_FONT_LENGTH 128
 #define SG_MAX_MENU_ITEM_NUM 128
@@ -354,6 +355,39 @@ typedef struct _w{
 	keyPressUser keyUser;
 
 }widgetObj;
+
+
+//data interfaces.
+
+enum JSON_Type {
+	JSON_INT,
+	JSON_FLOAT,
+	JSON_CHAR,
+	JSON_BOOL,
+	JSON_STRING,
+	JSON_OBJECT
+};
+union JSON_Data {
+	void *json_valid;
+	SGint json_int;
+	SGfloat json_float;
+	SGchar json_char;
+	SGbool json_bool;
+	SGstring json_string;
+	SGvoid *json_object;
+};
+struct JSON_Item {
+	enum Type t;
+
+	char *name;
+	union JSON_Data data;
+
+	struct JSON_Item *next;
+};
+
+struct JSON {
+	struct JSON_Item *hash[SG_HASH_NUM];
+};
 
 
 //The active window id when dealing with widget events.
