@@ -6,10 +6,10 @@ void sgSetup() {
 	initKey();
 
 	struct JSON *json = createJson();
-	setIntElement(json, "a1", 1);
-	setIntElement(json, "a2", 2);
-	setIntElement(json, "a1", 2);
+	setStringElement(json, "abc", "abc");
+	setStringElement(json, "def", "def");
 
+	json = readJson(writeJson(json));
 	debugf(writeJson(json));
 }
 void sgLoop() {
