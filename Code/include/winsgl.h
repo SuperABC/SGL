@@ -364,7 +364,9 @@ enum JSON_Type {
 	JSON_FLOAT,
 	JSON_CHAR,
 	JSON_BOOL,
-	JSON_STRING
+	JSON_STRING,
+	JSON_OBJECT,
+	JSON_ARRAY
 };
 union JSON_Data {
 	SGint json_int;
@@ -372,6 +374,8 @@ union JSON_Data {
 	SGchar json_char;
 	SGbool json_bool;
 	SGstring json_string;
+	struct JSON *json_object;
+	struct JSON *json_array;
 };
 struct JSON_Item {
 	enum Type t;
@@ -383,7 +387,12 @@ struct JSON_Item {
 };
 
 struct JSON {
-	struct JSON_Item *hash[SG_HASH_NUM];
+	SGbool arr;
+
+	union {
+		struct JSON_Item *hash[SG_HASH_NUM];
+		struct JSON_Item *list;
+	};
 };
 
 
@@ -1017,16 +1026,53 @@ SGvoid putText(int left, int top, textMap *text);
 * These functions are used to deal with big data.
 */
 
+
 struct JSON *createJson();
+/* Create an empty json object. */
+
+struct JSON *createJsonArray();
+/* Create an empty json array.*/
+
+void freeJson(struct JSON *json);
+/* Safely free the memory of the given structure. */
+
 struct JSON *readJson(const char *json);
+/* Create a json object or array with the given string. */
+
 char *writeJson(struct JSON *json);
-union JSON_Data getElement(struct JSON *json, const char *name);
-void deleteElement(struct JSON *json, const char *name);
-void setIntElement(struct JSON *json, const char *name, SGint i);
-void setFloatElement(struct JSON *json, const char *name, SGfloat f);
-void setCharElement(struct JSON *json, const char *name, SGchar c);
-void setBoolElement(struct JSON *json, const char *name, SGbool b);
-void setStringElement(struct JSON *json, const char *name, SGstring s);
+/* Give the correspondent string with the given json. */
+
+struct JSON_Item *getContent(struct JSON *json, const char *name);
+/* Get the item in a json object with the given name. */
+
+struct JSON_Item *getElement(struct JSON *json, int idx);
+/* Get the item in a json array with the given index. */
+
+void deleteContent(struct JSON *json, const char *name);
+/* Delete the item in a json object with the given name. */
+
+void deleteElement(struct JSON *json, int idx);
+/* Delete the item in a json array with the given index. */
+
+void setIntContent(struct JSON *json, const char *name, SGint i);
+void setFloatContent(struct JSON *json, const char *name, SGfloat f);
+void setCharContent(struct JSON *json, const char *name, SGchar c);
+void setBoolContent(struct JSON *json, const char *name, SGbool b);
+void setStringContent(struct JSON *json, const char *name, SGstring s);
+void setObjectContent(struct JSON *json, const char *name, struct JSON *j);
+void setArrayContent(struct JSON *json, const char *name, struct JSON *j);
+/* If there is an item in json object with the given name, then reset its
+* value. Or else, add this item. */
+
+void setIntElement(struct JSON *json, int idx, SGint i);
+void setFloatElement(struct JSON *json, int idx, SGfloat f);
+void setCharElement(struct JSON *json, int idx, SGchar c);
+void setBoolElement(struct JSON *json, int idx, SGbool b);
+void setStringElement(struct JSON *json, int idx, SGstring s);
+void setObjectElement(struct JSON *json, int idx, struct JSON *j);
+void setArrayElement(struct JSON *json, int idx, struct JSON *j);
+/* If there is an item in json array with the given index, then reset its
+* value. Or else, add this item. */
 
 
 //User main functions.
