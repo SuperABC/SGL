@@ -498,4 +498,3 @@ typedef struct _w{
 ​	For each bitmap function, we can insert a word "Sub" between the first and second word of its function name, then this function is designed for sub window painting. For example, when we want to put a string in main window, we use putString. Now we want to put a string in sub window, we should use putSubStrng and give the window id as the first parameter.
 
 ​	The function **closeWindow(int id)** is used to close the window with given id.
-
