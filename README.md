@@ -531,4 +531,3 @@ typedef struct _w{
 ​	The function **setElement(struct JSON *json, int idx, type value)** is to modify the given json. If the index is in the element range, then change its value. Or else, build one and insert to the first when index is smaller than zero or insert to the last when index is greater than the size of json array..
 
 
-
