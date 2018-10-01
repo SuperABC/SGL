@@ -5,7 +5,7 @@ From version 4.0.0, all tutorials are written in this README.
 
 ##### Introduction
 
-​	V4.0.0 is the twentieth version of SGL. V4.x focus on the User experience. This time SGL add sub window and simplify the widget callback usage. For the late 4.x version, SGL will implement more widget attributes to cover the requirements. In v5.0.0, the source code would be opened.
+​	V4.1.0 is the twenty-first version of SGL. V4.x focus on the User experience. This time SGL add sub window and simplify the widget callback usage. Besides, SGL add json operations for socket transferring. For the late 4.x version, SGL will implement more widget attributes to cover the requirements. Now the source code is opened and welcome any suggestions.
 
 ​	The main purpose of the SGL is to build an excellent graphic coding environment, wish all users have a good coding time! 
 
@@ -23,7 +23,7 @@ From version 4.0.0, all tutorials are written in this README.
 
 ### Configuration
 
-​	The latest library zip can be acquired from GitHub only( <https://github.com/SuperABC/SGL> ). Unzip the zip and put the files in your favorite folder. 
+​	The latest library zip can be acquired from GitHub only( <https://github.com/SuperABC/SGL> ). Unzip the zip and put the "Library" folder in your favorite place. 
 
 #### Visual Studio
 
@@ -375,32 +375,31 @@ key buffer, and then a up-key will be send to the key buffer. The low 8 digit ar
 typedef struct _w{
 	enum _control type;
 
-	vecTwo pos;
-	vecTwo size;
+	vec2 pos;
+	vec2 size;
 
+	int style;
+	int status;
 	int visible;
 	int priority;
-	int status;
-	int style;
+	int valid;
 
 	int hide;
 	int value;
 	SGstring name;
-	SGstring content;
-	bitMap *cover;
+	void *content;
 	struct _w *associate;
 	struct _w *next;
-	RGB bgColor, passColor, pressColor, fgColor;
+	struct _w *child;
 
-	SGstring tip;
-	vecTwo tipPos, tipSize;
-	mouseMoveCall showTip;
-	bitMap *tipCover;
+	RGB bgColor, passColor, pressColor, fgColor;
+	bitMap bgImg;
 
 	mouseMoveCall mouseIn, mouseOut;
-	mouseClickCall mouseDown, mouseUp, mouseClick;
+	mouseClickCall mouseDown, mouseUp;
 	mouseClickUser mouseUser;
-	keyCall keyDown, keyUp, keyPress;
+	keyPressCall keyDown, keyUp;
+	keyPressUser keyUser;
 
 }widgetObj;
 ```
@@ -411,13 +410,15 @@ typedef struct _w{
 
 ​	vecTwo size contains the width and height of this widget.
 
+​	int style is the style of its appearance. Now SGL only supports SG_DESIGN.
+
+​	int status is to record whether it is passed or not , whether it is pressed or not, whether it is selected or and whether it is focused or not. Programmers should not change its value, too.
+
 ​	int visible is to control whether this widget is active or not. Programmer should not touch its value. Use showWidget() and ceaseWidget() to change its value conveniently. 
 
 ​	int priority is used by the system. Programmers should not change its value.
 
-​	int status is to record whether it is passed or not , whether it is pressed or not, whether it is selected or and whether it is focused or not. Programmers should not change its value, too.
-
-​	int style is the style of its appearance. Now SGL only supports SG_DESIGN.
+​	int valid is whether this widget need to redraw or not. Set this value to non-zero and the widget will be refreshed.
 
 ​	int hide has different meanings in different type of widgets.
 
@@ -427,17 +428,17 @@ typedef struct _w{
 
 ​	SGstring content is the string contains the message of this widget. It has different meanings in different type of widgets, too.
 
-​	bitMap *cover points to a bitmap of the area covered by this widget.
-
 ​	struct _w *associate points to another widget which associate with this widget. Association between different types of widget has different meanings.
 
-​	struct _w *next is used when type is SG_COMBINED. This type means it’s a widget type that defined by user. It is made up by several sub-widgets, and they are linked as a list. The head node is the combined widget and then all sub-widgets are linked behind. The list will be built by system so programmers needn’t to concern about this.
+​	struct _w *child is used when type is SG_COMBINED, this pointer points to the first child widget. All child widgets are linked as a list.
+
+​	struct _w *next is used when this widget is a child widget, this pointer points to the brother widget. The list will be built by system so programmers needn’t to concern about this.
 
 ​	The four colors can be assigned by programmers now. bgColor is the background color when no events happen. passColor is the background color when mouse passing above and pressColor is the background color when mouse pressed on it. fgColor is usually the text color.
 
-​	SGstring tip is the content to show int a light yellow rectangle when mouse passing the widget. The next few tip variables will be set according to the tip string and programmers needn’t to concern about it.
+​	bitMap bgImg is the background image of this widget.
 
-​	mouseCalls and keyCalls is the functions to execute when mouse moves or clicked and when key pressed.
+​	mouseUser and keyUser is the functions to execute when mouse clicked and when key pressed.
 
 
 
@@ -495,8 +496,39 @@ typedef struct _w{
 
 ​	The function **createWindow(int width, int height, const char *title, vect setup, vect loop)** is used to pop up a new window. Set its width and height and title. Then two functions setup and loop are similar to sgSetup and sgLoop, a difference in setup is that there isn't initWindow in it. The return value is the window id. This value should be saved for further painting.
 
-​	For each bitmap function, we can insert a word "Sub" between the first and second word of its function name, then this function is designed for sub window painting. For example, when we want to put a string in main window, we use putString. Now we want to put a string in sub window, we should use putSubStrng and give the window id as the first parameter.
-
 ​	The function **closeWindow(int id)** is used to close the window with given id.
+
+​	The function **startSubWindow(int id)** tells the system that instructions below manipulate the sub window with the given id. Only the sub window need to call this function explicitly. If the main window is being drawn, nothing need to add.
+
+​	The function **endSubWindow()** tells the system the code has finished sub window drawing. Remember that there's a lock between startSubWindow and endSubWindow. That means, when one window is drawing, other window cannot break this process. They need to wait until the temporary window finish its drawing. So there are two rules to obey. One is that no more startSubWindow and endSubWindow should be add between one startSubWindow and endSubWindow. The other is that never draw sub windows in sgLoop. Try to set global values and draw in the loop of those sub windows' own.
+
+
+
+#### Data Operation
+
+​	In Sample->Data->json.c
+
+​	The function **createJson()** is to create an empty json object.
+
+​	The function **createJsonArray()** is to create an empty json array.
+
+​	The function **freeJson(struct JSON *json)** is to free the memory of the given json.
+
+​	The function **readJson(const char *json)** is to build a json object or json array with the given string.
+
+​	The function **writeJson(struct JSON *json))** is to give the string of the given json.
+
+​	The function **getContent(struct JSON *json, const char *name)** is to get one item from the given json object with its name.
+
+​	The function **getElement(struct JSON *json, int idx)** is to get one item from the given json array with its index.
+
+​	The function **deleteContent(struct JSON *json, const char *name)** is to delete the item from the given json object with its name.
+
+​	The function **deleteElement(struct JSON *json, int idx)** is to delete the item from the given json array with its index.
+
+​	The function **setContent(struct JSON *json, const char *name, type value)** is to modify the given json. If the item is found in it, then change its value. Or else, no such element found, build one and insert to it.
+
+​	The function **setElement(struct JSON *json, int idx, type value)** is to modify the given json. If the index is in the element range, then change its value. Or else, build one and insert to the first when index is smaller than zero or insert to the last when index is greater than the size of json array..
+
 
 

@@ -11,4 +11,6 @@
 *.log
 *.idb
 *.pdb
-Code/source/*
+Debug/*
+Release/*
+x64/*

@@ -2,6 +2,10 @@
 #include "..\include\inner.h"
 #include "..\include\winsgl.h"
 
+int subObjectCont(struct JSON *obj, char *name, const char *json, int i);
+int subArrayCont(struct JSON *obj, char *name, const char *json, int i);
+int subObjectElement(struct JSON *obj, int idx, const char *json, int i);
+int subArrayElement(struct JSON *obj, int idx, const char *json, int i);
 
 struct JSON *createJson() {
 	int i;
@@ -65,7 +69,7 @@ void freeJson(struct JSON *json) {
 	}
 }
 
-int subObjectCont(struct JSON *obj, char *name, char *json, int i) {
+int subObjectCont(struct JSON *obj, char *name, const char *json, int i) {
 	int j;
 	char label[256];
 	char cont[256];
@@ -125,9 +129,8 @@ int subObjectCont(struct JSON *obj, char *name, char *json, int i) {
 	i++;
 	return i;
 }
-int subArrayCont(struct JSON *obj, char *name, char *json, int i) {
+int subArrayCont(struct JSON *obj, char *name, const char *json, int i) {
 	int j;
-	char label[256];
 	char cont[256];
 	struct JSON *element = createJsonArray();
 
@@ -174,7 +177,7 @@ int subArrayCont(struct JSON *obj, char *name, char *json, int i) {
 	i++;
 	return i;
 }
-int subObjectElement(struct JSON *obj, int idx, char *json, int i) {
+int subObjectElement(struct JSON *obj, int idx, const char *json, int i) {
 	int j;
 	char label[256];
 	char cont[256];
@@ -234,9 +237,8 @@ int subObjectElement(struct JSON *obj, int idx, char *json, int i) {
 	i++;
 	return i;
 }
-int subArrayElement(struct JSON *obj, int idx, char *json, int i) {
+int subArrayElement(struct JSON *obj, int idx, const char *json, int i) {
 	int j;
-	char label[256];
 	char cont[256];
 	struct JSON *element = createJsonArray();
 
