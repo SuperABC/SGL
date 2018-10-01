@@ -499,4 +499,3 @@ typedef struct _w{
 
 ​	The function **closeWindow(int id)** is used to close the window with given id.
 
-
