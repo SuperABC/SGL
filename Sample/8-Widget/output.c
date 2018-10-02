@@ -9,6 +9,7 @@ void sendMessage(widgetObj *w) {
 	strcat(dst->content, src->content);
 	strcat(dst->content, "\n");
 	((char *)src->content)[0] = '\0';
+	dst->valid = 0;
 }
 void layoutWidget() {
 	widgetObj *Button;
@@ -42,6 +43,7 @@ void layoutWidget() {
 	Output->size.y = 360;
 	strcpy(Output->content, "");
 	registerWidget(Output);
+	free(Output);
 }
 
 void sgSetup() {

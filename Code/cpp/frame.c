@@ -27,6 +27,7 @@ int _activePage = 0, _visualPage = 0;
 int _mainMenu = 0, _tmpItem = 0;
 int _useTray = 0, _trayMenu = 0, _tmCreated = 0;
 int _inLoop = 0;
+int _drawingWidget = -1;
 int _enOpenGL = 0;
 
 int currentWindow = -1;
@@ -1400,6 +1401,7 @@ void sgSubInit(vect setup) {
 	_wndList[subNum].key = (struct _key*)malloc(sizeof(struct _key));
 	_wndList[subNum].mouse = (struct _mouse*)malloc(sizeof(struct _mouse));
 	_wndList[subNum].widget = (struct _widget*)malloc(sizeof(struct _widget));
+	_wndList[subNum].drawingWidget = -1;
 
 	_wndList[subNum].widget->count = 0;
 	_wndList[subNum].widget->active = -1;
@@ -4671,6 +4673,7 @@ int putPixel(int x, int y) {
 		}
 
 		for (i = 0; i < Widget->count; i++) {
+			if (_drawingWidget == i)continue;
 			if (!Widget->obj[i]->valid)continue;
 			if (inWidget(Widget->obj[i], x, y))Widget->obj[i]->valid = 0;
 		}
@@ -4700,6 +4703,7 @@ int putPixel(int x, int y) {
 				(int)(_wndList[currentWindow].rgb[0] * (_wndList[currentWindow].alpha));
 		}
 		for (i = 0; i < _wndList[currentWindow].widget->count; i++) {
+			if (_wndList[currentWindow].drawingWidget == i)continue;
 			if (!_wndList[currentWindow].widget->obj[i]->valid)continue;
 			if (inWidget(_wndList[currentWindow].widget->obj[i], x, y))
 				_wndList[currentWindow].widget->obj[i]->valid = 0;
@@ -4834,17 +4838,39 @@ void putLine(int x1, int y1, int x2, int y2, int mode) {
 #undef ABS
 }
 void putQuad(int x1, int y1, int x2, int y2, int mode) {
-	int i, j;
+	int i, j, p;
+	bitMap *buf;
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
 	if (currentWindow == -1) {
 		if (_checkThread())return;
 
-		if (mode == SOLID_FILL)
-			for (i = x1; i <= x2; i++)
-				for (j = y1; j <= y2; j++)
-					putPixel(i, j);
+		if (_activePage == 0) buf = _Screen->buffer1;
+		else buf = _Screen->buffer2;
+
+		if (x1 > x2)x1 ^= x2 ^= x1 ^= x2;
+		if (y1 > y2)y1 ^= y2 ^= y1 ^= y2;
+		if (x1 < 0)x1 = 0;
+		if (x2 >= buf->sizeX)x2 = buf->sizeX - 1;
+		if (y1 < 0)y1 = 0;
+		if (y2 >= buf->sizeY)y2 = buf->sizeY - 1;
+
+		if (mode == SOLID_FILL) {
+			for (j = y1; j <= y2; j++) {
+				p = (j * buf->sizeX + x1) * 3;
+				for (i = 0; i <= 3 * (x2 - x1); i += 3) {
+					buf->data[p + i] = _Screen->rgb[2];
+					buf->data[p + i + 1] = _Screen->rgb[1];
+					buf->data[p + i + 2] = _Screen->rgb[0];
+				}
+			}
+			for (i = 0; i < Widget->count; i++) {
+				if (_drawingWidget == i)continue;
+				if (!Widget->obj[i]->valid)continue;
+				if (crossWidget(Widget->obj[i], x1, y1, x2, y2))Widget->obj[i]->valid = 0;
+			}
+		}
 
 		if (mode == EMPTY_FILL) {
 			for (i = x1; i <= x2; i++) {
@@ -4858,10 +4884,33 @@ void putQuad(int x1, int y1, int x2, int y2, int mode) {
 		}
 	}
 	else {
-		if (mode == SOLID_FILL)
-			for (i = x1; i <= x2; i++)
-				for (j = y1; j <= y2; j++)
-					putPixel(i, j);
+		if (_wndList[currentWindow].activePage == 0)
+			buf = _wndList[currentWindow].buffer1;
+		else buf = _wndList[currentWindow].buffer2;
+
+		if (x1 > x2)x1 ^= x2 ^= x1 ^= x2;
+		if (y1 > y2)y1 ^= y2 ^= y1 ^= y2;
+		if (x1 < 0)x1 = 0;
+		if (x2 >= buf->sizeX)x2 = buf->sizeX - 1;
+		if (y1 < 0)y1 = 0;
+		if (y2 >= buf->sizeY)y2 = buf->sizeY - 1;
+
+		if (mode == SOLID_FILL) {
+			for (j = y1; j <= y2; j++) {
+				p = (j * buf->sizeX + x1) * 3;
+				for (i = 0; i <= 3 * (x2 - x1); i += 3) {
+					buf->data[p + i] = _Screen->rgb[2];
+					buf->data[p + i + 1] = _Screen->rgb[1];
+					buf->data[p + i + 2] = _Screen->rgb[0];
+				}
+			}
+			for (i = 0; i < _wndList[currentWindow].widget->count; i++) {
+				if (_wndList[currentWindow].drawingWidget == i)continue;
+				if (!_wndList[currentWindow].widget->obj[i]->valid)continue;
+				if (inWidget(_wndList[currentWindow].widget->obj[i], x1, y1, x2, y2))
+					_wndList[currentWindow].widget->obj[i]->valid = 0;
+			}
+		}
 
 		if (mode == EMPTY_FILL) {
 			for (i = x1; i <= x2; i++) {

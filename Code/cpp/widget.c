@@ -4,6 +4,7 @@
 
 
 extern int _sglMode;
+extern int _drawingWidget;
 extern struct _text text;
 extern struct _Sub _wndList[SG_MAX_WINDOW_NUM];
 
@@ -555,11 +556,17 @@ void keyUserDefault(widgetObj *w, int key) {
 
 void mouseMoveDefault(widgetObj *w, int x, int y) {
 	if (inWidget(w, x, y)) {
-		w->status |= WIDGET_PASS;
+		if (!(w->status & WIDGET_PASS)) {
+			w->status |= WIDGET_PASS;
+			w->valid = 0;
+		}
 	}
 	else {
-		w->status &= 0xFF ^ WIDGET_PASS;
-		w->status &= 0xFF ^ WIDGET_PRESSED;
+		if (w->status & WIDGET_PASS) {
+			w->status &= 0xFF ^ WIDGET_PASS;
+			w->status &= 0xFF ^ WIDGET_PRESSED;
+			w->valid = 0;
+		}
 	}
 }
 void mouseMoveList(widgetObj *w, int x, int y) {
@@ -570,29 +577,34 @@ void mouseMoveList(widgetObj *w, int x, int y) {
 			w->status |= WIDGET_PRESSED;
 			w->value = (y - w->pos.y - w->size.y) / SG_LINE_DELTA_DEFAULT + w->hide - 1;
 			if (w->value < 0)w->value = 0;
+			w->valid = 0;
 		}
 		else {
 			if (inWidget(w, x, y)) {
 				w->status |= WIDGET_PASS;
 				w->value = (y - w->pos.y - w->size.y) / SG_LINE_DELTA_DEFAULT + w->hide - 1;
 				if (w->value < 0)w->value = 0;
+				w->valid = 0;
 			}
 			else {
 				w->status &= 0xFF ^ WIDGET_PASS;
 				w->status &= 0xFF ^ WIDGET_PRESSED;
 			}
 		}
-		w->valid = 0;
 	}
 	else {
 		if (inWidget(w, x, y)) {
-			w->status |= WIDGET_PASS;
-			w->valid = 0;
+			if (!(w->status & WIDGET_PASS)) {
+				w->status |= WIDGET_PASS;
+				w->valid = 0;
+			}
 		}
 		else {
-			if (w->status & WIDGET_PASS)w->valid = 0;
-			w->status &= 0xFF ^ WIDGET_PASS;
-			w->status &= 0xFF ^ WIDGET_PRESSED;
+			if (w->status & WIDGET_PASS) {
+				w->status &= 0xFF ^ WIDGET_PASS;
+				w->status &= 0xFF ^ WIDGET_PRESSED;
+				w->valid = 0;
+			}
 		}
 	}
 }
@@ -604,7 +616,6 @@ void mouseMoveOption(widgetObj *w, int x, int y) {
 		w->valid = 0;
 	}
 	else {
-		if (w->status & WIDGET_PASS)w->valid = 0;
 		w->status &= 0xFF ^ WIDGET_PASS;
 		w->status &= 0xFF ^ WIDGET_PRESSED;
 	}
@@ -616,14 +627,21 @@ void mouseMoveDrag(widgetObj *w, int x, int y) {
 		else {
 			w->value = (x - w->pos.x - 6) * 100 / (w->size.x - 12);
 		}
+		w->valid = 0;
 	}
 	if (x >= w->pos.x + (float)w->value / 100 * (w->size.x - 12) + 2 &&
 		x < w->pos.x + (float)w->value / 100 * (w->size.x - 12) + 10 &&
 		y >= w->pos.y&&y < w->pos.y + w->size.y) {
-		w->status |= WIDGET_PASS;
+		if (!(w->status & WIDGET_PASS)) {
+			w->status |= WIDGET_PASS;
+			w->valid = 0;
+		}
 	}
 	else {
-		w->status &= 0xFF ^ WIDGET_PASS;
+		if (w->status & WIDGET_PASS) {
+			w->status &= 0xFF ^ WIDGET_PASS;
+			w->valid = 0;
+		}
 	}
 }
 void mouseMoveScrollVert(widgetObj *w, int x, int y) {
@@ -642,14 +660,21 @@ void mouseMoveScrollVert(widgetObj *w, int x, int y) {
 		w->value = (int)((y - w->pos.y - barHeight / 2) / moveDelta);
 		if (w->value < 0)w->value = 0;
 		if (w->value >= w->hide)w->value = w->hide - 1;
+
+		w->valid = 0;
 	}
 	else {
 		if (inWidget(w, x, y)) {
-			w->status |= WIDGET_PASS;
+			if (!(w->status & WIDGET_PASS)) {
+				w->status |= WIDGET_PASS;
+				w->valid = 0;
+			}
 		}
 		else {
-			w->status &= 0xFF ^ WIDGET_PASS;
-			w->status &= 0xFF ^ WIDGET_PRESSED;
+			if (w->status & WIDGET_PASS) {
+				w->status &= 0xFF ^ WIDGET_PASS;
+				w->valid = 0;
+			}
 		}
 	}
 }
@@ -669,14 +694,21 @@ void mouseMoveScrollHoriz(widgetObj *w, int x, int y) {
 		w->value = (int)((x - w->pos.x - barWidth / 2) / moveDelta);
 		if (w->value < 0)w->value = 0;
 		if (w->value >= w->hide)w->value = w->hide - 1;
+
+		w->valid = 0;
 	}
 	else {
 		if (inWidget(w, x, y)) {
-			w->status |= WIDGET_PASS;
+			if (!(w->status & WIDGET_PASS)) {
+				w->status |= WIDGET_PASS;
+				w->valid = 0;
+			}
 		}
 		else {
-			w->status &= 0xFF ^ WIDGET_PASS;
-			w->status &= 0xFF ^ WIDGET_PRESSED;
+			if (w->status & WIDGET_PASS) {
+				w->status &= 0xFF ^ WIDGET_PASS;
+				w->valid = 0;
+			}
 		}
 	}
 }
@@ -690,7 +722,7 @@ void mouseMoveCombined(widgetObj *w, int x, int y) {
 
 	if (inWidget(w, x, y)) {
 		w->status |= WIDGET_PASS;
-		tmp = w->next;
+		tmp = w->child;
 		while (tmp) {
 			PUSH(tmp);
 			tmp = tmp->next;
@@ -709,7 +741,7 @@ void mouseMoveCombined(widgetObj *w, int x, int y) {
 	else {
 		w->status &= 0xFF ^ WIDGET_PASS;
 		w->status &= 0xFF ^ WIDGET_PRESSED;
-		tmp = w->next;
+		tmp = w->child;
 		while (tmp) {
 			tmp->mouseOut(tmp, x, y);
 			tmp = tmp->next;
@@ -726,17 +758,31 @@ void mouseClickUserDefault(widgetObj *w, int x, int y, int status) {
 
 }
 void mouseClickDefault(widgetObj *w, int x, int y, int status) {
-	if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON))w->status &= 0xFF ^ WIDGET_PRESSED;
-	if (x >= w->pos.x&&x<w->pos.x + w->size.x&&y >= w->pos.y&&y < w->pos.y + w->size.y) {
+	if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON) &&
+		(w->status & WIDGET_PRESSED)) {
+		w->status &= 0xFF ^ WIDGET_PRESSED;
+		w->valid = 0;
+	}
+	if (inWidget(w, x, y)) {
 		if (status & SG_LEFT_BUTTON)Widget->active = getIndexByName(w->name);
-		if (status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON))w->status |= WIDGET_PRESSED;
-		if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON))w->status |= WIDGET_SELECTED;
+		if (status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON)) {
+			w->status |= WIDGET_PRESSED;
+			w->valid = 0;
+		}
+		if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON)) {
+			w->status |= WIDGET_SELECTED;
+			w->valid = 0;
+		}
 	}
 	else {
 		if (status & SG_LEFT_BUTTON && Widget->active != -1 &&
 			strcmp(w->name, getWidgetByIndex(Widget->active)->name) == 0)
 			Widget->active = -1;
-		w->status &= 0xFF ^ WIDGET_SELECTED;
+		if (status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON) &&
+			(w->status & WIDGET_SELECTED)) {
+			w->status &= 0xFF ^ WIDGET_SELECTED;
+			w->valid = 0;
+		}
 	}
 	switch (w->type) {
 	case SG_BUTTON:
@@ -754,15 +800,21 @@ void mouseClickInput(widgetObj *w, int x, int y, int status) {
 	SGWINSTR _wd = NULL;
 	len = _strlenW(w->content);
 
-	if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON))w->status &= 0xFF ^ WIDGET_PRESSED;
-	if (x >= w->pos.x&&x<w->pos.x + w->size.x&&y >= w->pos.y&&y < w->pos.y + w->size.y) {
+	if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON) &&
+		(w->status & WIDGET_PRESSED)) {
+		w->status &= 0xFF ^ WIDGET_PRESSED;
+		w->valid = 0;
+	}
+	if (inWidget(w, x, y)) {
 		if (status & SG_LEFT_BUTTON)Widget->active = getIndexByName(w->name);
 		if (status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON)) {
 			w->status |= WIDGET_PRESSED;
 			w->status |= WIDGET_FOCUSED;
+			w->valid = 0;
 		}
 		if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON)) {
 			w->status |= WIDGET_SELECTED;
+			w->valid = 0;
 			if (((char *)w->content)[0] == '\0')w->value = 0;
 			else if (x >= w->pos.x + 2 && x < w->pos.x + w->size.x - 2) {
 				GetTextExtentPoint32(text.memDC, _wd = _widen(w->content), w->hide, &tmp);
@@ -783,13 +835,21 @@ void mouseClickInput(widgetObj *w, int x, int y, int status) {
 		if (status & SG_LEFT_BUTTON && Widget->active != -1 &&
 			strcmp(w->name, getWidgetByIndex(Widget->active)->name) == 0)
 			Widget->active = -1;
-		w->status &= 0xFF ^ WIDGET_SELECTED;
-		w->status &= 0xFF ^ WIDGET_FOCUSED;
+		if (status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON) &&
+			(w->status & WIDGET_SELECTED)) {
+			w->status &= 0xFF ^ WIDGET_SELECTED;
+			w->status &= 0xFF ^ WIDGET_FOCUSED;
+			w->valid = 0;
+		}
 	}
 }
 void mouseClickDialog(widgetObj *w, int x, int y, int status) {
-	if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON))w->status &= 0xFF ^ WIDGET_PRESSED;
-	if (x >= w->pos.x&&x<w->pos.x + w->size.x&&y >= w->pos.y&&y < w->pos.y + w->size.y) {
+	if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON) &&
+		(w->status & WIDGET_PRESSED)) {
+		w->status &= 0xFF ^ WIDGET_PRESSED;
+		w->valid = 0;
+	}
+	if (inWidget(w, x, y)) {
 		if (status & SG_LEFT_BUTTON)Widget->active = getIndexByName(w->name);
 		if (status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON)) {
 			if (x >= w->pos.x + w->size.x - 2 * (SG_CHAR_WIDTH + 1) &&
@@ -797,9 +857,11 @@ void mouseClickDialog(widgetObj *w, int x, int y, int status) {
 				y >= w->pos.y + 2 &&
 				y < w->pos.y + SG_CHAR_HEIGHT + 2) {
 				w->status |= WIDGET_PRESSED;
+				w->valid = 0;
 			}
 			else {
 				w->status |= WIDGET_FOCUSED;
+				w->valid = 0;
 			}
 		}
 		if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON)) {
@@ -812,28 +874,46 @@ void mouseClickDialog(widgetObj *w, int x, int y, int status) {
 				return;
 			}
 			w->status |= WIDGET_SELECTED;
+			w->valid = 0;
 		}
 	}
 	else {
 		if (status & SG_LEFT_BUTTON && Widget->active != -1 &&
 			strcmp(w->name, getWidgetByIndex(Widget->active)->name) == 0)
 			Widget->active = -1;
-		w->status &= 0xFF ^ WIDGET_SELECTED;
-		w->status &= 0xFF ^ WIDGET_FOCUSED;
+		if (status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON) &&
+			(w->status & WIDGET_SELECTED)) {
+			w->status &= 0xFF ^ WIDGET_SELECTED;
+			w->status &= 0xFF ^ WIDGET_FOCUSED;
+			w->valid = 0;
+		}
 	}
 }
 void mouseClickList(widgetObj *w, int x, int y, int status) {
-	if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON))w->status &= 0xFF ^ WIDGET_PRESSED;
+	if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON) &&
+		(w->status & WIDGET_PRESSED)) {
+		w->status &= 0xFF ^ WIDGET_PRESSED;
+		w->valid = 0;
+	}
 	if (w->status&WIDGET_SELECTED) {
-		if (x >= w->pos.x&&x < w->pos.x + w->size.x&&
-			y >= w->pos.y + w->size.y - w->hide * SG_LINE_DELTA_DEFAULT&&y < w->pos.y + w->size.y) {
-			if (status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON)) {
-				w->status |= WIDGET_PRESSED;
-				w->value = (w->hide * SG_LINE_DELTA_DEFAULT + y - w->pos.y - w->size.y) / SG_LINE_DELTA_DEFAULT;
+		if (status == SG_MIDDLE_BUTTON_UP) {
+			if (w->value > 0) {
+				w->value--;
+				w->valid = 0;
 			}
+		}
+		else if (status == SG_MIDDLE_BUTTON_DOWN) {
+			if (w->value < w->hide - 1) {
+				w->value++;
+				w->valid = 0;
+			}
+		}
+		else if (x >= w->pos.x&&x < w->pos.x + w->size.x&&
+			y >= w->pos.y + w->size.y - w->hide * SG_LINE_DELTA_DEFAULT&&y < w->pos.y + w->size.y) {
 			if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON)) {
 				w->status &= 0xFF ^ WIDGET_SELECTED;
 				w->status &= 0xFF ^ WIDGET_PASS;
+				w->valid = 0;
 
 				backgroundRefresh(
 					w->pos.x, w->pos.y, w->pos.x + w->size.x, w->pos.y + w->size.y);
@@ -845,6 +925,8 @@ void mouseClickList(widgetObj *w, int x, int y, int status) {
 				strcmp(w->name, getWidgetByIndex(Widget->active)->name) == 0)
 				Widget->active = -1;
 			w->status &= 0xFF ^ WIDGET_SELECTED;
+			w->status &= 0xFF ^ WIDGET_PASS;
+			w->valid = 0;
 
 			backgroundRefresh(
 				w->pos.x, w->pos.y, w->pos.x + w->size.x, w->pos.y + w->size.y);
@@ -852,12 +934,13 @@ void mouseClickList(widgetObj *w, int x, int y, int status) {
 		}
 	}
 	else {
-		if (x >= w->pos.x&&x < w->pos.x + w->size.x&&y >= w->pos.y&&y < w->pos.y + w->size.y) {
+		if (inWidget(w, x, y)) {
 			if (status & SG_LEFT_BUTTON)Widget->active = getIndexByName(w->name);
 			if (status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON)) {
 				w->status |= WIDGET_PRESSED;
 				w->status |= WIDGET_SELECTED;
 				w->size.y += w->hide*SG_LINE_DELTA_DEFAULT;
+				w->valid = 0;
 			}
 		}
 		else {
@@ -868,27 +951,41 @@ void mouseClickList(widgetObj *w, int x, int y, int status) {
 	}
 }
 void mouseClickCheck(widgetObj *w, int x, int y, int status) {
-	if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON))w->status &= 0xFF ^ WIDGET_PRESSED;
+	if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON) &&
+		(w->status & WIDGET_PRESSED)) {
+		w->status &= 0xFF ^ WIDGET_PRESSED;
+		w->valid = 0;
+	}
 	if (x >= w->pos.x&&x<w->pos.x + w->size.x&&y >= w->pos.y&&y < w->pos.y + w->size.y) {
 		if (status & SG_LEFT_BUTTON)Widget->active = getIndexByName(w->name);
 		if (status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON)) {
 			w->status |= WIDGET_PRESSED;
+			w->valid = 0;
 		}
 		if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON)) {
 			w->status |= WIDGET_SELECTED;
 			if (w->value)w->value--;
 			else w->value = 1;
+			w->valid = 0;
 		}
 	}
 	else {
 		if (status & SG_LEFT_BUTTON && Widget->active != -1 &&
 			strcmp(w->name, getWidgetByIndex(Widget->active)->name) == 0)
 			Widget->active = -1;
-		w->status &= 0xFF ^ WIDGET_SELECTED;
+		if (status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON) &&
+			(w->status & WIDGET_SELECTED)) {
+			w->status &= 0xFF ^ WIDGET_SELECTED;
+			w->valid = 0;
+		}
 	}
 }
 void mouseClickProcess(widgetObj *w, int x, int y, int status) {
-	if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON))w->status &= 0xFF ^ WIDGET_PRESSED;
+	if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON) &&
+		(w->status & WIDGET_PRESSED)) {
+		w->status &= 0xFF ^ WIDGET_PRESSED;
+		w->valid = 0;
+	}
 	if (x >= w->pos.x&&x<w->pos.x + w->size.x&&y >= w->pos.y&&y < w->pos.y + w->size.y) {
 		if (status & SG_LEFT_BUTTON)Widget->active = getIndexByName(w->name);
 		if (status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON)) {
@@ -897,9 +994,11 @@ void mouseClickProcess(widgetObj *w, int x, int y, int status) {
 				y >= w->pos.y + 2 &&
 				y < w->pos.y + SG_CHAR_HEIGHT + 2) {
 				w->status |= WIDGET_PRESSED;
+				w->valid = 0;
 			}
 			else {
 				w->status |= WIDGET_FOCUSED;
+				w->valid = 0;
 			}
 		}
 		if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON)) {
@@ -912,43 +1011,60 @@ void mouseClickProcess(widgetObj *w, int x, int y, int status) {
 				return;
 			}
 			w->status |= WIDGET_SELECTED;
+			w->valid = 0;
 		}
 	}
 	else {
 		if (status & SG_LEFT_BUTTON && Widget->active != -1 &&
 			strcmp(w->name, getWidgetByIndex(Widget->active)->name) == 0)
 			Widget->active = -1;
-		w->status &= 0xFF ^ WIDGET_SELECTED;
-		w->status &= 0xFF ^ WIDGET_FOCUSED;
+		if (status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON) &&
+			(w->status & WIDGET_SELECTED)) {
+			w->status &= 0xFF ^ WIDGET_SELECTED;
+			w->status &= 0xFF ^ WIDGET_FOCUSED;
+			w->valid = 0;
+		}
 	}
 }
 void mouseClickOption(widgetObj *w, int x, int y, int status) {
-	if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON))w->status &= 0xFF ^ WIDGET_PRESSED;
+	if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON) &&
+		(w->status & WIDGET_PRESSED)) {
+		w->status &= 0xFF ^ WIDGET_PRESSED;
+		w->valid = 0;
+	}
 	if (w->status&WIDGET_SELECTED) {
 		if (status == SG_MIDDLE_BUTTON_UP) {
-			if (w->value > 0)w->value--;
+			if (w->value > 0) {
+				w->value--;
+				w->valid = 0;
+			}
 		}
 		else if (status == SG_MIDDLE_BUTTON_DOWN) {
-			if (w->value < w->hide - 1)w->value++;
+			if (w->value < w->hide - 1) {
+				w->value++;
+				w->valid = 0;
+			}
 		}
-		else if (x >= w->pos.x&&x < w->pos.x + w->size.x&&y >= w->pos.y&&y < w->pos.y + w->size.y) {
+		else if (inWidget(w, x, y)) {
 			if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON)) {
 				Widget->active = -1;
 				w->status &= 0xFF ^ WIDGET_SELECTED;
 				w->status &= 0xFF ^ WIDGET_PASS;
+				w->valid = 0;
 
 				backgroundRefresh(
 					w->pos.x, w->pos.y, w->pos.x + w->size.x, w->pos.y + w->size.y);
 				w->size.y = 0;
 			}
 		}
-		else {
+		else  if (status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON)) {
 			if (status & SG_LEFT_BUTTON && Widget->active != -1 &&
 				strcmp(w->name, getWidgetByIndex(Widget->active)->name) == 0)
 				Widget->active = -1;
 			Widget->active = -1;
 			w->status &= 0xFF ^ WIDGET_SELECTED;
 			w->status &= 0xFF ^ WIDGET_PASS;
+			w->valid = 0;
 
 			backgroundRefresh(
 				w->pos.x, w->pos.y, w->pos.x + w->size.x, w->pos.y + w->size.y);
@@ -978,24 +1094,42 @@ void mouseClickOption(widgetObj *w, int x, int y, int status) {
 	}
 }
 void mouseClickDrag(widgetObj *w, int x, int y, int status) {
-	if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON))w->status &= 0xFF ^ WIDGET_PRESSED;
+	if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON) &&
+		(w->status & WIDGET_PRESSED)) {
+		w->status &= 0xFF ^ WIDGET_PRESSED;
+		w->valid = 0;
+	}
 	if (x >= w->pos.x + (float)w->value / 100 * (w->size.x - 12) + 2 &&
 		x < w->pos.x + (float)w->value / 100 * (w->size.x - 12) + 10 &&
 		y >= w->pos.y&&y < w->pos.y + w->size.y) {
 		if (status & SG_LEFT_BUTTON)Widget->active = getIndexByName(w->name);
-		if (status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON))w->status |= WIDGET_PRESSED;
-		if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON))w->status |= WIDGET_SELECTED;
+		if (status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON)) {
+			w->status |= WIDGET_PRESSED;
+			w->valid = 0;
+		}
+		if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON)) {
+			w->status |= WIDGET_SELECTED;
+			w->valid = 0;
+		}
 	}
 	else {
 		if (status & SG_LEFT_BUTTON && Widget->active != -1 &&
 			strcmp(w->name, getWidgetByIndex(Widget->active)->name) == 0)
 			Widget->active = -1;
-		w->status &= 0xFF ^ WIDGET_SELECTED;
+		if (status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON) &&
+			(w->status & WIDGET_SELECTED)) {
+			w->status &= 0xFF ^ WIDGET_SELECTED;
+			w->valid = 0;
+		}
 	}
 }
 void mouseClickScrollVert(widgetObj *w, int x, int y, int status) {
-	if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON))w->status &= 0xFF ^ WIDGET_PRESSED;
-	if (x >= w->pos.x&&x<w->pos.x + w->size.x&&y >= w->pos.y&&y < w->pos.y + w->size.y) {
+	if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON) &&
+		(w->status & WIDGET_PRESSED)) {
+		w->status &= 0xFF ^ WIDGET_PRESSED;
+		w->valid = 0;
+	}
+	if (inWidget(w, x, y)) {
 		if (status & SG_LEFT_BUTTON)Widget->active = getIndexByName(w->name);
 		if (status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON)) {
 			double barHeight;
@@ -1016,19 +1150,31 @@ void mouseClickScrollVert(widgetObj *w, int x, int y, int status) {
 				if (w->value < w->hide - 1)w->value++;
 			}
 			w->status |= WIDGET_PRESSED;
+			w->valid = 0;
 		}
-		if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON))w->status |= WIDGET_SELECTED;
+		if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON)) {
+			w->status |= WIDGET_SELECTED;
+			w->valid = 0;
+		}
 	}
 	else {
 		if (status & SG_LEFT_BUTTON && Widget->active != -1 &&
 			strcmp(w->name, getWidgetByIndex(Widget->active)->name) == 0)
 			Widget->active = -1;
-		w->status &= 0xFF ^ WIDGET_SELECTED;
+		if (status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON) &&
+			(w->status & WIDGET_SELECTED)) {
+			w->status &= 0xFF ^ WIDGET_SELECTED;
+			w->valid = 0;
+		}
 	}
 }
 void mouseClickScrollHoriz(widgetObj *w, int x, int y, int status) {
-	if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON))w->status &= 0xFF ^ WIDGET_PRESSED;
-	if (x >= w->pos.x&&x<w->pos.x + w->size.x&&y >= w->pos.y&&y < w->pos.y + w->size.y) {
+	if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON) &&
+		(w->status & WIDGET_PRESSED)) {
+		w->status &= 0xFF ^ WIDGET_PRESSED;
+		w->valid = 0;
+	}
+	if (inWidget(w, x, y)) {
 		if (status & SG_LEFT_BUTTON)Widget->active = getIndexByName(w->name);
 		if (status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON)) {
 			double barWidth;
@@ -1049,14 +1195,22 @@ void mouseClickScrollHoriz(widgetObj *w, int x, int y, int status) {
 				if (w->value < w->hide - 1)w->value++;
 			}
 			w->status |= WIDGET_PRESSED;
+			w->valid = 0;
 		}
-		if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON))w->status |= WIDGET_SELECTED;
+		if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON)) {
+			w->status |= WIDGET_SELECTED;
+			w->valid = 0;
+		}
 	}
 	else {
 		if (status & SG_LEFT_BUTTON && Widget->active != -1 &&
 			strcmp(w->name, getWidgetByIndex(Widget->active)->name) == 0)
 			Widget->active = -1;
-		w->status &= 0xFF ^ WIDGET_SELECTED;
+		if (status == (SG_BUTTON_DOWN | SG_LEFT_BUTTON) &&
+			(w->status & WIDGET_SELECTED)) {
+			w->status &= 0xFF ^ WIDGET_SELECTED;
+			w->valid = 0;
+		}
 	}
 }
 void mouseClickCombined(widgetObj *w, int x, int y, int status) {
@@ -1068,7 +1222,7 @@ void mouseClickCombined(widgetObj *w, int x, int y, int status) {
 #define ISEMPTY() (top == 0)
 
 	if (status & SG_BUTTON_UP) {
-		tmp = w->next;
+		tmp = w->child;
 		while (tmp) {
 			PUSH(tmp);
 			tmp = tmp->next;
@@ -1080,7 +1234,7 @@ void mouseClickCombined(widgetObj *w, int x, int y, int status) {
 		}
 	}
 	else {
-		tmp = w->next;
+		tmp = w->child;
 		while (tmp) {
 			PUSH(tmp);
 			tmp = tmp->next;
@@ -1167,10 +1321,16 @@ void keyInput(widgetObj *w, int key) {
 }
 void keyList(widgetObj *w, int key) {
 	if (key == SG_UP) {
-		if (w->value)w->value--;
+		if (w->value) {
+			w->value--;
+			w->valid = 0;
+		}
 	}
 	if (key == SG_DOWN) {
-		if (w->value < w->hide - 1)w->value++;
+		if (w->value < w->hide - 1) {
+			w->value++;
+			w->valid = 0;
+		}
 	}
 	if (key == SG_ENTER) {
 		if (w->status&WIDGET_SELECTED) {
@@ -1179,6 +1339,7 @@ void keyList(widgetObj *w, int key) {
 				Widget->active = -1;
 			w->status &= 0xFF ^ WIDGET_SELECTED;
 			w->status &= 0xFF ^ WIDGET_PASS;
+			w->valid = 0;
 
 			backgroundRefresh(
 				w->pos.x, w->pos.y, w->pos.x + w->size.x, w->pos.y + w->size.y);
@@ -1189,16 +1350,23 @@ void keyList(widgetObj *w, int key) {
 void keyOption(widgetObj *w, int key) {
 
 	if (key == SG_UP) {
-		if (w->value > 0)w->value--;
+		if (w->value) {
+			w->value--;
+			w->valid = 0;
+		}
 	}
 	if (key == SG_DOWN) {
-		if (w->value < w->hide - 1)w->value++;
+		if (w->value < w->hide - 1) {
+			w->value++;
+			w->valid = 0;
+		}
 	}
 	if (key == SG_ENTER) {
 		if (w->status&WIDGET_SELECTED) {
 			Widget->active = -1;
 			w->status &= 0xFF ^ WIDGET_SELECTED;
 			w->status &= 0xFF ^ WIDGET_PASS;
+			w->valid = 0;
 
 			backgroundRefresh(
 				w->pos.x, w->pos.y, w->pos.x + w->size.x, w->pos.y + w->size.y);
@@ -1247,6 +1415,7 @@ void _drawWidget(int fb) {
 			if (current->valid)continue;
 			current->valid = 1;
 
+			_drawingWidget = i;
 			switch (current->type) {
 			case SG_BUTTON:
 				_drawButton(current);
@@ -1292,6 +1461,7 @@ void _drawWidget(int fb) {
 				_drawCombined(current);
 				break;
 			}
+			_drawingWidget = -1;
 		}
 		endSubWindow();
 	}
@@ -1309,6 +1479,7 @@ void _drawSubWidget(int id, int fb) {
 			if (current->valid)continue;
 			current->valid = 1;
 
+			_wndList[currentWindow].drawingWidget = i;
 			switch (current->type) {
 			case SG_BUTTON:
 				_drawButton(current);
@@ -1354,6 +1525,7 @@ void _drawSubWidget(int id, int fb) {
 				_drawCombined(current);
 				break;
 			}
+			_wndList[currentWindow].drawingWidget = -1;
 		}
 		endSubWindow();
 	}
@@ -1580,9 +1752,7 @@ void _drawList(widgetObj *w) {
 	switch (w->style) {
 	case SG_DESIGN:
 		if (w->status&WIDGET_SELECTED) {
-			if (w->status&WIDGET_PASS)
-				setColor(w->passColor.r, w->passColor.g, w->passColor.b);
-			else setColor(w->bgColor.r, w->bgColor.g, w->bgColor.b);
+			setColor(w->passColor.r, w->passColor.g, w->passColor.b);
 			putQuad(w->pos.x, w->pos.y,
 				w->pos.x + w->size.x - 1, w->pos.y + w->size.y - w->hide*SG_LINE_DELTA_DEFAULT - 1, SOLID_FILL);
 			setColor(0, 0, 0);
@@ -1731,6 +1901,7 @@ void _drawCheck(widgetObj *w) {
 void _drawProcess(widgetObj *w) {
 	int row, total, tmp;
 
+	w->valid = 0;
 	switch (w->style) {
 	case SG_DESIGN:
 		setColor(w->bgColor.r, w->bgColor.g, w->bgColor.b);
@@ -1956,6 +2127,7 @@ void _drawScrollHoriz(widgetObj *w) {
 }
 void _drawCombined(widgetObj *w) {
 	widgetObj *current = w->child;
+	w->valid = 0;
 	while (current) {
 		switch (current->type) {
 		case SG_BUTTON:

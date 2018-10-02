@@ -156,6 +156,7 @@ struct _Sub {
 	char *winName;
 	int scrResizeable;
 	int inLoop;
+	int drawingWidget;
 
 	void(*resizeFunc)(int x, int y);
 	subWndProc wndProc;
