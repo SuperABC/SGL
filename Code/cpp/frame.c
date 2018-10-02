@@ -345,8 +345,10 @@ int subNum = 0;
 
 /*
 * Main functions.
-* Started in v2.0.0
+* Graphic frames started in v2.0.0
+* Console and server frames started in v4.1.1.
 */
+#ifndef _SGL_CONSOLE
 LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	static int  cxClient, cyClient, cxSource, cySource;
 	static HBITMAP hBitmap;
@@ -487,113 +489,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
 	return DefWindowProc(hwnd, message, wParam, lParam);
 }
-LRESULT CALLBACK SubWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
-	static int  cxClient, cyClient;
-	HDC hdc;
-	PAINTSTRUCT ps;
-
-	int index;
-	for (index = 0; index < SG_MAX_WINDOW_NUM; index++) {
-		if (hwnd == _wndList[index].hwnd)break;
-	}
-	if (index == SG_MAX_WINDOW_NUM)
-		return DefWindowProc(hwnd, message, wParam, lParam);
-	if (!_wndList[index].inLoop) {
-		_wndList[index].inLoop = 1;
-		SetTimer(hwnd, TIMER_DELTA_HANDLE, 10, NULL);
-	}
-	switch (message) {
-	case WM_CREATE:
-		return 0;
-
-	case WM_COMMAND:
-		return 0;
-
-	case WM_SIZE:
-		_wndList[index].winWidth = cxClient = LOWORD(lParam);
-		_wndList[index].winHeight = cyClient = HIWORD(lParam);
-		if (_wndList[index].resizeFunc)_wndList[index].resizeFunc(cxClient, cyClient);
-		return 0;
-
-	case WM_PAINT:
-		_drawSubWidget(index, WIDGET_FRONT);
-
-		hdc = BeginPaint(hwnd, &ps);
-		if (_wndList[index].visualPage == 0) _makeSubBitmap(hdc, index, _wndList[index].buffer1->data,
-			_wndList[index].buffer1->sizeX, _wndList[index].buffer1->sizeY, 24);
-		else _makeSubBitmap(hdc, index, _wndList[index].buffer2->data,
-			_wndList[index].buffer2->sizeX, _wndList[index].buffer2->sizeY, 24);
-		EndPaint(hwnd, &ps);
-
-		_drawSubWidget(index, WIDGET_BACK);
-
-		return 0;
-
-	case WM_TIMER:
-		_wndList[index].loop();
-		InvalidateRect(hwnd, NULL, FALSE);
-		return 0;
-
-	case WM_TRAY:
-		return 0;
-
-	case	WM_SETCURSOR:
-		return 0;
-
-	case WM_KEYDOWN:
-		sgSubSpecial(index, (int)wParam, 0, 0);
-		return 0;
-
-	case WM_CHAR:
-		sgSubKey(index, (int)wParam |
-			((GetKeyState(VK_CONTROL) & 0x8000) >> 1) |
-			((GetKeyState(VK_SHIFT) & 0x8000) >> 2), 0, 0);
-		return 0;
-
-	case WM_KEYUP:
-		sgSubKeyUp(index, (int)wParam, 0, 0);
-		sgSubSpecialUp(index, (int)wParam, 0, 0);
-		return 0;
-
-	case WM_MOUSEMOVE:
-		if (!wParam)sgSubMouse(index, LOWORD(lParam), HIWORD(lParam));
-		else sgSubDrag(index, LOWORD(lParam), HIWORD(lParam));
-		return 0;
-
-	case WM_MOUSEWHEEL:
-		sgSubWheel(index, (short)HIWORD(wParam));
-		return 0;
-
-	case WM_LBUTTONDOWN:
-		sgSubClick(index, SG_LEFT_BUTTON, SG_BUTTON_DOWN, LOWORD(lParam), HIWORD(lParam));
-		return 0;
-
-	case WM_MBUTTONDOWN:
-		sgSubClick(index, SG_MIDDLE_BUTTON, SG_BUTTON_DOWN, LOWORD(lParam), HIWORD(lParam));
-		return 0;
-
-	case WM_RBUTTONDOWN:
-		sgSubClick(index, SG_RIGHT_BUTTON, SG_BUTTON_DOWN, LOWORD(lParam), HIWORD(lParam));
-		return 0;
-
-	case WM_LBUTTONUP:
-		sgSubClick(index, SG_LEFT_BUTTON, SG_BUTTON_UP, LOWORD(lParam), HIWORD(lParam));
-		return 0;
-
-	case WM_MBUTTONUP:
-		sgSubClick(index, SG_MIDDLE_BUTTON, SG_BUTTON_UP, LOWORD(lParam), HIWORD(lParam));
-		return 0;
-
-	case WM_RBUTTONUP:
-		sgSubClick(index, SG_RIGHT_BUTTON, SG_BUTTON_UP, LOWORD(lParam), HIWORD(lParam));
-		return 0;
-
-	case WM_DESTROY:
-		return 0;
-	}
-
-	return DefWindowProc(hwnd, message, wParam, lParam);
-}
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
 	WNDCLASSEX wc;
 	HWND hwnd;
@@ -641,12 +536,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	}
 	return (int)msg.wParam;
 }
-
-/*
-* Remained OpenGL functions.
-* Origin OpenGL functions start in v0.0.0.
-* These OpenGL callback functions start in v2.0.0
-*/
 void sgInit() {
 	int i, winPx, winPy;
 
@@ -773,6 +662,126 @@ void sgInit() {
 
 	setBackgroundRefresh(_bgDrawDefault);
 }
+#endif
+#ifndef _SGL_GRAPHICS
+int main(int argc, char *argv[]) {
+	sgMain(argc, argv);
+	getchar();
+}
+#endif
+LRESULT CALLBACK SubWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
+	static int  cxClient, cyClient;
+	HDC hdc;
+	PAINTSTRUCT ps;
+
+	int index;
+	for (index = 0; index < SG_MAX_WINDOW_NUM; index++) {
+		if (hwnd == _wndList[index].hwnd)break;
+	}
+	if (index == SG_MAX_WINDOW_NUM)
+		return DefWindowProc(hwnd, message, wParam, lParam);
+	if (!_wndList[index].inLoop) {
+		_wndList[index].inLoop = 1;
+		SetTimer(hwnd, TIMER_DELTA_HANDLE, 10, NULL);
+	}
+	switch (message) {
+	case WM_CREATE:
+		return 0;
+
+	case WM_COMMAND:
+		return 0;
+
+	case WM_SIZE:
+		_wndList[index].winWidth = cxClient = LOWORD(lParam);
+		_wndList[index].winHeight = cyClient = HIWORD(lParam);
+		if (_wndList[index].resizeFunc)_wndList[index].resizeFunc(cxClient, cyClient);
+		return 0;
+
+	case WM_PAINT:
+		_drawSubWidget(index, WIDGET_FRONT);
+
+		hdc = BeginPaint(hwnd, &ps);
+		if (_wndList[index].visualPage == 0) _makeSubBitmap(hdc, index, _wndList[index].buffer1->data,
+			_wndList[index].buffer1->sizeX, _wndList[index].buffer1->sizeY, 24);
+		else _makeSubBitmap(hdc, index, _wndList[index].buffer2->data,
+			_wndList[index].buffer2->sizeX, _wndList[index].buffer2->sizeY, 24);
+		EndPaint(hwnd, &ps);
+
+		_drawSubWidget(index, WIDGET_BACK);
+
+		return 0;
+
+	case WM_TIMER:
+		_wndList[index].loop();
+		InvalidateRect(hwnd, NULL, FALSE);
+		return 0;
+
+	case WM_TRAY:
+		return 0;
+
+	case	WM_SETCURSOR:
+		return 0;
+
+	case WM_KEYDOWN:
+		sgSubSpecial(index, (int)wParam, 0, 0);
+		return 0;
+
+	case WM_CHAR:
+		sgSubKey(index, (int)wParam |
+			((GetKeyState(VK_CONTROL) & 0x8000) >> 1) |
+			((GetKeyState(VK_SHIFT) & 0x8000) >> 2), 0, 0);
+		return 0;
+
+	case WM_KEYUP:
+		sgSubKeyUp(index, (int)wParam, 0, 0);
+		sgSubSpecialUp(index, (int)wParam, 0, 0);
+		return 0;
+
+	case WM_MOUSEMOVE:
+		if (!wParam)sgSubMouse(index, LOWORD(lParam), HIWORD(lParam));
+		else sgSubDrag(index, LOWORD(lParam), HIWORD(lParam));
+		return 0;
+
+	case WM_MOUSEWHEEL:
+		sgSubWheel(index, (short)HIWORD(wParam));
+		return 0;
+
+	case WM_LBUTTONDOWN:
+		sgSubClick(index, SG_LEFT_BUTTON, SG_BUTTON_DOWN, LOWORD(lParam), HIWORD(lParam));
+		return 0;
+
+	case WM_MBUTTONDOWN:
+		sgSubClick(index, SG_MIDDLE_BUTTON, SG_BUTTON_DOWN, LOWORD(lParam), HIWORD(lParam));
+		return 0;
+
+	case WM_RBUTTONDOWN:
+		sgSubClick(index, SG_RIGHT_BUTTON, SG_BUTTON_DOWN, LOWORD(lParam), HIWORD(lParam));
+		return 0;
+
+	case WM_LBUTTONUP:
+		sgSubClick(index, SG_LEFT_BUTTON, SG_BUTTON_UP, LOWORD(lParam), HIWORD(lParam));
+		return 0;
+
+	case WM_MBUTTONUP:
+		sgSubClick(index, SG_MIDDLE_BUTTON, SG_BUTTON_UP, LOWORD(lParam), HIWORD(lParam));
+		return 0;
+
+	case WM_RBUTTONUP:
+		sgSubClick(index, SG_RIGHT_BUTTON, SG_BUTTON_UP, LOWORD(lParam), HIWORD(lParam));
+		return 0;
+
+	case WM_DESTROY:
+		return 0;
+	}
+
+	return DefWindowProc(hwnd, message, wParam, lParam);
+}
+
+/*
+* Remained OpenGL functions.
+* Origin OpenGL functions start in v0.0.0.
+* These OpenGL callback functions start in v2.0.0
+*/
 void sgKey(int cAscii, int x, int y) {
 	widgetObj *tmp;
 	int ctrl, shift;
@@ -3027,16 +3036,25 @@ void _clearPanel() {
 	}
 
 }
+int _checkThread() {
+	int tmp = GetThreadId(GetCurrentThread());
+	if (tmp != tmpThread) {
+		alertInfo("系统拒绝在非主线程中使用绘图函数。", "SGL警告", ALERT_BUTTON_OK);
+		return -1;
+	}
+	else return 0;
+}
 void _bgDrawDefault(int left, int top, int right, int bottom) {
 	setColor(255, 255, 255);
 	putQuad(left, top, right, bottom, SOLID_FILL);
 }
 
+
 /*
-* Debug interfaces.
-* Started in v3.1.0
+* SGL tool interfaces.
+* Started in v0.0.0
 */
-SGvoid debugf(const char *format, ...) {
+void debugf(const char *format, ...) {
 	va_list ap;
 	int idx = 0;
 	char *tmp;
@@ -3105,121 +3123,6 @@ SGvoid debugf(const char *format, ...) {
 	free(tmp);
 	va_end(ap);
 }
-SGint checkThread() {
-	int tmp = GetThreadId(GetCurrentThread());
-	if (tmp != tmpThread) {
-		alertInfo("系统拒绝在非主线程中使用绘图函数。", "SGL警告", ALERT_BUTTON_OK);
-		return -1;
-	}
-	else return 0;
-}
-
-/*
-* System interfaces.
-* Started in v0.0.0
-*/
-void initWindow(int width, int height, const char *title, int mode) {
-	if (mode == BIT_MAP || mode == TEXT_MAP)_sglMode = mode;
-	else exit(SG_INVALID_MODE);
-
-	if (mode == BIT_MAP) {
-		if (width == 0 || height == 0) {
-			RECT rect;
-			SystemParametersInfo(SPI_GETWORKAREA, 0, &rect, 0);
-			_Window->winWidth = rect.right - rect.left - 16;
-			_Window->winHeight = rect.bottom - rect.top - 20;
-			_Window->winWidth = _Window->winWidth - _Window->winWidth % 8;
-			_Window->posLeft = _Window->posUp = 0;
-		}
-		else {
-			_Window->winWidth = width;
-			_Window->winHeight = height;
-		}
-	}
-	if (mode == TEXT_MAP) {
-		_Window->txtWidth = width;
-		_Window->txtHeight = height;
-		_Window->winWidth = width * SG_CHAR_WIDTH;
-		_Window->winHeight = height * SG_CHAR_HEIGHT;
-	}
-
-	strcpy(_Window->winName, title);
-	strcat(_Window->winName, "  --powered by Super GP");
-}
-void setWindow(int left, int up) {
-	_Window->posLeft = left;
-	_Window->posUp = up;
-}
-void setResizeable() {
-	if (currentWindow == -1) {
-		if (!_inLoop)
-			_scrResizeable = 1;
-	}
-	else {
-		if (!_wndList[currentWindow].inLoop)
-			_wndList[currentWindow].scrResizeable = 1;
-	}
-}
-void resizeFuntion(void(*func)(int x, int y)) {
-	if (currentWindow == -1) {
-		_resizeFunc = func;
-	}
-	else {
-		_wndList[currentWindow].resizeFunc = func;
-	}
-}
-int getWidth(int obj) {
-	if (currentWindow == -1) {
-		switch (obj) {
-		case SG_WINDOW:
-			return _Window->winWidth;
-		case SG_SCREEN:
-			if (_inLoop)
-				return _Screen->buffer1->sizeX == _Screen->buffer2->sizeX ?
-				_Screen->buffer1->sizeX : SG_SIZE_MISMATCH;
-			else return _Window->winWidth;
-		}
-	}
-	else {
-		switch (obj) {
-		case SG_WINDOW:
-			return _wndList[currentWindow].winWidth;
-		case SG_SCREEN:
-			if (_wndList[currentWindow].inLoop)
-				return _wndList[currentWindow].buffer1->sizeX == 
-					_wndList[currentWindow].buffer2->sizeX ?
-					_wndList[currentWindow].buffer1->sizeX : SG_SIZE_MISMATCH;
-			else return _wndList[currentWindow].winWidth;
-		}
-	}
-	return 0;
-}
-int getHeight(int obj) {
-	if (currentWindow == -1) {
-		switch (obj) {
-		case SG_WINDOW:
-			return _Window->winHeight;
-		case SG_SCREEN:
-			if (_inLoop)
-				return _Screen->buffer1->sizeY == _Screen->buffer2->sizeY ?
-				_Screen->buffer1->sizeY : SG_SIZE_MISMATCH;
-			else return _Window->winHeight;
-		}
-	}
-	else {
-		switch (obj) {
-		case SG_WINDOW:
-			return _wndList[currentWindow].winHeight;
-		case SG_SCREEN:
-			if (_wndList[currentWindow].inLoop)
-				return _wndList[currentWindow].buffer1->sizeY ==
-					_wndList[currentWindow].buffer2->sizeY ?
-					_wndList[currentWindow].buffer1->sizeY : SG_SIZE_MISMATCH;
-			else return _wndList[currentWindow].winHeight;
-		}
-	}
-	return 0;
-}
 int createWindow(int width, int height, const char *title, vect setup, vect loop) {
 	WNDCLASSEX wc;
 	SGWINSTR _wd = NULL, _wn = NULL;
@@ -3276,249 +3179,6 @@ void startSubWindow(int id) {
 void endSubWindow() {
 	SEM_V();
 }
-void initKey() {
-	_enKey = 1;
-}
-int biosKey(int cmd) {
-	word ret;
-
-	if (currentWindow == -1) {
-		if (cmd == 1)return (_Key->front + 1) % 1024 != _Key->rear;
-		if (cmd != 0)return 0;
-
-		while ((_Key->front + 1) % 1024 == _Key->rear);
-		ret = _Key->keyBuf[_Key->rear++];
-		_Key->rear %= 1024;
-	}
-	else {
-		if (cmd == 1)
-			return (_wndList[currentWindow].key->front + 1) % 1024 !=
-			_wndList[currentWindow].key->rear;
-		if (cmd != 0)return 0;
-
-		while ((_wndList[currentWindow].key->front + 1) % 1024 ==
-			_wndList[currentWindow].key->rear);
-		ret = _wndList[currentWindow].key->
-			keyBuf[_wndList[currentWindow].key->rear++];
-		_wndList[currentWindow].key->rear %= 1024;
-	}
-
-	return ret;
-}
-void clearKeyBuffer() {
-	if (currentWindow == -1) {
-		_Key->rear = (_Key->front + 1) % 1024;
-	}
-	else {
-		_wndList[currentWindow].key->rear =
-			(_wndList[currentWindow].key->front + 1) % 1024;
-	}
-}
-void enablePanel() {
-	_enPanel = 1;
-}
-void disablePanel() {
-	_enPanel = 0;
-}
-int addPanelItem(const char *name, vect function, int shift, int ctrl) {
-	int i = 0;
-	if (shift == 0 && ctrl == 0) {
-		for (i = 0; i < SG_MAX_PANEL_FUNCTION; i++) {
-			if (panel.normalPanel[i] == NULL) {
-				panel.normalPanel[i] = (struct _function *)malloc(sizeof(struct _function));
-				panel.normalPanel[i]->id = panel.maxId++;
-				panel.normalPanel[i]->name = (char *)malloc(strlen(name) + 1);
-				strcpy(panel.normalPanel[i]->name, name);
-				panel.normalPanel[i]->function = function;
-				return panel.normalPanel[i]->id;
-			}
-		}
-		if (i == SG_MAX_PANEL_FUNCTION)return SG_OUT_OF_RANGE;
-	}
-	if (shift == 1 && ctrl == 0) {
-		for (i = 0; i < SG_MAX_PANEL_FUNCTION; i++) {
-			if (panel.shiftPanel[i] == NULL) {
-				panel.shiftPanel[i] = (struct _function *)malloc(sizeof(struct _function));
-				panel.shiftPanel[i]->id = panel.maxId++;
-				panel.shiftPanel[i]->name = (char *)malloc(strlen(name) + 1);
-				strcpy(panel.shiftPanel[i]->name, name);
-				panel.shiftPanel[i]->function = function;
-				return panel.shiftPanel[i]->id;
-			}
-		}
-		if (i == SG_MAX_PANEL_FUNCTION)return SG_OUT_OF_RANGE;
-	}
-	if (shift == 0 && ctrl == 1) {
-		for (i = 0; i < SG_MAX_PANEL_FUNCTION; i++) {
-			if (panel.ctrlPanel[i] == NULL) {
-				panel.ctrlPanel[i] = (struct _function *)malloc(sizeof(struct _function));
-				panel.ctrlPanel[i]->id = panel.maxId++;
-				panel.ctrlPanel[i]->name = (char *)malloc(strlen(name) + 1);
-				strcpy(panel.ctrlPanel[i]->name, name);
-				panel.ctrlPanel[i]->function = function;
-				return panel.ctrlPanel[i]->id;
-			}
-		}
-		if (i == SG_MAX_PANEL_FUNCTION)return SG_OUT_OF_RANGE;
-	}
-	if (shift == 1 && ctrl == 1) {
-		for (i = 0; i < SG_MAX_PANEL_FUNCTION; i++) {
-			if (panel.shiftctrlPanel[i] == NULL) {
-				panel.shiftctrlPanel[i] = (struct _function *)malloc(sizeof(struct _function));
-				panel.shiftctrlPanel[i]->id = panel.maxId++;
-				panel.shiftctrlPanel[i]->name = (char *)malloc(strlen(name) + 1);
-				strcpy(panel.shiftctrlPanel[i]->name, name);
-				panel.shiftctrlPanel[i]->function = function;
-				return panel.shiftctrlPanel[i]->id;
-			}
-		}
-		if (i == SG_MAX_PANEL_FUNCTION)return SG_OUT_OF_RANGE;
-	}
-	return SG_OUT_OF_RANGE;
-}
-int changePanelItem(int id, const char *name, vect function) {
-	int i;
-	for (i = 0; i < SG_MAX_PANEL_FUNCTION; i++) {
-		if (panel.normalPanel[i]->id == id) {
-			strcpy(panel.normalPanel[i]->name, name);
-			panel.normalPanel[i]->function = function;
-			return panel.normalPanel[i]->id;
-		}
-		if (panel.shiftPanel[i]->id == id) {
-			strcpy(panel.shiftPanel[i]->name, name);
-			panel.shiftPanel[i]->function = function;
-			return panel.shiftPanel[i]->id;
-		}
-		if (panel.ctrlPanel[i]->id == id) {
-			strcpy(panel.ctrlPanel[i]->name, name);
-			panel.ctrlPanel[i]->function = function;
-			return panel.ctrlPanel[i]->id;
-		}
-		if (panel.shiftctrlPanel[i]->id == id) {
-			strcpy(panel.shiftctrlPanel[i]->name, name);
-			panel.shiftctrlPanel[i]->function = function;
-			return panel.shiftctrlPanel[i]->id;
-		}
-	}
-	return SG_OBJECT_NOT_FOUND;
-}
-int deletePanelItem(int id) {
-	int i;
-	for (i = 0; i < SG_MAX_PANEL_FUNCTION; i++) {
-		if (panel.normalPanel[i]->id == id) {
-			free(panel.normalPanel[i]);
-			panel.normalPanel[i] = NULL;
-			return SG_NO_ERORR;
-		}
-		if (panel.shiftPanel[i]->id == id) {
-			free(panel.shiftPanel[i]);
-			panel.shiftPanel[i] = NULL;
-			return SG_NO_ERORR;
-		}
-		if (panel.ctrlPanel[i]->id == id) {
-			free(panel.ctrlPanel[i]);
-			panel.ctrlPanel[i] = NULL;
-			return SG_NO_ERORR;
-		}
-		if (panel.shiftctrlPanel[i]->id == id) {
-			free(panel.shiftctrlPanel[i]);
-			panel.shiftctrlPanel[i] = NULL;
-			return SG_NO_ERORR;
-		}
-	}
-	return SG_OBJECT_NOT_FOUND;
-}
-void initMouse(int mode) {
-	if (mode&SG_COORDINATE)_Mouse->coord = 1;
-	else _Mouse->coord = 0;
-
-	_enMouse = 1;
-}
-int mouseStatus(int b) {
-	if (currentWindow == -1) {
-		switch (b) {
-		case SG_LEFT_BUTTON:
-			return _Mouse->left;
-		case SG_RIGHT_BUTTON:
-			return _Mouse->right;
-		case SG_MIDDLE_BUTTON:
-			return _Mouse->middle;
-		default:
-			return 0;
-		}
-	}
-	else {
-		switch (b) {
-		case SG_LEFT_BUTTON:
-			return _wndList[currentWindow].mouse->left;
-		case SG_RIGHT_BUTTON:
-			return _wndList[currentWindow].mouse->right;
-		case SG_MIDDLE_BUTTON:
-			return _wndList[currentWindow].mouse->middle;
-		default:
-			return 0;
-		}
-	}
-}
-vec2 mousePos() {
-	vec2 ret;
-
-	if (currentWindow == -1) {
-		ret.x = _Mouse->Pos.x;
-		ret.y = _Mouse->Pos.y;
-	}
-	else {
-		ret.x = _wndList[currentWindow].mouse->Pos.x;
-		ret.y = _wndList[currentWindow].mouse->Pos.y;
-	}
-	return ret;
-}
-vec3 biosMouse(int cmd) {
-	vec3 ret;
-
-	if (currentWindow == -1) {
-		if (cmd == 1) {
-			ret.z = (_Mouse->front + 1) % 1024 != _Mouse->rear;
-			return ret;
-		}
-		if (cmd != 0) {
-			ret.z = 0;
-			return ret;
-		}
-
-		while ((_Mouse->front + 1) % 1024 == _Mouse->rear);
-		ret = _Mouse->mouseBuf[_Mouse->rear++];
-		_Mouse->rear %= 1024;
-	}
-	else {
-		if (cmd == 1) {
-			ret.z =(_wndList[currentWindow].mouse->front + 1) % 1024 !=
-				_wndList[currentWindow].mouse->rear;
-			return ret;
-		}
-		if (cmd != 0) {
-			ret.z = 0;
-			return ret;
-		}
-
-		while ((_wndList[currentWindow].mouse->front + 1) % 1024 ==
-			_wndList[currentWindow].mouse->rear);
-		ret = _wndList[currentWindow].mouse->
-			mouseBuf[_wndList[currentWindow].mouse->rear++];
-		_wndList[currentWindow].mouse->rear %= 1024;
-	}
-
-	return ret;
-}
-void clearMouseBuffer() {
-	if (currentWindow == -1) {
-		_Mouse->rear = (_Mouse->front + 1) % 1024;
-	}
-	else {
-		_wndList[currentWindow].mouse->rear =
-			(_wndList[currentWindow].mouse->front + 1) % 1024;
-	}
-}
 void delay(int t) {
 	clock_t st, en;
 
@@ -3552,85 +3212,8 @@ int delayEnd(int t) {
 
 	return 1;
 }
-vect getVect(int intn) {
-	if (intn == 8)return _Vector->_v8;
-	if (intn == 9)return _Vector->_v9;
-
-	return (vect)NULL;
-}
-int setVect(int intn, vect v) {
-	if (intn == 8) {
-		_Vector->_v8 = v;
-		return 1;
-	}
-	if (intn == 9) {
-		_Vector->_v9 = v;
-		return 1;
-	}
-
-	return 0;
-}
-void dosInt(int intn, int *ret) {
-	if (intn == 9)*ret = _vectKey;
-}
 int random(int n) {
 	return rand() % n;
-}
-void setFreq(float f) {
-	_vectDelta = (clock_t)(1000 / f);
-}
-void showMouse() {
-	while (ShowCursor(TRUE) < 0)
-		ShowCursor(TRUE);
-}
-void hideMouse() {
-	while (ShowCursor(FALSE) >= 0)
-		ShowCursor(FALSE);
-}
-void setMousePos(int x, int y) {
-	LPPOINT point;
-
-	if (currentWindow == -1) {
-		point = (LPPOINT)malloc(sizeof(POINT));
-		point->x = x;
-		point->y = y;
-
-		ClientToScreen(_Window->hwnd, point);
-		SetCursorPos(point->x, point->y);
-		free(point);
-	}
-	else {
-		point = (LPPOINT)malloc(sizeof(POINT));
-		point->x = x;
-		point->y = y;
-
-		ClientToScreen(_wndList[currentWindow].hwnd, point);
-		SetCursorPos(point->x, point->y);
-		free(point);
-	}
-}
-void setMouseIcon(SGWINSTR icon) {
-	SetSystemCursor(LoadCursor(NULL, icon), 0);
-}
-void setActivePage(int page) {
-	if (currentWindow == -1) {
-		if (page != 0 && page != 1)return;
-		_activePage = page;
-	}
-	else {
-		if (page != 0 && page != 1)return;
-		_wndList[currentWindow].activePage = page;
-	}
-}
-void setVisualPage(int page) {
-	if (currentWindow == -1) {
-		if (page != 0 && page != 1)return;
-		_visualPage = page;
-	}
-	else {
-		if (page != 0 && page != 1)return;
-		_wndList[currentWindow].visualPage = page;
-	}
 }
 int selectFile(char name[], char start[], char format[], int idx) {
 	OPENFILENAME ofn = { 0 };
@@ -3912,30 +3495,6 @@ void timerThread(vect func, int millis, int time) {
 	times = time;
 	HANDLE handle = CreateThread(NULL, 0, _timerFunc, NULL, 0, NULL);
 }
-int initMenu() {
-	int i;
-
-	_mainMenu = 1;
-	mainMenu.id = _tmpItem++;
-	mainMenu.name = "main";
-	mainMenu.hm = CreateMenu();
-	for (i = 0; i < SG_MAX_MENU_ITEM_NUM; i++) {
-		mainMenu.sub[i] = NULL;
-	}
-	return mainMenu.id;
-}
-int addMenuList(const char *title, int id) {
-	if (_mainMenu == 0)return SG_INVALID_MODE;
-	return _addList(title, &mainMenu, id);
-}
-int addMenuItem(const char *title, int id, void(*func)()) {
-	if (_mainMenu == 0)return SG_INVALID_MODE;
-	return _addItem(title, &mainMenu, id, func);
-}
-int addMenuSeparator(int id) {
-	if (_mainMenu == 0)return SG_INVALID_MODE;
-	return _addSeparator(&mainMenu, id);
-}
 int copyText(const char *src) {
 	HGLOBAL hg;
 	char *pt;
@@ -3968,20 +3527,6 @@ char *pasteText() {
 	else return NULL;
 	CloseClipboard();
 	return ret;
-}
-int enableItem(int id) {
-	_checkItem(&mainMenu, id, -1, 0);
-	return 0;
-}
-int disableItem(int id) {
-	_checkItem(&mainMenu, id, -1, 1);
-	return 0;
-}
-void checkItem(int id) {
-	_checkItem(&mainMenu, id, 1, -1);
-}
-void uncheckItem(int id) {
-	_checkItem(&mainMenu, id, 0, -1);
 }
 SOCKET createServer(int port) {
 	WORD wVersionRequested;
@@ -4055,166 +3600,6 @@ int socketReceive(SOCKET s, char *buffer, int len) {
 }
 void closeSocket(SOCKET s) {
 	closesocket(s);
-}
-void hideCaption() {
-	if (currentWindow == -1) {
-		LONG lStyle = GetWindowLong(_Window->hwnd, GWL_STYLE);
-		SetWindowLong(_Window->hwnd, GWL_STYLE, lStyle & ~WS_CAPTION);
-	}
-	else {
-		LONG lStyle = GetWindowLong(_wndList[currentWindow].hwnd, GWL_STYLE);
-		SetWindowLong(_wndList[currentWindow].hwnd, GWL_STYLE, lStyle & ~WS_CAPTION);
-	}
-}
-void showCaption() {
-	if (currentWindow == -1) {
-		LONG lStyle = GetWindowLong(_Window->hwnd, GWL_STYLE);
-		SetWindowLong(_Window->hwnd, GWL_STYLE, lStyle | WS_CAPTION);
-	}
-	else {
-		LONG lStyle = GetWindowLong(_wndList[currentWindow].hwnd, GWL_STYLE);
-		SetWindowLong(_wndList[currentWindow].hwnd, GWL_STYLE, lStyle | WS_CAPTION);
-	}
-}
-void addTray() {
-	NOTIFYICONDATA nid;
-
-	if (_useTray)return;
-	_useTray = 1;
-
-	nid.cbSize = (DWORD)sizeof(NOTIFYICONDATA);
-	nid.hWnd = _Window->hwnd;
-	nid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
-	nid.uCallbackMessage = WM_TRAY;
-	if (_Window->hIcon == NULL)
-		nid.hIcon = LoadIcon(NULL, IDI_APPLICATION);
-	else
-		nid.hIcon = _Window->hIcon;
-	SGWINSTR _wd = NULL;
-	_strcpy(nid.szTip, _wd = _widen(_Window->winName));
-	Shell_NotifyIcon(NIM_ADD, &nid);
-	free((void *)_wd);
-}
-void hideToTray() {
-	addTray();
-	ShowWindow(_Window->hwnd, SW_HIDE);
-}
-void restoreFromTray() {
-	ShowWindow(_Window->hwnd, SW_RESTORE);
-}
-int initTrayMenu() {
-	int i;
-
-	_trayMenu = 1;
-	trayMenu.id = _tmpItem++;
-	trayMenu.name = "tray";
-	trayMenu.hm = CreatePopupMenu();
-	for (i = 0; i < SG_MAX_MENU_ITEM_NUM; i++) {
-		trayMenu.sub[i] = NULL;
-	}
-	return trayMenu.id;
-}
-int addTrayMenuList(const char *title, int id) {
-	if (_trayMenu == 0)return SG_INVALID_MODE;
-	return _addList(title, &trayMenu, id);
-}
-int addTrayMenuItem(const char *title, int id, void(*func)()) {
-	if (_trayMenu == 0)return SG_INVALID_MODE;
-	return _addItem(title, &trayMenu, id, func);
-}
-int addTrayMenuSeparator(int id) {
-	if (_trayMenu == 0)return SG_INVALID_MODE;
-	return _addSeparator(&trayMenu, id);
-}
-int createPopupMenu() {
-	int i;
-
-	popupMenu[_popupNum].id = _tmpItem++;
-	popupMenu[_popupNum].name = "popup";
-	popupMenu[_popupNum].hm = CreatePopupMenu();
-	for (i = 0; i < SG_MAX_MENU_ITEM_NUM; i++) {
-		popupMenu[_popupNum].sub[i] = NULL;
-	}
-	return popupMenu[_popupNum++].id;
-}
-int addPopupMenuList(const char *title, int id) {
-	int i, ret;
-	for (i = 0; i < _popupNum; i++) {
-		if ((ret = _addList(title, &popupMenu[i], id)) < 0)continue;
-		break;
-	}
-	if (i == _popupNum)return SG_OBJECT_NOT_FOUND;
-	return ret;
-}
-int addPopupMenuItem(const char *title, int id, void(*func)()) {
-	int i, ret;
-	for (i = 0; i < _popupNum; i++) {
-		if ((ret = _addItem(title, &popupMenu[i], id, func)) < 0)continue;
-		break;
-	}
-	if (i == _popupNum)return SG_OBJECT_NOT_FOUND;
-	return ret;
-}
-int addPopupMenuSeparator(int id) {
-	int i, ret;
-	for (i = 0; i < _popupNum; i++) {
-		if ((ret = _addSeparator(&popupMenu[i], id)) < 0)continue;
-		break;
-	}
-	if (i == _popupNum)return SG_OBJECT_NOT_FOUND;
-	return ret;
-}
-int finishPopupMenu(int id) {
-	int i;
-	for (i = 0; i < _popupNum; i++) {
-		if (popupMenu[i].id == id)break;
-	}
-	if (i == _popupNum)return SG_OBJECT_NOT_FOUND;
-	_createMenu(MT_POPUP, NULL, popupMenu[i].hm);
-	return SG_NO_ERORR;
-}
-int showPopupMenu(int menu, int x, int y) {
-	int i;
-	struct tagPOINT p;
-
-	if (currentWindow == -1) {
-		for (i = 0; i < _popupNum; i++) {
-			if (popupMenu[i].id == menu)break;
-		}
-		if (i == _popupNum)return SG_OBJECT_NOT_FOUND;
-		if (!_scrResizeable) {
-			p.x = x * _Window->winWidth / _Screen->buffer1->sizeX;
-			p.y = y * _Window->winHeight / _Screen->buffer1->sizeY;
-		}
-		else {
-			p.x = x;
-			p.y = y;
-		}
-		ClientToScreen(_Window->hwnd, &p);
-		TrackPopupMenu(popupMenu[i].hm, TPM_LEFTALIGN,
-			p.x, p.y, 0, _Window->hwnd, NULL);
-	}
-	else {
-		for (i = 0; i < _popupNum; i++) {
-			if (popupMenu[i].id == menu)break;
-		}
-		if (i == _popupNum)return SG_OBJECT_NOT_FOUND;
-		if (_wndList[currentWindow].scrResizeable) {
-			p.x = x * _wndList[currentWindow].winWidth /
-				_wndList[currentWindow].buffer1->sizeX;
-			p.y = y * _wndList[currentWindow].winHeight /
-				_wndList[currentWindow].buffer1->sizeY;
-		}
-		else {
-			p.x = x;
-			p.y = y;
-		}
-		ClientToScreen(_wndList[currentWindow].hwnd, &p);
-		TrackPopupMenu(popupMenu[i].hm, TPM_LEFTALIGN,
-			p.x, p.y, 0, _wndList[currentWindow].hwnd, NULL);
-	}
-
-	return SG_NO_ERORR;
 }
 void setIcon(const char *ico) {
 	SGWINSTR _wd = NULL;
@@ -4435,6 +3820,632 @@ bitMap *contrastPic(bitMap *src, int delta) {
 
 
 /*
+* System interfaces.
+* Started in v0.0.0
+*/
+void initWindow(int width, int height, const char *title, int mode) {
+	if (mode == BIT_MAP || mode == TEXT_MAP)_sglMode = mode;
+	else exit(SG_INVALID_MODE);
+
+	if (mode == BIT_MAP) {
+		if (width == 0 || height == 0) {
+			RECT rect;
+			SystemParametersInfo(SPI_GETWORKAREA, 0, &rect, 0);
+			_Window->winWidth = rect.right - rect.left - 16;
+			_Window->winHeight = rect.bottom - rect.top - 20;
+			_Window->winWidth = _Window->winWidth - _Window->winWidth % 8;
+			_Window->posLeft = _Window->posUp = 0;
+		}
+		else {
+			_Window->winWidth = width;
+			_Window->winHeight = height;
+		}
+	}
+	if (mode == TEXT_MAP) {
+		_Window->txtWidth = width;
+		_Window->txtHeight = height;
+		_Window->winWidth = width * SG_CHAR_WIDTH;
+		_Window->winHeight = height * SG_CHAR_HEIGHT;
+	}
+
+	strcpy(_Window->winName, title);
+	strcat(_Window->winName, "  --powered by Super GP");
+}
+void setWindow(int left, int up) {
+	_Window->posLeft = left;
+	_Window->posUp = up;
+}
+void setResizeable() {
+	if (currentWindow == -1) {
+		if (!_inLoop)
+			_scrResizeable = 1;
+	}
+	else {
+		if (!_wndList[currentWindow].inLoop)
+			_wndList[currentWindow].scrResizeable = 1;
+	}
+}
+void resizeFuntion(void(*func)(int x, int y)) {
+	if (currentWindow == -1) {
+		_resizeFunc = func;
+	}
+	else {
+		_wndList[currentWindow].resizeFunc = func;
+	}
+}
+int getWidth(int obj) {
+	if (currentWindow == -1) {
+		switch (obj) {
+		case SG_WINDOW:
+			return _Window->winWidth;
+		case SG_SCREEN:
+			if (_inLoop)
+				return _Screen->buffer1->sizeX == _Screen->buffer2->sizeX ?
+				_Screen->buffer1->sizeX : SG_SIZE_MISMATCH;
+			else return _Window->winWidth;
+		}
+	}
+	else {
+		switch (obj) {
+		case SG_WINDOW:
+			return _wndList[currentWindow].winWidth;
+		case SG_SCREEN:
+			if (_wndList[currentWindow].inLoop)
+				return _wndList[currentWindow].buffer1->sizeX == 
+					_wndList[currentWindow].buffer2->sizeX ?
+					_wndList[currentWindow].buffer1->sizeX : SG_SIZE_MISMATCH;
+			else return _wndList[currentWindow].winWidth;
+		}
+	}
+	return 0;
+}
+int getHeight(int obj) {
+	if (currentWindow == -1) {
+		switch (obj) {
+		case SG_WINDOW:
+			return _Window->winHeight;
+		case SG_SCREEN:
+			if (_inLoop)
+				return _Screen->buffer1->sizeY == _Screen->buffer2->sizeY ?
+				_Screen->buffer1->sizeY : SG_SIZE_MISMATCH;
+			else return _Window->winHeight;
+		}
+	}
+	else {
+		switch (obj) {
+		case SG_WINDOW:
+			return _wndList[currentWindow].winHeight;
+		case SG_SCREEN:
+			if (_wndList[currentWindow].inLoop)
+				return _wndList[currentWindow].buffer1->sizeY ==
+					_wndList[currentWindow].buffer2->sizeY ?
+					_wndList[currentWindow].buffer1->sizeY : SG_SIZE_MISMATCH;
+			else return _wndList[currentWindow].winHeight;
+		}
+	}
+	return 0;
+}
+void initKey() {
+	_enKey = 1;
+}
+int biosKey(int cmd) {
+	word ret;
+
+	if (currentWindow == -1) {
+		if (cmd == 1)return (_Key->front + 1) % 1024 != _Key->rear;
+		if (cmd != 0)return 0;
+
+		while ((_Key->front + 1) % 1024 == _Key->rear);
+		ret = _Key->keyBuf[_Key->rear++];
+		_Key->rear %= 1024;
+	}
+	else {
+		if (cmd == 1)
+			return (_wndList[currentWindow].key->front + 1) % 1024 !=
+			_wndList[currentWindow].key->rear;
+		if (cmd != 0)return 0;
+
+		while ((_wndList[currentWindow].key->front + 1) % 1024 ==
+			_wndList[currentWindow].key->rear);
+		ret = _wndList[currentWindow].key->
+			keyBuf[_wndList[currentWindow].key->rear++];
+		_wndList[currentWindow].key->rear %= 1024;
+	}
+
+	return ret;
+}
+void clearKeyBuffer() {
+	if (currentWindow == -1) {
+		_Key->rear = (_Key->front + 1) % 1024;
+	}
+	else {
+		_wndList[currentWindow].key->rear =
+			(_wndList[currentWindow].key->front + 1) % 1024;
+	}
+}
+void initMouse(int mode) {
+	if (mode&SG_COORDINATE)_Mouse->coord = 1;
+	else _Mouse->coord = 0;
+
+	_enMouse = 1;
+}
+int mouseStatus(int b) {
+	if (currentWindow == -1) {
+		switch (b) {
+		case SG_LEFT_BUTTON:
+			return _Mouse->left;
+		case SG_RIGHT_BUTTON:
+			return _Mouse->right;
+		case SG_MIDDLE_BUTTON:
+			return _Mouse->middle;
+		default:
+			return 0;
+		}
+	}
+	else {
+		switch (b) {
+		case SG_LEFT_BUTTON:
+			return _wndList[currentWindow].mouse->left;
+		case SG_RIGHT_BUTTON:
+			return _wndList[currentWindow].mouse->right;
+		case SG_MIDDLE_BUTTON:
+			return _wndList[currentWindow].mouse->middle;
+		default:
+			return 0;
+		}
+	}
+}
+vec2 mousePos() {
+	vec2 ret;
+
+	if (currentWindow == -1) {
+		ret.x = _Mouse->Pos.x;
+		ret.y = _Mouse->Pos.y;
+	}
+	else {
+		ret.x = _wndList[currentWindow].mouse->Pos.x;
+		ret.y = _wndList[currentWindow].mouse->Pos.y;
+	}
+	return ret;
+}
+vec3 biosMouse(int cmd) {
+	vec3 ret;
+
+	if (currentWindow == -1) {
+		if (cmd == 1) {
+			ret.z = (_Mouse->front + 1) % 1024 != _Mouse->rear;
+			return ret;
+		}
+		if (cmd != 0) {
+			ret.z = 0;
+			return ret;
+		}
+
+		while ((_Mouse->front + 1) % 1024 == _Mouse->rear);
+		ret = _Mouse->mouseBuf[_Mouse->rear++];
+		_Mouse->rear %= 1024;
+	}
+	else {
+		if (cmd == 1) {
+			ret.z =(_wndList[currentWindow].mouse->front + 1) % 1024 !=
+				_wndList[currentWindow].mouse->rear;
+			return ret;
+		}
+		if (cmd != 0) {
+			ret.z = 0;
+			return ret;
+		}
+
+		while ((_wndList[currentWindow].mouse->front + 1) % 1024 ==
+			_wndList[currentWindow].mouse->rear);
+		ret = _wndList[currentWindow].mouse->
+			mouseBuf[_wndList[currentWindow].mouse->rear++];
+		_wndList[currentWindow].mouse->rear %= 1024;
+	}
+
+	return ret;
+}
+void clearMouseBuffer() {
+	if (currentWindow == -1) {
+		_Mouse->rear = (_Mouse->front + 1) % 1024;
+	}
+	else {
+		_wndList[currentWindow].mouse->rear =
+			(_wndList[currentWindow].mouse->front + 1) % 1024;
+	}
+}
+void enablePanel() {
+	_enPanel = 1;
+}
+void disablePanel() {
+	_enPanel = 0;
+}
+int addPanelItem(const char *name, vect function, int shift, int ctrl) {
+	int i = 0;
+	if (shift == 0 && ctrl == 0) {
+		for (i = 0; i < SG_MAX_PANEL_FUNCTION; i++) {
+			if (panel.normalPanel[i] == NULL) {
+				panel.normalPanel[i] = (struct _function *)malloc(sizeof(struct _function));
+				panel.normalPanel[i]->id = panel.maxId++;
+				panel.normalPanel[i]->name = (char *)malloc(strlen(name) + 1);
+				strcpy(panel.normalPanel[i]->name, name);
+				panel.normalPanel[i]->function = function;
+				return panel.normalPanel[i]->id;
+			}
+		}
+		if (i == SG_MAX_PANEL_FUNCTION)return SG_OUT_OF_RANGE;
+	}
+	if (shift == 1 && ctrl == 0) {
+		for (i = 0; i < SG_MAX_PANEL_FUNCTION; i++) {
+			if (panel.shiftPanel[i] == NULL) {
+				panel.shiftPanel[i] = (struct _function *)malloc(sizeof(struct _function));
+				panel.shiftPanel[i]->id = panel.maxId++;
+				panel.shiftPanel[i]->name = (char *)malloc(strlen(name) + 1);
+				strcpy(panel.shiftPanel[i]->name, name);
+				panel.shiftPanel[i]->function = function;
+				return panel.shiftPanel[i]->id;
+			}
+		}
+		if (i == SG_MAX_PANEL_FUNCTION)return SG_OUT_OF_RANGE;
+	}
+	if (shift == 0 && ctrl == 1) {
+		for (i = 0; i < SG_MAX_PANEL_FUNCTION; i++) {
+			if (panel.ctrlPanel[i] == NULL) {
+				panel.ctrlPanel[i] = (struct _function *)malloc(sizeof(struct _function));
+				panel.ctrlPanel[i]->id = panel.maxId++;
+				panel.ctrlPanel[i]->name = (char *)malloc(strlen(name) + 1);
+				strcpy(panel.ctrlPanel[i]->name, name);
+				panel.ctrlPanel[i]->function = function;
+				return panel.ctrlPanel[i]->id;
+			}
+		}
+		if (i == SG_MAX_PANEL_FUNCTION)return SG_OUT_OF_RANGE;
+	}
+	if (shift == 1 && ctrl == 1) {
+		for (i = 0; i < SG_MAX_PANEL_FUNCTION; i++) {
+			if (panel.shiftctrlPanel[i] == NULL) {
+				panel.shiftctrlPanel[i] = (struct _function *)malloc(sizeof(struct _function));
+				panel.shiftctrlPanel[i]->id = panel.maxId++;
+				panel.shiftctrlPanel[i]->name = (char *)malloc(strlen(name) + 1);
+				strcpy(panel.shiftctrlPanel[i]->name, name);
+				panel.shiftctrlPanel[i]->function = function;
+				return panel.shiftctrlPanel[i]->id;
+			}
+		}
+		if (i == SG_MAX_PANEL_FUNCTION)return SG_OUT_OF_RANGE;
+	}
+	return SG_OUT_OF_RANGE;
+}
+int changePanelItem(int id, const char *name, vect function) {
+	int i;
+	for (i = 0; i < SG_MAX_PANEL_FUNCTION; i++) {
+		if (panel.normalPanel[i]->id == id) {
+			strcpy(panel.normalPanel[i]->name, name);
+			panel.normalPanel[i]->function = function;
+			return panel.normalPanel[i]->id;
+		}
+		if (panel.shiftPanel[i]->id == id) {
+			strcpy(panel.shiftPanel[i]->name, name);
+			panel.shiftPanel[i]->function = function;
+			return panel.shiftPanel[i]->id;
+		}
+		if (panel.ctrlPanel[i]->id == id) {
+			strcpy(panel.ctrlPanel[i]->name, name);
+			panel.ctrlPanel[i]->function = function;
+			return panel.ctrlPanel[i]->id;
+		}
+		if (panel.shiftctrlPanel[i]->id == id) {
+			strcpy(panel.shiftctrlPanel[i]->name, name);
+			panel.shiftctrlPanel[i]->function = function;
+			return panel.shiftctrlPanel[i]->id;
+		}
+	}
+	return SG_OBJECT_NOT_FOUND;
+}
+int deletePanelItem(int id) {
+	int i;
+	for (i = 0; i < SG_MAX_PANEL_FUNCTION; i++) {
+		if (panel.normalPanel[i]->id == id) {
+			free(panel.normalPanel[i]);
+			panel.normalPanel[i] = NULL;
+			return SG_NO_ERORR;
+		}
+		if (panel.shiftPanel[i]->id == id) {
+			free(panel.shiftPanel[i]);
+			panel.shiftPanel[i] = NULL;
+			return SG_NO_ERORR;
+		}
+		if (panel.ctrlPanel[i]->id == id) {
+			free(panel.ctrlPanel[i]);
+			panel.ctrlPanel[i] = NULL;
+			return SG_NO_ERORR;
+		}
+		if (panel.shiftctrlPanel[i]->id == id) {
+			free(panel.shiftctrlPanel[i]);
+			panel.shiftctrlPanel[i] = NULL;
+			return SG_NO_ERORR;
+		}
+	}
+	return SG_OBJECT_NOT_FOUND;
+}
+vect getVect(int intn) {
+	if (intn == 8)return _Vector->_v8;
+	if (intn == 9)return _Vector->_v9;
+
+	return (vect)NULL;
+}
+int setVect(int intn, vect v) {
+	if (intn == 8) {
+		_Vector->_v8 = v;
+		return 1;
+	}
+	if (intn == 9) {
+		_Vector->_v9 = v;
+		return 1;
+	}
+
+	return 0;
+}
+void dosInt(int intn, int *ret) {
+	if (intn == 9)*ret = _vectKey;
+}
+void setFreq(float f) {
+	_vectDelta = (clock_t)(1000 / f);
+}
+void showMouse() {
+	while (ShowCursor(TRUE) < 0)
+		ShowCursor(TRUE);
+}
+void hideMouse() {
+	while (ShowCursor(FALSE) >= 0)
+		ShowCursor(FALSE);
+}
+void setMousePos(int x, int y) {
+	LPPOINT point;
+
+	if (currentWindow == -1) {
+		point = (LPPOINT)malloc(sizeof(POINT));
+		point->x = x;
+		point->y = y;
+
+		ClientToScreen(_Window->hwnd, point);
+		SetCursorPos(point->x, point->y);
+		free(point);
+	}
+	else {
+		point = (LPPOINT)malloc(sizeof(POINT));
+		point->x = x;
+		point->y = y;
+
+		ClientToScreen(_wndList[currentWindow].hwnd, point);
+		SetCursorPos(point->x, point->y);
+		free(point);
+	}
+}
+void setMouseIcon(SGWINSTR icon) {
+	SetSystemCursor(LoadCursor(NULL, icon), 0);
+}
+void setActivePage(int page) {
+	if (currentWindow == -1) {
+		if (page != 0 && page != 1)return;
+		_activePage = page;
+	}
+	else {
+		if (page != 0 && page != 1)return;
+		_wndList[currentWindow].activePage = page;
+	}
+}
+void setVisualPage(int page) {
+	if (currentWindow == -1) {
+		if (page != 0 && page != 1)return;
+		_visualPage = page;
+	}
+	else {
+		if (page != 0 && page != 1)return;
+		_wndList[currentWindow].visualPage = page;
+	}
+}
+int initMenu() {
+	int i;
+
+	_mainMenu = 1;
+	mainMenu.id = _tmpItem++;
+	mainMenu.name = "main";
+	mainMenu.hm = CreateMenu();
+	for (i = 0; i < SG_MAX_MENU_ITEM_NUM; i++) {
+		mainMenu.sub[i] = NULL;
+	}
+	return mainMenu.id;
+}
+int addMenuList(const char *title, int id) {
+	if (_mainMenu == 0)return SG_INVALID_MODE;
+	return _addList(title, &mainMenu, id);
+}
+int addMenuItem(const char *title, int id, void(*func)()) {
+	if (_mainMenu == 0)return SG_INVALID_MODE;
+	return _addItem(title, &mainMenu, id, func);
+}
+int addMenuSeparator(int id) {
+	if (_mainMenu == 0)return SG_INVALID_MODE;
+	return _addSeparator(&mainMenu, id);
+}
+int enableItem(int id) {
+	_checkItem(&mainMenu, id, -1, 0);
+	return 0;
+}
+int disableItem(int id) {
+	_checkItem(&mainMenu, id, -1, 1);
+	return 0;
+}
+void checkItem(int id) {
+	_checkItem(&mainMenu, id, 1, -1);
+}
+void uncheckItem(int id) {
+	_checkItem(&mainMenu, id, 0, -1);
+}
+void hideCaption() {
+	if (currentWindow == -1) {
+		LONG lStyle = GetWindowLong(_Window->hwnd, GWL_STYLE);
+		SetWindowLong(_Window->hwnd, GWL_STYLE, lStyle & ~WS_CAPTION);
+	}
+	else {
+		LONG lStyle = GetWindowLong(_wndList[currentWindow].hwnd, GWL_STYLE);
+		SetWindowLong(_wndList[currentWindow].hwnd, GWL_STYLE, lStyle & ~WS_CAPTION);
+	}
+}
+void showCaption() {
+	if (currentWindow == -1) {
+		LONG lStyle = GetWindowLong(_Window->hwnd, GWL_STYLE);
+		SetWindowLong(_Window->hwnd, GWL_STYLE, lStyle | WS_CAPTION);
+	}
+	else {
+		LONG lStyle = GetWindowLong(_wndList[currentWindow].hwnd, GWL_STYLE);
+		SetWindowLong(_wndList[currentWindow].hwnd, GWL_STYLE, lStyle | WS_CAPTION);
+	}
+}
+void addTray() {
+	NOTIFYICONDATA nid;
+
+	if (_useTray)return;
+	_useTray = 1;
+
+	nid.cbSize = (DWORD)sizeof(NOTIFYICONDATA);
+	nid.hWnd = _Window->hwnd;
+	nid.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP;
+	nid.uCallbackMessage = WM_TRAY;
+	if (_Window->hIcon == NULL)
+		nid.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+	else
+		nid.hIcon = _Window->hIcon;
+	SGWINSTR _wd = NULL;
+	_strcpy(nid.szTip, _wd = _widen(_Window->winName));
+	Shell_NotifyIcon(NIM_ADD, &nid);
+	free((void *)_wd);
+}
+void hideToTray() {
+	addTray();
+	ShowWindow(_Window->hwnd, SW_HIDE);
+}
+void restoreFromTray() {
+	ShowWindow(_Window->hwnd, SW_RESTORE);
+}
+int initTrayMenu() {
+	int i;
+
+	_trayMenu = 1;
+	trayMenu.id = _tmpItem++;
+	trayMenu.name = "tray";
+	trayMenu.hm = CreatePopupMenu();
+	for (i = 0; i < SG_MAX_MENU_ITEM_NUM; i++) {
+		trayMenu.sub[i] = NULL;
+	}
+	return trayMenu.id;
+}
+int addTrayMenuList(const char *title, int id) {
+	if (_trayMenu == 0)return SG_INVALID_MODE;
+	return _addList(title, &trayMenu, id);
+}
+int addTrayMenuItem(const char *title, int id, void(*func)()) {
+	if (_trayMenu == 0)return SG_INVALID_MODE;
+	return _addItem(title, &trayMenu, id, func);
+}
+int addTrayMenuSeparator(int id) {
+	if (_trayMenu == 0)return SG_INVALID_MODE;
+	return _addSeparator(&trayMenu, id);
+}
+int createPopupMenu() {
+	int i;
+
+	popupMenu[_popupNum].id = _tmpItem++;
+	popupMenu[_popupNum].name = "popup";
+	popupMenu[_popupNum].hm = CreatePopupMenu();
+	for (i = 0; i < SG_MAX_MENU_ITEM_NUM; i++) {
+		popupMenu[_popupNum].sub[i] = NULL;
+	}
+	return popupMenu[_popupNum++].id;
+}
+int addPopupMenuList(const char *title, int id) {
+	int i, ret;
+	for (i = 0; i < _popupNum; i++) {
+		if ((ret = _addList(title, &popupMenu[i], id)) < 0)continue;
+		break;
+	}
+	if (i == _popupNum)return SG_OBJECT_NOT_FOUND;
+	return ret;
+}
+int addPopupMenuItem(const char *title, int id, void(*func)()) {
+	int i, ret;
+	for (i = 0; i < _popupNum; i++) {
+		if ((ret = _addItem(title, &popupMenu[i], id, func)) < 0)continue;
+		break;
+	}
+	if (i == _popupNum)return SG_OBJECT_NOT_FOUND;
+	return ret;
+}
+int addPopupMenuSeparator(int id) {
+	int i, ret;
+	for (i = 0; i < _popupNum; i++) {
+		if ((ret = _addSeparator(&popupMenu[i], id)) < 0)continue;
+		break;
+	}
+	if (i == _popupNum)return SG_OBJECT_NOT_FOUND;
+	return ret;
+}
+int finishPopupMenu(int id) {
+	int i;
+	for (i = 0; i < _popupNum; i++) {
+		if (popupMenu[i].id == id)break;
+	}
+	if (i == _popupNum)return SG_OBJECT_NOT_FOUND;
+	_createMenu(MT_POPUP, NULL, popupMenu[i].hm);
+	return SG_NO_ERORR;
+}
+int showPopupMenu(int menu, int x, int y) {
+	int i;
+	struct tagPOINT p;
+
+	if (currentWindow == -1) {
+		for (i = 0; i < _popupNum; i++) {
+			if (popupMenu[i].id == menu)break;
+		}
+		if (i == _popupNum)return SG_OBJECT_NOT_FOUND;
+		if (!_scrResizeable) {
+			p.x = x * _Window->winWidth / _Screen->buffer1->sizeX;
+			p.y = y * _Window->winHeight / _Screen->buffer1->sizeY;
+		}
+		else {
+			p.x = x;
+			p.y = y;
+		}
+		ClientToScreen(_Window->hwnd, &p);
+		TrackPopupMenu(popupMenu[i].hm, TPM_LEFTALIGN,
+			p.x, p.y, 0, _Window->hwnd, NULL);
+	}
+	else {
+		for (i = 0; i < _popupNum; i++) {
+			if (popupMenu[i].id == menu)break;
+		}
+		if (i == _popupNum)return SG_OBJECT_NOT_FOUND;
+		if (_wndList[currentWindow].scrResizeable) {
+			p.x = x * _wndList[currentWindow].winWidth /
+				_wndList[currentWindow].buffer1->sizeX;
+			p.y = y * _wndList[currentWindow].winHeight /
+				_wndList[currentWindow].buffer1->sizeY;
+		}
+		else {
+			p.x = x;
+			p.y = y;
+		}
+		ClientToScreen(_wndList[currentWindow].hwnd, &p);
+		TrackPopupMenu(popupMenu[i].hm, TPM_LEFTALIGN,
+			p.x, p.y, 0, _wndList[currentWindow].hwnd, NULL);
+	}
+
+	return SG_NO_ERORR;
+}
+
+
+/*
 * Bitmap interfaces.
 * Started in v0.0.0
 */
@@ -4442,7 +4453,7 @@ void setColor(int r, int g, int b) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
 	if (currentWindow == -1) {
-		if (checkThread())return;
+		if (_checkThread())return;
 
 		_Screen->rgb[0] = r % 256;
 		_Screen->rgb[1] = g % 256;
@@ -4466,7 +4477,7 @@ void setFontSize(int height) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
 	if (currentWindow == -1) {
-		if (checkThread())return;
+		if (_checkThread())return;
 
 		if (height<SG_MAX_FONT_LENGTH)tf.size = height;
 		else tf.size = SG_MAX_FONT_LENGTH;
@@ -4498,7 +4509,7 @@ void setFontName(const char *name) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
 	if (currentWindow == -1) {
-		if (checkThread())return;
+		if (_checkThread())return;
 
 		if (tf.name)free((void *)tf.name);
 		tf.name = _widen(name);
@@ -4531,7 +4542,7 @@ void setFontStyle(int coeff) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
 	if (currentWindow == -1) {
-		if (checkThread())return;
+		if (_checkThread())return;
 
 		tf.coeff = coeff;
 
@@ -4561,7 +4572,7 @@ void setAlpha(float alpha) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
 	if (currentWindow == -1) {
-		if (checkThread())return;
+		if (_checkThread())return;
 
 		_Screen->alpha = alpha;
 	}
@@ -4586,7 +4597,7 @@ void clearScreen() {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
 	if (currentWindow == -1) {
-		if (checkThread())return;
+		if (_checkThread())return;
 
 		if (_activePage == 0) buf = _Screen->buffer1;
 		else buf = _Screen->buffer2;
@@ -4637,7 +4648,7 @@ int putPixel(int x, int y) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return SG_INVALID_MODE;
 
 	if (currentWindow == -1) {
-		if (checkThread())return SG_WRONG_THREAD;
+		if (_checkThread())return SG_WRONG_THREAD;
 
 		if (_activePage == 0) buf = _Screen->buffer1;
 		else buf = _Screen->buffer2;
@@ -4708,7 +4719,7 @@ RGB getPixel(int x, int y) {
 	}
 
 	if (currentWindow == -1) {
-		if (checkThread()) {
+		if (_checkThread()) {
 			im.r = im.g = im.b = SG_WRONG_THREAD;
 			return im;
 		}
@@ -4748,7 +4759,7 @@ void putLine(int x1, int y1, int x2, int y2, int mode) {
 #define ABS(x) ((x > 0) ? (x) : (-x))
 
 	if (currentWindow == -1) {
-		if (checkThread())return;
+		if (_checkThread())return;
 
 		dx = x2 - x1;
 		dy = y2 - y1;
@@ -4828,7 +4839,7 @@ void putQuad(int x1, int y1, int x2, int y2, int mode) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
 	if (currentWindow == -1) {
-		if (checkThread())return;
+		if (_checkThread())return;
 
 		if (mode == SOLID_FILL)
 			for (i = x1; i <= x2; i++)
@@ -4870,7 +4881,7 @@ void putTriangle(int x1, int y1, int x2, int y2, int x3, int y3, int mode) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
 	if (currentWindow == -1) {
-		if (checkThread())return;
+		if (_checkThread())return;
 
 		c.r = _Screen->rgb[0];
 		c.g = _Screen->rgb[1];
@@ -4896,7 +4907,7 @@ void putCircle(int xc, int yc, int r, int mode) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
 	if (currentWindow == -1) {
-		if (checkThread())return;
+		if (_checkThread())return;
 
 		x = 0;
 		y = r;
@@ -5042,7 +5053,7 @@ void putEllipse(int xc, int yc, int a, int b, int mode) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
 	if (currentWindow == -1) {
-		if (checkThread())return;
+		if (_checkThread())return;
 
 		sqa = a * a;
 		sqb = b * b;
@@ -5236,7 +5247,7 @@ void putBitmap(int x, int y, bitMap bmp) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
 	if (currentWindow == -1) {
-		if (checkThread())return;
+		if (_checkThread())return;
 
 		if (_activePage == 0) buf = _Screen->buffer1;
 		else buf = _Screen->buffer2;
@@ -5280,7 +5291,7 @@ int drawBmp(int x, int y, const char *filename) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return SG_INVALID_MODE;
 
 	if (currentWindow == -1) {
-		if (checkThread())return SG_WRONG_THREAD;
+		if (_checkThread())return SG_WRONG_THREAD;
 
 		if (_activePage == 0) buf = _Screen->buffer1;
 		else buf = _Screen->buffer2;
@@ -5413,7 +5424,7 @@ void putChar(char ch, int x, int y) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
 	if (currentWindow == -1) {
-		if (checkThread())return;
+		if (_checkThread())return;
 
 		for (j = 0; j < 8; j++)
 			for (k = 7; k >= 0; k--)
@@ -5453,7 +5464,7 @@ void putString(const char *str, int x, int y) {
 	}
 
 	if (currentWindow == -1) {
-		if (checkThread())return;
+		if (_checkThread())return;
 
 		SGWINSTR _wd = NULL;
 		GetTextExtentPoint32(text.memDC, _wd = _widen(tmp), _strlenW(tmp), &text.strRect);
@@ -5493,7 +5504,7 @@ void putNumber(int n, int x, int y, char lr) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
 	if (currentWindow == -1) {
-		if (checkThread())return;
+		if (_checkThread())return;
 
 		if (lr == 'l') {
 			if (n == 0)putChar('0', x, y);
@@ -5545,7 +5556,7 @@ int stringWidth(const char *str, int x) {
 	char *tmp;
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return SG_INVALID_MODE;
-	if (checkThread())return SG_WRONG_THREAD;
+	if (_checkThread())return SG_WRONG_THREAD;
 
 	if (x < 0)return 0;
 
@@ -5576,7 +5587,7 @@ void putStringFormat(const char *str, int x, int y, ...) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
 	if (currentWindow == -1) {
-		if (checkThread())return;
+		if (_checkThread())return;
 
 		va_start(ap, y);
 		cnt = _stringPrintf(str, ap, x, y);
@@ -5595,7 +5606,7 @@ int putStringConstraint(const char *str, int x, int y, int start, int constraint
 	if (str == NULL)return SG_NULL_POINTER;
 
 	if (currentWindow == -1) {
-		if (checkThread())return SG_WRONG_THREAD;
+		if (_checkThread())return SG_WRONG_THREAD;
 
 		len = _strlenW(str) - start > constraint / 5 ? constraint / 5 : _strlenW(str) - start;
 		if (len <= 0)return 0;
@@ -5667,7 +5678,7 @@ int getImage(int left, int top, int right, int bottom, bitMap *bitmap) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return SG_INVALID_MODE;
 
 	if (currentWindow == -1) {
-		if (checkThread())return SG_WRONG_THREAD;
+		if (_checkThread())return SG_WRONG_THREAD;
 
 		if (_activePage == 0) buf = _Screen->buffer1;
 		else buf = _Screen->buffer2;
@@ -5727,7 +5738,7 @@ void putImage(int left, int top, bitMap *bitmap, int op) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
 	if (currentWindow == -1) {
-		if (checkThread())return;
+		if (_checkThread())return;
 
 		if (_activePage == 0) buf = _Screen->buffer1;
 		else buf = _Screen->buffer2;
@@ -5880,7 +5891,7 @@ void funcMap(int x1, int x2, int y1, int y2, float(*vect)(float x)) {
 	float y;
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
-	if (checkThread())return;
+	if (_checkThread())return;
 
 #define XCHG(a, b) {tmp = a; a = b; b = tmp;}
 
@@ -5995,7 +6006,7 @@ void floodFill(int x, int y, RGB c) {
 #define ISEMPTY() ((front+1)%SG_QSIZE==(rear%SG_QSIZE))
 
 	if (currentWindow == -1) {
-		if (checkThread())return;
+		if (_checkThread())return;
 
 		if (_activePage == 0) buf = _Screen->buffer1;
 		else buf = _Screen->buffer2;
@@ -6064,7 +6075,7 @@ int maskImage(int left, int top, bitMap *mask, bitMap *bitmap) {
 	bitMap *buf;
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return SG_INVALID_MODE;
-	if (checkThread())return SG_WRONG_THREAD;
+	if (_checkThread())return SG_WRONG_THREAD;
 
 	if (_activePage == 0) buf = _Screen->buffer1;
 	else buf = _Screen->buffer2;

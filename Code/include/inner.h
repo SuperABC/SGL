@@ -202,6 +202,7 @@ DWORD WINAPI _timerFunc(LPVOID pM);
 int _stringPrintf(const char *format, va_list ap, int x, int y);
 void _drawPanel();
 void _clearPanel();
+int _checkThread();
 void _bgDrawDefault(int left, int top, int right, int bottom);
 
 void _textLoop(void);
@@ -228,8 +229,6 @@ void sgSubMouse(int id, int x, int y);
 void sgSubDrag(int id, int x, int y);
 void sgSubClick(int id, int button, int state, int x, int y);
 void sgSubWheel(int id, int dir);
-
-int checkThread();
 
 void _drawWidget(int fb);
 void _drawSubWidget(int id, int fb);

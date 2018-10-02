@@ -20,6 +20,10 @@
 #define _CRT_SECURE_NO_WARNINGS
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #define _SGL_V411
+#define _SGL_GRAPHICS
+//#define _SGL_CONSOLE
+//#define _SGL_SERVER_SOCKET
+//#define _SGL_SERVER_HTTP
 
 #ifdef _DEBUG
 #define SG_LIB(name) name "d.lib"
@@ -58,7 +62,7 @@
 #define SG_MAX_FONT_SIZE 128
 #define SG_MAX_FONT_LENGTH 128
 #define SG_MAX_MENU_ITEM_NUM 128
-#define SG_MAX_CONNECTION 64
+#define SG_MAX_CONNECTION 4096
 #define SG_MCI_BUFFER_SIZE 256
 #define SG_MCI_MAX_NUM 256
 #define SG_MAX_POPUP_NUM 256
@@ -404,10 +408,6 @@ extern int currentWindow;
 extern "C" {
 #endif
 
-//Printing function when debugging.
-
-SGvoid debugf(const char *format, ...);
-
 
 //Widget callbacks. Declared here for users to 'inherit'.
 
@@ -451,6 +451,193 @@ void keyScrollHoriz(widgetObj *w, int key);
 void keyCombined(widgetObj *w, int key);
 /* Used when keyboard pressed. Parameter w for the widget object,
  * key for the ascii or the key code of the pressed key. */
+
+
+/*
+ * SG Tool interfaces
+ * These functions can be used not only in graphic modes but also in
+ * console mode and server mode.
+ */
+
+SGvoid debugf(const char *format, ...);
+/* Print the message with format to the output window when debugging. */
+
+SGint createWindow(int width, int height, const char *title, vect setup, vect loop);
+/* Create a new window with SGL canvas. The first three parameters are
+* same as initWindow, while setup and loop are functions similar to sgSetup
+* and sgLoop. */
+
+SGvoid closeWindow(int id);
+/* Close the sub window with the id given by createWindow. */
+
+SGvoid startSubWindow(int id);
+/* Start to draw in sub window with given id. Other window cannot draw until
+* endSubWindow in this window. */
+
+SGvoid endSubWindow();
+/* End drawing in sub window and other window can draw. */
+
+SGvoid delay(int t);
+/* Wait for t millisecond. During the time the window won't refresh. */
+
+SGvoid delayBegin();
+/* Used with delayEnd. To set the least time waiting between begin
+* and end. This pair of function is usually used to cotrol the time
+* of some loops. */
+
+SGint delayEnd(int t);
+/* Used with delayBegin. To set the least time waiting between begin
+* and end. This pair of function is usually used to cotrol the time
+* of some loops. */
+
+SGint random(int n);
+/* Returns a random integer between 0 and n - 1. */
+
+SGint selectFile(char name[], char start[], char format[], int idx);
+/* Use Win API Graphic mode to choose one file. Parameter name
+* is used to receive the selected file name with its path, and start
+* is the path to begin with so set it to NULL as default. Parameter
+* format is the probable file format and each format is seperated
+* with \0, and it's set to NULL as default as well. The idx is the
+* default format index which is usually set to 1. */
+
+SGint selectSave(char name[], char start[], char format[], char def[], int idx);
+/* Use Win API Graphic mode to let user input the file name that
+* they want to save. Parameter name is used to receive the input
+* file name with its path, and start is the path to begin with so set
+* it to NULL as default. Parameter format is the probable file
+* format and each format is seperated with \0, and it's set to NULL
+* as default as well. Parameter def is the default format to append
+* if no format is input. The idx is the default format index which is
+* usually set to 1. */
+
+SGint selectDir(char name[], char start[]);
+/* Use Win API Graphic mode to choose one directory. Parameter
+* name is used to receive the selected directory name with its
+* path, and start is the path to begin with so set it to NULL as
+* default. */
+
+SGvoid alertInfo(const char *info, const char *title, int mode);
+/* Create a new dialog to show or confirm some information.
+* Parameter info is the text while title is title, and mode is one
+* of the enums in _alert. */
+
+SGint initMidi();
+/* Make midi output device active so that digital music can be
+* played by SGL program. */
+
+SGvoid changeInstrument(int in);
+/* Change current instrument to parameter in which is enumed
+* in _instrument. */
+
+SGvoid playMidi(int tune, int volume, int sw);
+/* Play one midi note with tune and volume. Parameter sw is set
+* to 1 if it's switched on and 0 if it's switched off.*/
+
+SGint playMidiFile(const char *filename);
+/* Play the midi file with name filename. The return value is the
+* music id. */
+
+SGvoid stopMidiFile(int id);
+/* Stop the playing midi music with its id. */
+
+SGvoid pauseMidiFile(int id);
+/* Pause the playing midi music with its id. */
+
+SGvoid resumeMidiFile(int id);
+/* Resume the paused midi music with its id. */
+
+SGvoid initMci();
+/* Initialize the media(mp3) device. */
+
+SGint loadMciSrc(const char *filename);
+/* Load the file in format mp3 to memory, the return value is its identifier.
+* Then operate the music using this identifier.*/
+
+SGint playMci(int id);
+/* Start playing the music with the given id. */
+
+SGint stopMci(int id);
+/* Stop playing the music with the given id, then roll back to its start. */
+
+SGint pauseMci(int id);
+/* Pause the music with the given id. */
+
+SGint resumeMci(int id);
+/* Resume playing the music with the given id at the pause point.*/
+
+SGvoid createThread(vect func);
+/* Create a thread with function func which means that the new thread
+* will start running with func. */
+
+SGvoid timerThread(vect func, int millis, int time);
+/* Create a timer using multy thread. Parameter func is the timer function,
+* millis is the interval */
+
+SGint copyText(const char *src);
+/* Copy the given text into windows clipboard so that it can be pasted
+* to other programs. */
+
+SGstring pasteText();
+/* Return the text in clipboard. The return string need to be freed by
+* the programmer. */
+
+SOCKET createServer(int port);
+/* Set up a server(both local and remote), for diy communication, port should
+* be greater than 1023 and less than 65536. The return value is the socket
+* of the server. */
+
+SOCKET createClient(const char *server, int port);
+/* Set up a client and connect to server(localhost is "127.0.0.1), the port
+* should be equal to the one set by server. The return value is the socket
+* of the client. */
+
+SOCKET acceptOne(SOCKET server);
+/* Used by a server to accept one request, one acceptOne should answer
+* one createClient. The return value is the socket of the connection. */
+
+SGint socketSend(SOCKET s, const char *buffer);
+/* Used to send a string via one connection, socket s stands for the socket
+* of the given connection. */
+
+SGint socketReceive(SOCKET s, char *buffer, int len);
+/* Used to receive a string via one connection, socket s stands for the
+* socket of the given connection. Parameter len is the max length to receive,
+* if more content is sending, the rest will wait. If the connection is stopped,
+* the return value is SG_CONNECTION_FAILED. */
+
+SGvoid closeSocket(SOCKET s);
+/* When one the connection is cut, we should close the socket of this
+* connection. */
+
+SGvoid setIcon(const char *ico);
+/* Set the running-time icon for the window. The icon will appear
+* at top_left in the caption bar and in the tray. */
+
+bitMap *copyPic(bitMap *src);
+/* Copy picture from src to dst. */
+
+bitMap *grayPic(bitMap *src);
+/* Change source picture to grayscale picture. */
+
+bitMap *binaryPic(bitMap *src, int threshold);
+/* Change source picture to binary picture. */
+
+bitMap *zoomPic(bitMap *src, float rate);
+/* Zoom in (rate < 1) or zoom out (rate > 1). */
+
+bitMap *rotatePic(bitMap *src, bitMap *mask, float angle);
+/* Rotate the source picture and output the mask. */
+
+bitMap *filterPic(bitMap *src, int mode);
+/* Use different kinds of filter to enhance the quality of the given
+* source picture. */
+
+bitMap *luminantPic(bitMap *src, int delta);
+/* Change the luminance of the source picture. */
+
+bitMap *contrastPic(bitMap *src, int delta);
+/* Change the luminance of the source picture. */
 
 
 /*
@@ -498,6 +685,21 @@ SGvoid clearKeyBuffer();
 SGvoid initMouse(int mode);
 /* Make mouse active, or no callback will occur when mouse move or click. */
 
+vec2 mousePos();
+/* Returns the current position of the cursor. */
+
+SGint mouseStatus(int b);
+/* Returns whether one of the three mouse button is push down.
+* Parameter b can be SG_LEFT_BUTTON or SG_RIGHT_BUTTON or
+* SG_MIDDLE_BUTTON. */
+
+vec3 biosMouse(int cmd);
+/* Main function to deal with mouse event. The parameter cmd can be
+* 0 or 1. Details of the usage are in instruction pdf. */
+
+SGvoid clearMouseBuffer();
+/* Delete all mouse events before current time. */
+
 SGvoid enablePanel();
 /* Enable right click and move the mouse to select one funtion. */
 
@@ -518,89 +720,6 @@ SGint changePanelItem(int id, const char *name, vect function);
 SGint deletePanelItem(int id);
 /* delete one input panel item with the given id. The return value is
  * the error if occured. */
-
-vec2 mousePos();
-/* Returns the current position of the cursor. */
-
-SGint mouseStatus(int b);
-/* Returns whether one of the three mouse button is push down.
- * Parameter b can be SG_LEFT_BUTTON or SG_RIGHT_BUTTON or
- * SG_MIDDLE_BUTTON. */
-
-vec3 biosMouse(int cmd);
-/* Main function to deal with mouse event. The parameter cmd can be
- * 0 or 1. Details of the usage are in instruction pdf. */
-
-SGvoid clearMouseBuffer();
-/* Delete all mouse events before current time. */
-
-SGint initMidi();
-/* Make midi output device active so that digital music can be
- * played by SGL program. */
-
-SGvoid changeInstrument(int in);
-/* Change current instrument to parameter in which is enumed
- * in _instrument. */
-
-SGvoid playMidi(int tune, int volume, int sw);
-/* Play one midi note with tune and volume. Parameter sw is set
- * to 1 if it's switched on and 0 if it's switched off.*/
-
-SGint playMidiFile(const char *filename);
-/* Play the midi file with name filename. The return value is the
- * music id. */
-
-SGvoid stopMidiFile(int id);
-/* Stop the playing midi music with its id. */
-
-SGvoid pauseMidiFile(int id);
-/* Pause the playing midi music with its id. */
-
-SGvoid resumeMidiFile(int id);
-/* Resume the paused midi music with its id. */
-
-SGvoid initMci();
-/* Initialize the media(mp3) device. */
-
-SGint loadMciSrc(const char *filename);
-/* Load the file in format mp3 to memory, the return value is its identifier.
- * Then operate the music using this identifier.*/
-
-SGint playMci(int id);
-/* Start playing the music with the given id. */
-
-SGint stopMci(int id);
-/* Stop playing the music with the given id, then roll back to its start. */
-
-SGint pauseMci(int id);
-/* Pause the music with the given id. */
-
-SGint resumeMci(int id);
-/* Resume playing the music with the given id at the pause point.*/
-
-SGvoid createThread(vect func);
-/* Create a thread with function func which means that the new thread
-  * will start running with func. */
-
-SGvoid timerThread(vect func, int millis, int time);
-/* Create a timer using multy thread. Parameter func is the timer function,
- * millis is the interval */
-
-SGvoid delay(int t);
-/* Wait for t millisecond. During the time the window won't refresh. */
-
-SGvoid delayBegin();
-/* Used with delayEnd. To set the least time waiting between begin
- * and end. This pair of function is usually used to cotrol the time
- * of some loops. */
-
-SGint delayEnd(int t);
-/* Used with delayBegin. To set the least time waiting between begin
- * and end. This pair of function is usually used to cotrol the time
- * of some loops. */
-
-SGint random(int n);
-/* Returns a random integer between 0 and n - 1. */
 
 vect getVect(int intn);
 /* Returns the current vector function of number intn. Details are
@@ -633,35 +752,6 @@ SGvoid setActivePage(int page);
 SGvoid setVisualPage(int page);
 /* Choose which page is now showing. */
 
-SGint selectFile(char name[], char start[], char format[], int idx);
-/* Use Win API Graphic mode to choose one file. Parameter name
-* is used to receive the selected file name with its path, and start
-* is the path to begin with so set it to NULL as default. Parameter
-* format is the probable file format and each format is seperated
-* with \0, and it's set to NULL as default as well. The idx is the
-* default format index which is usually set to 1. */
-
-SGint selectSave(char name[], char start[], char format[], char def[], int idx);
-/* Use Win API Graphic mode to let user input the file name that
-* they want to save. Parameter name is used to receive the input
-* file name with its path, and start is the path to begin with so set
-* it to NULL as default. Parameter format is the probable file
-* format and each format is seperated with \0, and it's set to NULL
-* as default as well. Parameter def is the default format to append
-* if no format is input. The idx is the default format index which is
-* usually set to 1. */
-
-SGint selectDir(char name[], char start[]);
-/* Use Win API Graphic mode to choose one directory. Parameter
-* name is used to receive the selected directory name with its
-* path, and start is the path to begin with so set it to NULL as
-* default. */
-
-SGvoid alertInfo(const char *info, const char *title, int mode);
-/* Create a new dialog to show or confirm some information.
-* Parameter info is the text while title is title, and mode is one
-* of the enums in _alert. */
-
 SGint initMenu();
 /* Allow this program to use windows main menu. The return value 
  * is the main menu id which will be used when add lists or items into
@@ -690,42 +780,6 @@ SGvoid checkItem(int id);
 
 SGvoid uncheckItem(int id);
 /* Make the item of id unchecked and clear the tick on the left.*/
-
-SGint copyText(const char *src);
-/* Copy the given text into windows clipboard so that it can be pasted
- * to other programs. */
-
-SGstring pasteText();
-/* Return the text in clipboard. The return string need to be freed by
- * the programmer. */
-
-SOCKET createServer(int port);
-/* Set up a server(both local and remote), for diy communication, port should
- * be greater than 1023 and less than 65536. The return value is the socket
- * of the server. */
-
-SOCKET createClient(const char *server, int port);
-/* Set up a client and connect to server(localhost is "127.0.0.1), the port
- * should be equal to the one set by server. The return value is the socket
- * of the client. */
-
-SOCKET acceptOne(SOCKET server);
-/* Used by a server to accept one request, one acceptOne should answer
- * one createClient. The return value is the socket of the connection. */
-
-SGint socketSend(SOCKET s, const char *buffer);
-/* Used to send a string via one connection, socket s stands for the socket
- * of the given connection. */
-
-SGint socketReceive(SOCKET s, char *buffer, int len);
-/* Used to receive a string via one connection, socket s stands for the
- * socket of the given connection. Parameter len is the max length to receive,
- * if more content is sending, the rest will wait. If the connection is stopped,
- * the return value is SG_CONNECTION_FAILED. */
-
-SGvoid closeSocket(SOCKET s);
-/* When one the connection is cut, we should close the socket of this
- * connection. */
 
 SGvoid hideCaption();
 /* Hide the caption bar at the top. */
@@ -776,50 +830,6 @@ SGint finishPopupMenu(int id);
 SGint showPopupMenu(int menu, int x, int y);
 /* The popup menu with given parameter can be shown with top-left corner at (x, y)
  * by calling this function. */
-
-int createWindow(int width, int height, const char *title, vect setup, vect loop);
-/* Create a new window with SGL canvas. The first three parameters are
- * same as initWindow, while setup and loop are functions similar to sgSetup
- * and sgLoop. */
-
-void closeWindow(int id);
-/* Close the sub window with the id given by createWindow. */
-
-void startSubWindow(int id);
-/* Start to draw in sub window with given id. Other window cannot draw until
- * endSubWindow in this window. */
-
-void endSubWindow();
-/* End drawing in sub window and other window can draw. */
-
-SGvoid setIcon(const char *ico);
-/* Set the running-time icon for the window. The icon will appear
- * at top_left in the caption bar and in the tray. */
-
-bitMap *copyPic(bitMap *src);
-/* Copy picture from src to dst. */
-
-bitMap *grayPic(bitMap *src);
-/* Change source picture to grayscale picture. */
-
-bitMap *binaryPic(bitMap *src, int threshold);
-/* Change source picture to binary picture. */
-
-bitMap *zoomPic(bitMap *src, float rate);
-/* Zoom in (rate < 1) or zoom out (rate > 1). */
-
-bitMap *rotatePic(bitMap *src, bitMap *mask, float angle);
-/* Rotate the source picture and output the mask. */
-
-bitMap *filterPic(bitMap *src, int mode);
-/* Use different kinds of filter to enhance the quality of the given
-* source picture. */
-
-bitMap *luminantPic(bitMap *src, int delta);
-/* Change the luminance of the source picture. */
-
-bitMap *contrastPic(bitMap *src, int delta);
-/* Change the luminance of the source picture. */
 
 widgetObj *newWidget(int type, const char *name);
 /* Returns a widget with default parameter. */
@@ -1026,7 +1036,6 @@ SGvoid putText(int left, int top, textMap *text);
 * These functions are used to deal with big data.
 */
 
-
 struct JSON *createJson();
 /* Create an empty json object. */
 
@@ -1077,13 +1086,25 @@ void setArrayElement(struct JSON *json, int idx, struct JSON *j);
 
 //User main functions.
 
+#ifndef _SGL_CONSOLE
+
 void sgSetup();
 /* For initializing. */
 
 void sgLoop();
 /* For main loop. */
 
+#endif
+
+#ifndef _SGL_GRAPHICS
+
+int sgMain(int argc, char *argv[]);
+
+#endif
+
 #ifdef __cplusplus
 }
 #endif
 #endif
+
+
