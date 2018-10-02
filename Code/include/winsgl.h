@@ -651,6 +651,9 @@ SGvoid initWindow(int width, int height, const char *title, int mode);
  * Actually this function just set the variables, the real window will
  * be created before sgLoop(). */
 
+SGvoid initPolarWindow(int cx, int cy, int r);
+/* Use circle window. The centre is (cx, cy) and the radius is r. */
+
 SGvoid setWindow(int left, int up);
 /* Used to move the window to the coordinate (left, up). */
 

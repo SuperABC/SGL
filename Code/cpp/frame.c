@@ -17,6 +17,7 @@ static struct _vect *_Vector;
 * Started in v0.0.0
 */
 int _sglMode, _innerFunc;
+int _sglCircle = 0, _sglCircleCx, _sglCircleCy, _sglCircleR;
 int _scrResizeable = 0;
 void(*_resizeFunc)(int x, int y) = NULL;
 int _delaySE = 0, _inDelay = 0;
@@ -369,6 +370,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			_createMenu(MT_MAIN, NULL, mainMenu.hm);
 			SetMenu(_Window->hwnd, mainMenu.hm);
 		}
+
+		if (_sglCircle) {
+			SetWindowRgn(_Window->hwnd,
+				CreateEllipticRgn(_sglCircleCx - _sglCircleR + 8, _sglCircleCy - _sglCircleR + 8,
+					_sglCircleCx + _sglCircleR + 8, _sglCircleCy + _sglCircleR + 8), TRUE);
+			hideCaption();
+		}
+
 		return 0;
 
 	case WM_COMMAND:
@@ -3046,6 +3055,57 @@ int _checkThread() {
 	}
 	else return 0;
 }
+void _putPixel(int x, int y, bitMap *buf) {
+	int p, i;
+
+	p = (y * buf->sizeX + x) * 3;
+	if (_Screen->alpha == 1.f) {
+		buf->data[p] = _Screen->rgb[2];
+		buf->data[p + 1] = _Screen->rgb[1];
+		buf->data[p + 2] = _Screen->rgb[0];
+	}
+	else {
+		buf->data[p] = (int)(buf->data[p] * (1.f - _Screen->alpha));
+		buf->data[p] += (int)(_Screen->rgb[2] * (_Screen->alpha));
+		buf->data[p + 1] = (int)(buf->data[p + 1] * (1.f - _Screen->alpha));
+		buf->data[p + 1] += (int)(_Screen->rgb[1] * (_Screen->alpha));
+		buf->data[p + 2] = (int)(buf->data[p + 2] * (1.f - _Screen->alpha));
+		buf->data[p + 2] += (int)(_Screen->rgb[0] * (_Screen->alpha));
+	}
+
+	for (i = 0; i < Widget->count; i++) {
+		if (_drawingWidget == i)continue;
+		if (!Widget->obj[i]->valid)continue;
+		if (inWidget(Widget->obj[i], x, y))Widget->obj[i]->valid = 0;
+	}
+}
+void _putSubPixel(int x, int y, bitMap *buf) {
+	int p, i;
+
+	p = (y * buf->sizeX + x) * 3;
+	if (_wndList[currentWindow].alpha == 1.f) {
+		buf->data[p] = _wndList[currentWindow].rgb[2];
+		buf->data[p + 1] = _wndList[currentWindow].rgb[1];
+		buf->data[p + 2] = _wndList[currentWindow].rgb[0];
+	}
+	else {
+		buf->data[p] = (int)(buf->data[p] * (1.f - _wndList[currentWindow].alpha));
+		buf->data[p] +=
+			(int)(_wndList[currentWindow].rgb[2] * (_wndList[currentWindow].alpha));
+		buf->data[p + 1] = (int)(buf->data[p + 1] * (1.f - _wndList[currentWindow].alpha));
+		buf->data[p + 1] +=
+			(int)(_wndList[currentWindow].rgb[1] * (_wndList[currentWindow].alpha));
+		buf->data[p + 2] = (int)(buf->data[p + 2] * (1.f - _wndList[currentWindow].alpha));
+		buf->data[p + 2] +=
+			(int)(_wndList[currentWindow].rgb[0] * (_wndList[currentWindow].alpha));
+	}
+	for (i = 0; i < _wndList[currentWindow].widget->count; i++) {
+		if (_wndList[currentWindow].drawingWidget == i)continue;
+		if (!_wndList[currentWindow].widget->obj[i]->valid)continue;
+		if (inWidget(_wndList[currentWindow].widget->obj[i], x, y))
+			_wndList[currentWindow].widget->obj[i]->valid = 0;
+	}
+}
 void _bgDrawDefault(int left, int top, int right, int bottom) {
 	setColor(255, 255, 255);
 	putQuad(left, top, right, bottom, SOLID_FILL);
@@ -3852,6 +3912,17 @@ void initWindow(int width, int height, const char *title, int mode) {
 
 	strcpy(_Window->winName, title);
 	strcat(_Window->winName, "  --powered by Super GP");
+}
+void initPolarWindow(int cx, int cy, int r) {
+	_sglMode = BIT_MAP;
+
+	_Window->winWidth = 2 * r;
+	_Window->winHeight = 2 * r;
+
+	_sglCircle = 1;
+	_sglCircleCx = cx;
+	_sglCircleCy = cy;
+	_sglCircleR = r;
 }
 void setWindow(int left, int up) {
 	_Window->posLeft = left;
@@ -4907,7 +4978,7 @@ void putQuad(int x1, int y1, int x2, int y2, int mode) {
 			for (i = 0; i < _wndList[currentWindow].widget->count; i++) {
 				if (_wndList[currentWindow].drawingWidget == i)continue;
 				if (!_wndList[currentWindow].widget->obj[i]->valid)continue;
-				if (inWidget(_wndList[currentWindow].widget->obj[i], x1, y1, x2, y2))
+				if (crossWidget(_wndList[currentWindow].widget->obj[i], x1, y1, x2, y2))
 					_wndList[currentWindow].widget->obj[i]->valid = 0;
 			}
 		}
@@ -5310,6 +5381,12 @@ void putBitmap(int x, int y, bitMap bmp) {
 				memcpy(vp + lines, bmp.data + i * width * 3, (buf->sizeX - x) * 3);
 			else memcpy(vp + lines, bmp.data + i * width * 3, width * 3);
 		}
+
+		for (i = 0; i < Widget->count; i++) {
+			if (_drawingWidget == i)continue;
+			if (!Widget->obj[i]->valid)continue;
+			if (crossWidget(Widget->obj[i], x, y, x + bmp.sizeX, y + bmp.sizeY))Widget->obj[i]->valid = 0;
+		}
 	}
 	else{
 		if (_wndList[currentWindow].activePage == 0)
@@ -5324,6 +5401,13 @@ void putBitmap(int x, int y, bitMap bmp) {
 			if (x + width > buf->sizeX)
 				memcpy(vp + lines, bmp.data + i * width * 3, (buf->sizeX - x) * 3);
 			else memcpy(vp + lines, bmp.data + i * width * 3, width * 3);
+		}
+
+		for (i = 0; i < _wndList[currentWindow].widget->count; i++) {
+			if (_wndList[currentWindow].drawingWidget == i)continue;
+			if (!_wndList[currentWindow].widget->obj[i]->valid)continue;
+			if (crossWidget(_wndList[currentWindow].widget->obj[i], x, y, x + bmp.sizeX, y + bmp.sizeY))
+				_wndList[currentWindow].widget->obj[i]->valid = 0;
 		}
 	}
 }
@@ -5375,6 +5459,12 @@ int drawBmp(int x, int y, const char *filename) {
 				memcpy(vp + lines, p, (buf->sizeX - x) * 3);
 			else memcpy(vp + lines, p, width * 3);
 		}
+
+		for (i = 0; i < Widget->count; i++) {
+			if (_drawingWidget == i)continue;
+			if (!Widget->obj[i]->valid)continue;
+			if (crossWidget(Widget->obj[i], x, y, x + width, y + height))Widget->obj[i]->valid = 0;
+		}
 	}
 	else {
 		if (_wndList[currentWindow].activePage == 0)
@@ -5410,6 +5500,13 @@ int drawBmp(int x, int y, const char *filename) {
 			if (x + width > buf->sizeX)
 				memcpy(vp + lines, p, (buf->sizeX - x) * 3);
 			else memcpy(vp + lines, p, width * 3);
+		}
+
+		for (i = 0; i < _wndList[currentWindow].widget->count; i++) {
+			if (_wndList[currentWindow].drawingWidget == i)continue;
+			if (!_wndList[currentWindow].widget->obj[i]->valid)continue;
+			if (crossWidget(_wndList[currentWindow].widget->obj[i], x, y, x + width, y + height))
+				_wndList[currentWindow].widget->obj[i]->valid = 0;
 		}
 	}
 

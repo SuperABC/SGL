@@ -32,7 +32,7 @@
     <ClCompile Include="Code\cpp\data.c">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Sample\8-Widget\output.c">
+    <ClCompile Include="Sample\12-Circle\polar.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
