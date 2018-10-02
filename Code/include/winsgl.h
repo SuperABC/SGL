@@ -19,7 +19,7 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
-#define _SGL_V410
+#define _SGL_V411
 
 #ifdef _DEBUG
 #define SG_LIB(name) name "d.lib"
