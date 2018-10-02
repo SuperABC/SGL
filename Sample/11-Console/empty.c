@@ -1,5 +1,7 @@
 #include "winsgl.h"
+SGL_CONSOLE_FRAME
 
-int sgMain(int argc, char *argv[]) {
+int main() {
 	printf("Hello world!");
+	getchar();
 }

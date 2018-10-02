@@ -350,7 +350,6 @@ int subNum = 0;
 * Graphic frames started in v2.0.0
 * Console and server frames started in v4.1.1.
 */
-#ifndef _SGL_CONSOLE
 LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
 	static int  cxClient, cyClient, cxSource, cySource;
 	static HBITMAP hBitmap;
@@ -499,6 +498,113 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 
 	return DefWindowProc(hwnd, message, wParam, lParam);
 }
+LRESULT CALLBACK SubWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
+	static int  cxClient, cyClient;
+	HDC hdc;
+	PAINTSTRUCT ps;
+
+	int index;
+	for (index = 0; index < SG_MAX_WINDOW_NUM; index++) {
+		if (hwnd == _wndList[index].hwnd)break;
+	}
+	if (index == SG_MAX_WINDOW_NUM)
+		return DefWindowProc(hwnd, message, wParam, lParam);
+	if (!_wndList[index].inLoop) {
+		_wndList[index].inLoop = 1;
+		SetTimer(hwnd, TIMER_DELTA_HANDLE, 10, NULL);
+	}
+	switch (message) {
+	case WM_CREATE:
+		return 0;
+
+	case WM_COMMAND:
+		return 0;
+
+	case WM_SIZE:
+		_wndList[index].winWidth = cxClient = LOWORD(lParam);
+		_wndList[index].winHeight = cyClient = HIWORD(lParam);
+		if (_wndList[index].resizeFunc)_wndList[index].resizeFunc(cxClient, cyClient);
+		return 0;
+
+	case WM_PAINT:
+		_drawSubWidget(index, WIDGET_FRONT);
+
+		hdc = BeginPaint(hwnd, &ps);
+		if (_wndList[index].visualPage == 0) _makeSubBitmap(hdc, index, _wndList[index].buffer1->data,
+			_wndList[index].buffer1->sizeX, _wndList[index].buffer1->sizeY, 24);
+		else _makeSubBitmap(hdc, index, _wndList[index].buffer2->data,
+			_wndList[index].buffer2->sizeX, _wndList[index].buffer2->sizeY, 24);
+		EndPaint(hwnd, &ps);
+
+		_drawSubWidget(index, WIDGET_BACK);
+
+		return 0;
+
+	case WM_TIMER:
+		_wndList[index].loop();
+		InvalidateRect(hwnd, NULL, FALSE);
+		return 0;
+
+	case WM_TRAY:
+		return 0;
+
+	case	WM_SETCURSOR:
+		return 0;
+
+	case WM_KEYDOWN:
+		sgSubSpecial(index, (int)wParam, 0, 0);
+		return 0;
+
+	case WM_CHAR:
+		sgSubKey(index, (int)wParam |
+			((GetKeyState(VK_CONTROL) & 0x8000) >> 1) |
+			((GetKeyState(VK_SHIFT) & 0x8000) >> 2), 0, 0);
+		return 0;
+
+	case WM_KEYUP:
+		sgSubKeyUp(index, (int)wParam, 0, 0);
+		sgSubSpecialUp(index, (int)wParam, 0, 0);
+		return 0;
+
+	case WM_MOUSEMOVE:
+		if (!wParam)sgSubMouse(index, LOWORD(lParam), HIWORD(lParam));
+		else sgSubDrag(index, LOWORD(lParam), HIWORD(lParam));
+		return 0;
+
+	case WM_MOUSEWHEEL:
+		sgSubWheel(index, (short)HIWORD(wParam));
+		return 0;
+
+	case WM_LBUTTONDOWN:
+		sgSubClick(index, SG_LEFT_BUTTON, SG_BUTTON_DOWN, LOWORD(lParam), HIWORD(lParam));
+		return 0;
+
+	case WM_MBUTTONDOWN:
+		sgSubClick(index, SG_MIDDLE_BUTTON, SG_BUTTON_DOWN, LOWORD(lParam), HIWORD(lParam));
+		return 0;
+
+	case WM_RBUTTONDOWN:
+		sgSubClick(index, SG_RIGHT_BUTTON, SG_BUTTON_DOWN, LOWORD(lParam), HIWORD(lParam));
+		return 0;
+
+	case WM_LBUTTONUP:
+		sgSubClick(index, SG_LEFT_BUTTON, SG_BUTTON_UP, LOWORD(lParam), HIWORD(lParam));
+		return 0;
+
+	case WM_MBUTTONUP:
+		sgSubClick(index, SG_MIDDLE_BUTTON, SG_BUTTON_UP, LOWORD(lParam), HIWORD(lParam));
+		return 0;
+
+	case WM_RBUTTONUP:
+		sgSubClick(index, SG_RIGHT_BUTTON, SG_BUTTON_UP, LOWORD(lParam), HIWORD(lParam));
+		return 0;
+
+	case WM_DESTROY:
+		return 0;
+	}
+
+	return DefWindowProc(hwnd, message, wParam, lParam);
+}
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
 	WNDCLASSEX wc;
 	HWND hwnd;
@@ -546,6 +652,12 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	}
 	return (int)msg.wParam;
 }
+
+/*
+* Remained OpenGL functions.
+* Origin OpenGL functions start in v0.0.0.
+* These OpenGL callback functions start in v2.0.0
+*/
 void sgInit() {
 	int i, winPx, winPy;
 
@@ -672,126 +784,6 @@ void sgInit() {
 
 	setBackgroundRefresh(_bgDrawDefault);
 }
-#endif
-#ifndef _SGL_GRAPHICS
-int main(int argc, char *argv[]) {
-	sgMain(argc, argv);
-	getchar();
-}
-#endif
-LRESULT CALLBACK SubWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) {
-	static int  cxClient, cyClient;
-	HDC hdc;
-	PAINTSTRUCT ps;
-
-	int index;
-	for (index = 0; index < SG_MAX_WINDOW_NUM; index++) {
-		if (hwnd == _wndList[index].hwnd)break;
-	}
-	if (index == SG_MAX_WINDOW_NUM)
-		return DefWindowProc(hwnd, message, wParam, lParam);
-	if (!_wndList[index].inLoop) {
-		_wndList[index].inLoop = 1;
-		SetTimer(hwnd, TIMER_DELTA_HANDLE, 10, NULL);
-	}
-	switch (message) {
-	case WM_CREATE:
-		return 0;
-
-	case WM_COMMAND:
-		return 0;
-
-	case WM_SIZE:
-		_wndList[index].winWidth = cxClient = LOWORD(lParam);
-		_wndList[index].winHeight = cyClient = HIWORD(lParam);
-		if (_wndList[index].resizeFunc)_wndList[index].resizeFunc(cxClient, cyClient);
-		return 0;
-
-	case WM_PAINT:
-		_drawSubWidget(index, WIDGET_FRONT);
-
-		hdc = BeginPaint(hwnd, &ps);
-		if (_wndList[index].visualPage == 0) _makeSubBitmap(hdc, index, _wndList[index].buffer1->data,
-			_wndList[index].buffer1->sizeX, _wndList[index].buffer1->sizeY, 24);
-		else _makeSubBitmap(hdc, index, _wndList[index].buffer2->data,
-			_wndList[index].buffer2->sizeX, _wndList[index].buffer2->sizeY, 24);
-		EndPaint(hwnd, &ps);
-
-		_drawSubWidget(index, WIDGET_BACK);
-
-		return 0;
-
-	case WM_TIMER:
-		_wndList[index].loop();
-		InvalidateRect(hwnd, NULL, FALSE);
-		return 0;
-
-	case WM_TRAY:
-		return 0;
-
-	case	WM_SETCURSOR:
-		return 0;
-
-	case WM_KEYDOWN:
-		sgSubSpecial(index, (int)wParam, 0, 0);
-		return 0;
-
-	case WM_CHAR:
-		sgSubKey(index, (int)wParam |
-			((GetKeyState(VK_CONTROL) & 0x8000) >> 1) |
-			((GetKeyState(VK_SHIFT) & 0x8000) >> 2), 0, 0);
-		return 0;
-
-	case WM_KEYUP:
-		sgSubKeyUp(index, (int)wParam, 0, 0);
-		sgSubSpecialUp(index, (int)wParam, 0, 0);
-		return 0;
-
-	case WM_MOUSEMOVE:
-		if (!wParam)sgSubMouse(index, LOWORD(lParam), HIWORD(lParam));
-		else sgSubDrag(index, LOWORD(lParam), HIWORD(lParam));
-		return 0;
-
-	case WM_MOUSEWHEEL:
-		sgSubWheel(index, (short)HIWORD(wParam));
-		return 0;
-
-	case WM_LBUTTONDOWN:
-		sgSubClick(index, SG_LEFT_BUTTON, SG_BUTTON_DOWN, LOWORD(lParam), HIWORD(lParam));
-		return 0;
-
-	case WM_MBUTTONDOWN:
-		sgSubClick(index, SG_MIDDLE_BUTTON, SG_BUTTON_DOWN, LOWORD(lParam), HIWORD(lParam));
-		return 0;
-
-	case WM_RBUTTONDOWN:
-		sgSubClick(index, SG_RIGHT_BUTTON, SG_BUTTON_DOWN, LOWORD(lParam), HIWORD(lParam));
-		return 0;
-
-	case WM_LBUTTONUP:
-		sgSubClick(index, SG_LEFT_BUTTON, SG_BUTTON_UP, LOWORD(lParam), HIWORD(lParam));
-		return 0;
-
-	case WM_MBUTTONUP:
-		sgSubClick(index, SG_MIDDLE_BUTTON, SG_BUTTON_UP, LOWORD(lParam), HIWORD(lParam));
-		return 0;
-
-	case WM_RBUTTONUP:
-		sgSubClick(index, SG_RIGHT_BUTTON, SG_BUTTON_UP, LOWORD(lParam), HIWORD(lParam));
-		return 0;
-
-	case WM_DESTROY:
-		return 0;
-	}
-
-	return DefWindowProc(hwnd, message, wParam, lParam);
-}
-
-/*
-* Remained OpenGL functions.
-* Origin OpenGL functions start in v0.0.0.
-* These OpenGL callback functions start in v2.0.0
-*/
 void sgKey(int cAscii, int x, int y) {
 	widgetObj *tmp;
 	int ctrl, shift;

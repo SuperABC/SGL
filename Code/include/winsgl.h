@@ -20,10 +20,6 @@
 #define _CRT_SECURE_NO_WARNINGS
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 #define _SGL_V411
-#define _SGL_GRAPHICS
-//#define _SGL_CONSOLE
-//#define _SGL_SERVER_SOCKET
-//#define _SGL_SERVER_HTTP
 
 #ifdef _DEBUG
 #define SG_LIB(name) name "d.lib"
@@ -1089,21 +1085,17 @@ void setArrayElement(struct JSON *json, int idx, struct JSON *j);
 
 //User main functions.
 
-#ifndef _SGL_CONSOLE
-
 void sgSetup();
 /* For initializing. */
 
 void sgLoop();
 /* For main loop. */
 
-#endif
+#define SGL_GRAPHICS_FRAME
+#define SGL_CONSOLE_FRAME \
+void sgSetup() {} \
+void sgLoop() {}
 
-#ifndef _SGL_GRAPHICS
-
-int sgMain(int argc, char *argv[]);
-
-#endif
 
 #ifdef __cplusplus
 }
