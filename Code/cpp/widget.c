@@ -30,6 +30,12 @@ widgetObj *newWidget(int type, const char *name) {
 
 	ret->name = (unsigned char *)malloc(strlen(name) + 1);
 	strcpy(ret->name, name);
+	ret->tf.color.r = 0;
+	ret->tf.color.g = 0;
+	ret->tf.color.b = 0;
+	ret->tf.name = _widen("Î¢ÈíÑÅºÚ");
+	ret->tf.size = 20;
+	ret->tf.coeff = 0;
 	ret->content = (unsigned char *)malloc(1024 * sizeof(unsigned char *));
 	memset(ret->content, 0, 1024 * sizeof(unsigned char *));
 
@@ -172,6 +178,12 @@ widgetObj *newCombinedWidget(int num, const char *name, ...) {
 
 	ret->name = (unsigned char *)malloc(strlen(name) + 1);
 	strcpy(ret->name, name);
+	ret->tf.color.r = 0;
+	ret->tf.color.g = 0;
+	ret->tf.color.b = 0;
+	ret->tf.name = _widen("Î¢ÈíÑÅºÚ");
+	ret->tf.size = 20;
+	ret->tf.coeff = 0;
 	ret->content = (unsigned char *)malloc(1024 * sizeof(unsigned char *));
 	memset(ret->content, 0, 1024 * sizeof(unsigned char *));
 
@@ -404,6 +416,13 @@ int getIndexByName(const char *name) {
 	}
 	return SG_OBJECT_NOT_FOUND;
 }
+void setWidgetImg(const char *name, bitMap img) {
+	widgetObj *tmp = getWidgetByName(name);
+
+	if (img.sizeX > tmp->size.x)img.sizeX = tmp->size.x;
+	if (img.sizeY > tmp->size.y)img.sizeY = tmp->size.y;
+	tmp->bgImg = img;
+}
 void showWidget(const char *name) {
 	widgetObj *obj = getWidgetByName(name);
 	if (obj == NULL)return;
@@ -539,7 +558,70 @@ void moveWidgetByName(const char *name, int xDelta, int yDelta) {
 	tmp->pos.x += xDelta;
 	tmp->pos.y += yDelta;
 }
+void setWidgetTop(const char *name) {
+	int i, len, sum;
+	struct _hash *end, *tmp;
+	widgetObj *w;
 
+	if (Widget->count <= 1)return;
+
+	sum = 0;
+	len = (int)strlen(name);
+	for (i = 0; i < len; i++)sum += name[i];
+	sum %= 256;
+	end = Widget->hash[sum];
+	while (end != NULL) {
+		if (strcmp(end->content, name) == 0)break;
+		end = end->next;
+	}
+	if (end == NULL)return;
+
+	for (i = 0; i < 256; i++) {
+		tmp = Widget->hash[i];
+		while (tmp) {
+			if (tmp->value > end->value)tmp->value--;
+			tmp = tmp->next;
+		}
+	}
+	w = Widget->obj[end->value];
+	for (i = end->value; i < Widget->count - 1; i++) {
+		Widget->obj[i] = Widget->obj[i + 1];
+	}
+	Widget->obj[Widget->count - 1] = w;
+	end->value = Widget->count - 1;
+}
+void setWidgetBottom(const char *name) {
+	int i, len, sum;
+	struct _hash *end, *tmp;
+	widgetObj *w;
+
+	if (Widget->count <= 1)return;
+
+	sum = 0;
+	len = (int)strlen(name);
+	for (i = 0; i < len; i++)sum += name[i];
+	sum %= 256;
+	end = Widget->hash[sum];
+	while (end != NULL) {
+		if (strcmp(end->content, name) == 0)break;
+		end = end->next;
+	}
+	if (end == NULL)return;
+
+	for (i = 0; i < 256; i++) {
+		tmp = Widget->hash[i];
+		while (tmp) {
+			if (tmp->value < end->value)tmp->value++;
+			tmp = tmp->next;
+		}
+	}
+	w = Widget->obj[end->value];
+	for (i = end->value - 1; i >= 0; i--) {
+		Widget->obj[i + 1] = Widget->obj[i];
+	}
+	Widget->obj[0] = w;
+	end->value = 0;
+}
 
 /*
 * Inner widget callback functions.
@@ -784,15 +866,9 @@ void mouseClickDefault(widgetObj *w, int x, int y, int status) {
 			w->valid = 0;
 		}
 	}
-	switch (w->type) {
-	case SG_BUTTON:
-		if (w->status & WIDGET_PASS &&
-			status == (SG_BUTTON_UP | SG_LEFT_BUTTON))
-			w->mouseUser(w);
-		break;
-	default:
-		break;
-	}
+	if (w->status & WIDGET_PASS &&
+		status == (SG_BUTTON_UP | SG_LEFT_BUTTON))
+		w->mouseUser(w);
 }
 void mouseClickInput(widgetObj *w, int x, int y, int status) {
 	int i = 0, len;
@@ -1415,7 +1491,7 @@ void _drawWidget(int fb) {
 			if (current->valid)continue;
 			current->valid = 1;
 
-			_drawingWidget = i;
+			_drawingWidget = 1;
 			switch (current->type) {
 			case SG_BUTTON:
 				_drawButton(current);
@@ -1461,7 +1537,7 @@ void _drawWidget(int fb) {
 				_drawCombined(current);
 				break;
 			}
-			_drawingWidget = -1;
+			_drawingWidget = 0;
 		}
 		endSubWindow();
 	}
@@ -1533,25 +1609,31 @@ void _drawSubWidget(int id, int fb) {
 void _drawButton(widgetObj *w) {
 	switch (w->style) {
 	case SG_DESIGN:
-		if (w->status&WIDGET_PRESSED)
-			setColor(w->pressColor.r, w->pressColor.g, w->pressColor.b);
-		else if (w->status&WIDGET_PASS)
-			setColor(w->passColor.r, w->passColor.g, w->passColor.b);
-		else setColor(w->bgColor.r, w->bgColor.g, w->bgColor.b);
-		putQuad(w->pos.x, w->pos.y,
-			w->pos.x + w->size.x - 1, w->pos.y + w->size.y - 1, SOLID_FILL);
-		setColor(127, 127, 127);
-		putQuad(w->pos.x, w->pos.y,
-			w->pos.x + w->size.x - 1, w->pos.y + w->size.y - 1, EMPTY_FILL);
+		if (w->bgImg.data == NULL) {
+			if (w->status&WIDGET_PRESSED)
+				setColor(w->pressColor.r, w->pressColor.g, w->pressColor.b);
+			else if (w->status&WIDGET_PASS)
+				setColor(w->passColor.r, w->passColor.g, w->passColor.b);
+			else setColor(w->bgColor.r, w->bgColor.g, w->bgColor.b);
+			putQuad(w->pos.x, w->pos.y,
+				w->pos.x + w->size.x - 1, w->pos.y + w->size.y - 1, SOLID_FILL);
+			setColor(127, 127, 127);
+			putQuad(w->pos.x, w->pos.y,
+				w->pos.x + w->size.x - 1, w->pos.y + w->size.y - 1, EMPTY_FILL);
+		}
+		else {
+			putBitmap(w->pos.x, w->pos.y, w->bgImg);
+		}
+
 		if (w->status&WIDGET_SELECTED) {
 			setColor(127, 127, 127);
 			putQuad(w->pos.x + 2, w->pos.y + 2,
 				w->pos.x + w->size.x - 3, w->pos.y + w->size.y - 3, EMPTY_FILL);
 		}
-		setColor(w->fgColor.r, w->fgColor.g, w->fgColor.b);
 
-		setFontSize(20);
-		setFontName("Î¢ÈíÑÅºÚ");
+		setColor(w->tf.color.r, w->tf.color.g, w->tf.color.b);
+		setFontSize(w->tf.size);
+		_setFontName(w->tf.name);
 		SGWINSTR _wd = NULL;
 		GetTextExtentPoint32(text.memDC, _wd = _widen(w->content), _strlenW(w->content), &text.strRect);
 		free((void *)_wd);
@@ -1575,13 +1657,18 @@ void _drawInput(widgetObj *w) {
 	w->valid = 0;
 	switch (w->style) {
 	case SG_DESIGN:
-		if (w->status&(WIDGET_PRESSED | WIDGET_SELECTED))
-			setColor(w->pressColor.r, w->pressColor.g, w->pressColor.b);
-		else if (w->status&WIDGET_PASS)
-			setColor(w->passColor.r, w->passColor.g, w->passColor.b);
-		else setColor(w->bgColor.r, w->bgColor.g, w->bgColor.b);
-		putQuad(w->pos.x, w->pos.y,
-			w->pos.x + w->size.x - 1, w->pos.y + w->size.y - 1, SOLID_FILL);
+		if (w->bgImg.data == NULL) {
+			if (w->status&(WIDGET_PRESSED | WIDGET_SELECTED))
+				setColor(w->pressColor.r, w->pressColor.g, w->pressColor.b);
+			else if (w->status&WIDGET_PASS)
+				setColor(w->passColor.r, w->passColor.g, w->passColor.b);
+			else setColor(w->bgColor.r, w->bgColor.g, w->bgColor.b);
+			putQuad(w->pos.x, w->pos.y,
+				w->pos.x + w->size.x - 1, w->pos.y + w->size.y - 1, SOLID_FILL);
+		}
+		else {
+			putBitmap(w->pos.x, w->pos.y, w->bgImg);
+		}
 		setColor(0, 0, 0);
 		putQuad(w->pos.x, w->pos.y,
 			w->pos.x + w->size.x - 1, w->pos.y + w->size.y - 1, EMPTY_FILL);
@@ -1592,8 +1679,9 @@ void _drawInput(widgetObj *w) {
 		}
 
 		SIZE tmp1, tmp2;
-		setFontSize(20);
-		setFontName("Î¢ÈíÑÅºÚ");
+		setColor(w->tf.color.r, w->tf.color.g, w->tf.color.b);
+		setFontSize(w->tf.size);
+		_setFontName(w->tf.name);
 		if (w->hide >= _strlenW(w->content)) {
 			w->value = _strlenW(w->content);
 			w->hide = w->value - 1;
@@ -1614,7 +1702,6 @@ void _drawInput(widgetObj *w) {
 				free((void *)_wd);
 			} while (tmp1.cx > tmp2.cx + w->size.x - 2 * SG_CHAR_WIDTH);
 		}
-		setColor(w->fgColor.r, w->fgColor.g, w->fgColor.b);
 		putStringConstraint(w->content,
 			w->pos.x + SG_CHAR_WIDTH,
 			w->size.y > 2 * SG_CHAR_HEIGHT ?
@@ -1651,12 +1738,20 @@ void _drawDialog(widgetObj *w) {
 
 	switch (w->style) {
 	case SG_DESIGN:
-		setColor(w->bgColor.r, w->bgColor.g, w->bgColor.b);
-		putQuad(w->pos.x, w->pos.y,
-			w->pos.x + w->size.x - 1, w->pos.y + w->size.y - 1, SOLID_FILL);
-		setColor(223, 223, 223);
-		putQuad(w->pos.x, w->pos.y,
-			w->pos.x + w->size.x - 1, w->pos.y + SG_CHAR_HEIGHT + 3, SOLID_FILL);
+		if (w->bgImg.data == NULL) {
+			setColor(w->bgColor.r, w->bgColor.g, w->bgColor.b);
+			putQuad(w->pos.x, w->pos.y,
+				w->pos.x + w->size.x - 1, w->pos.y + w->size.y - 1, SOLID_FILL);
+			setColor(223, 223, 223);
+			putQuad(w->pos.x, w->pos.y,
+				w->pos.x + w->size.x - 1, w->pos.y + SG_CHAR_HEIGHT + 3, SOLID_FILL);
+			setColor(127, 127, 127);
+			putQuad(w->pos.x, w->pos.y,
+				w->pos.x + w->size.x - 1, w->pos.y + w->size.y - 1, EMPTY_FILL);
+		}
+		else {
+			putBitmap(w->pos.x, w->pos.y, w->bgImg);
+		}
 		if (w->status&WIDGET_PRESSED)setColor(191, 63, 63);
 		else setColor(255, 63, 63);
 		putQuad(w->pos.x + w->size.x - 2 * (SG_CHAR_WIDTH + 1), w->pos.y + 2,
@@ -1666,9 +1761,6 @@ void _drawDialog(widgetObj *w) {
 			w->pos.x + w->size.x - 2, w->pos.y + SG_CHAR_HEIGHT + 1, SOLID_LINE);
 		putLine(w->pos.x + w->size.x - 2 * (SG_CHAR_WIDTH + 1), w->pos.y + SG_CHAR_HEIGHT + 2,
 			w->pos.x + w->size.x - 2, w->pos.y + 1, SOLID_LINE);
-		setColor(127, 127, 127);
-		putQuad(w->pos.x, w->pos.y,
-			w->pos.x + w->size.x - 1, w->pos.y + w->size.y - 1, EMPTY_FILL);
 
 		if (w->status&WIDGET_FOCUSED) {
 			setColor(127, 127, 127);
@@ -1679,16 +1771,16 @@ void _drawDialog(widgetObj *w) {
 		row = 0;
 		total = 0;
 		tmp = 0;
-		setColor(w->fgColor.r, w->fgColor.g, w->fgColor.b);
-		setFontSize(20);
-		setFontName("Î¢ÈíÑÅºÚ");
+		setColor(w->tf.color.r, w->tf.color.g, w->tf.color.b);
+		setFontSize(w->tf.size);
+		_setFontName(w->tf.name);
 		while (tmp = putStringConstraint((char *)w->content + total,
 			w->pos.x + SG_CHAR_WIDTH,
-			w->pos.y + (row + 1) * SG_LINE_DELTA_DEFAULT + 8, 0,
+			w->pos.y + (row + 1) * w->tf.size + 8, 0,
 			w->size.x - 2 * SG_CHAR_WIDTH)) {
 			total += tmp;
 			row++;
-			if ((row + 2) * SG_LINE_DELTA_DEFAULT > w->size.y)break;
+			if ((row + 2) * w->tf.size > w->size.y)break;
 		}
 		break;
 	case WIN_XP:
@@ -1708,29 +1800,34 @@ void _drawOutput(widgetObj *w) {
 
 	switch (w->style) {
 	case SG_DESIGN:
-		setColor(w->bgColor.r, w->bgColor.g, w->bgColor.b);
-		putQuad(w->pos.x, w->pos.y,
-			w->pos.x + w->size.x - 1, w->pos.y + w->size.y - 1, SOLID_FILL);
-		setColor(191, 191, 191);
-		putQuad(w->pos.x, w->pos.y,
-			w->pos.x + w->size.x - 1, w->pos.y + w->size.y - 1, EMPTY_FILL);
+		if (w->bgImg.data == NULL) {
+			setColor(w->bgColor.r, w->bgColor.g, w->bgColor.b);
+			putQuad(w->pos.x, w->pos.y,
+				w->pos.x + w->size.x - 1, w->pos.y + w->size.y - 1, SOLID_FILL);
+			setColor(191, 191, 191);
+			putQuad(w->pos.x, w->pos.y,
+				w->pos.x + w->size.x - 1, w->pos.y + w->size.y - 1, EMPTY_FILL);
+		}
+		else {
+			putBitmap(w->pos.x, w->pos.y, w->bgImg);
+		}
 
 		start = 0;
 		row = 0;
 		total = 0;
 		tmp = 0;
-		setColor(w->fgColor.r, w->fgColor.g, w->fgColor.b);
-		setFontSize(20);
-		setFontName("Î¢ÈíÑÅºÚ");
+		setColor(w->tf.color.r, w->tf.color.g, w->tf.color.b);
+		setFontSize(w->tf.size);
+		_setFontName(w->tf.name);
 		while (tmp = putStringConstraint((char *)w->content + total,
 			w->pos.x + SG_CHAR_WIDTH,
-			row * SG_LINE_DELTA_DEFAULT + (w->size.y > 2 * SG_CHAR_HEIGHT ?
+			row * w->tf.size + (w->size.y > 2 * SG_CHAR_HEIGHT ?
 				w->pos.y + SG_CHAR_HEIGHT / 2 :
 				w->pos.y + w->size.y / 2 - SG_CHAR_HEIGHT / 2), 0,
 			w->size.x - 2 * SG_CHAR_WIDTH)) {
 			total += tmp;
 			row++;
-			if ((row + 2) * SG_LINE_DELTA_DEFAULT > w->size.y)break;
+			if ((row + 2) * w->tf.size > w->size.y)break;
 		}
 		break;
 	case WIN_XP:
@@ -1763,12 +1860,12 @@ void _drawList(widgetObj *w) {
 				tmp += strlen(tmp) + 1;
 			}
 
-			setFontSize(20);
-			setFontName("Î¢ÈíÑÅºÚ");
+			setColor(w->tf.color.r, w->tf.color.g, w->tf.color.b);
+			setFontSize(w->tf.size);
+			_setFontName(w->tf.name);
 			i = w->size.y - w->hide*SG_LINE_DELTA_DEFAULT > 2 * SG_CHAR_HEIGHT ?
 				w->pos.y + SG_CHAR_HEIGHT / 2 :
 				w->pos.y + (w->size.y - w->hide*SG_LINE_DELTA_DEFAULT) / 2 - SG_CHAR_HEIGHT / 2;
-			setColor(w->fgColor.r, w->fgColor.g, w->fgColor.b);
 			putStringConstraint(tmp,
 				w->pos.x + SG_CHAR_WIDTH, i - 2, 0,
 				w->size.x - 2 * SG_CHAR_WIDTH);
@@ -1789,7 +1886,7 @@ void _drawList(widgetObj *w) {
 			putQuad(w->pos.x, w->pos.y + w->size.y - w->hide*SG_LINE_DELTA_DEFAULT,
 				w->pos.x + w->size.x - 1, w->pos.y + w->size.y - 1, EMPTY_FILL);
 			tmp = w->content;
-			setColor(w->fgColor.r, w->fgColor.g, w->fgColor.b);
+			setColor(w->tf.color.r, w->tf.color.g, w->tf.color.b);
 			for (i = 0; i < w->hide; i++) {
 				putStringConstraint(tmp, w->pos.x + SG_CHAR_WIDTH,
 					w->pos.y + w->size.y - (w->hide - i)*SG_LINE_DELTA_DEFAULT, 0,
@@ -1811,12 +1908,12 @@ void _drawList(widgetObj *w) {
 				tmp += strlen(tmp) + 1;
 			}
 
-			setFontSize(20);
-			setFontName("Î¢ÈíÑÅºÚ");
+			setColor(w->tf.color.r, w->tf.color.g, w->tf.color.b);
+			setFontSize(w->tf.size);
+			_setFontName(w->tf.name);
 			i = w->size.y > 2 * SG_CHAR_HEIGHT ?
 				w->pos.y + SG_CHAR_HEIGHT / 2 :
 				w->pos.y + w->size.y / 2 - SG_CHAR_HEIGHT / 2;
-			setColor(w->fgColor.r, w->fgColor.g, w->fgColor.b);
 			putStringConstraint(tmp,
 				w->pos.x + SG_CHAR_WIDTH, i - 2, 0,
 				w->size.x - 2 * SG_CHAR_WIDTH);
@@ -1842,9 +1939,11 @@ void _drawList(widgetObj *w) {
 void _drawLable(widgetObj *w) {
 	switch (w->style) {
 	case SG_DESIGN:
-		setColor(w->fgColor.r, w->fgColor.g, w->fgColor.b);
-		setFontSize(20);
-		setFontName("Î¢ÈíÑÅºÚ");
+		backgroundRefresh(
+			w->pos.x, w->pos.y, w->pos.x + w->size.x, w->pos.y + w->size.y);
+		setColor(w->tf.color.r, w->tf.color.g, w->tf.color.b);
+		setFontSize(w->tf.size);
+		_setFontName(w->tf.name);
 		putString(w->content, w->pos.x, w->pos.y - 2);
 		break;
 	case WIN_XP:
@@ -1881,9 +1980,9 @@ void _drawCheck(widgetObj *w) {
 			setColor(w->fgColor.r, w->fgColor.g, w->fgColor.b);
 			putCircle(w->pos.x + SG_CHAR_WIDTH, w->pos.y + SG_CHAR_HEIGHT / 2, 2, SOLID_FILL);
 		}
-		setColor(w->fgColor.r, w->fgColor.g, w->fgColor.b);
-		setFontSize(20);
-		setFontName("Î¢ÈíÑÅºÚ");
+		setColor(w->tf.color.r, w->tf.color.g, w->tf.color.b);
+		setFontSize(w->tf.size);
+		_setFontName(w->tf.name);
 		putString(w->content, w->pos.x + (int)(2.5f * SG_CHAR_WIDTH), w->pos.y - 2);
 		break;
 	case WIN_XP:
@@ -1904,12 +2003,20 @@ void _drawProcess(widgetObj *w) {
 	w->valid = 0;
 	switch (w->style) {
 	case SG_DESIGN:
-		setColor(w->bgColor.r, w->bgColor.g, w->bgColor.b);
-		putQuad(w->pos.x, w->pos.y,
-			w->pos.x + w->size.x - 1, w->pos.y + w->size.y - 1, SOLID_FILL);
-		setColor(223, 223, 223);
-		putQuad(w->pos.x, w->pos.y,
-			w->pos.x + w->size.x - 1, w->pos.y + SG_CHAR_HEIGHT + 3, SOLID_FILL);
+		if (w->bgImg.data == NULL) {
+			setColor(w->bgColor.r, w->bgColor.g, w->bgColor.b);
+			putQuad(w->pos.x, w->pos.y,
+				w->pos.x + w->size.x - 1, w->pos.y + w->size.y - 1, SOLID_FILL);
+			setColor(223, 223, 223);
+			putQuad(w->pos.x, w->pos.y,
+				w->pos.x + w->size.x - 1, w->pos.y + SG_CHAR_HEIGHT + 3, SOLID_FILL);
+			setColor(127, 127, 127);
+			putQuad(w->pos.x, w->pos.y,
+				w->pos.x + w->size.x - 1, w->pos.y + w->size.y - 1, EMPTY_FILL);
+		}
+		else {
+			putBitmap(w->pos.x, w->pos.y, w->bgImg);
+		}
 		if (w->status&WIDGET_PRESSED)setColor(191, 63, 63);
 		else setColor(255, 63, 63);
 		putQuad(w->pos.x + w->size.x - 2 * (SG_CHAR_WIDTH + 1), w->pos.y + 2,
@@ -1919,9 +2026,6 @@ void _drawProcess(widgetObj *w) {
 			w->pos.x + w->size.x - 2, w->pos.y + SG_CHAR_HEIGHT + 1, SOLID_LINE);
 		putLine(w->pos.x + w->size.x - 2 * (SG_CHAR_WIDTH + 1), w->pos.y + SG_CHAR_HEIGHT + 2,
 			w->pos.x + w->size.x - 2, w->pos.y + 1, SOLID_LINE);
-		setColor(127, 127, 127);
-		putQuad(w->pos.x, w->pos.y,
-			w->pos.x + w->size.x - 1, w->pos.y + w->size.y - 1, EMPTY_FILL);
 
 		if (w->status&WIDGET_FOCUSED) {
 			setColor(127, 127, 127);
@@ -1932,16 +2036,16 @@ void _drawProcess(widgetObj *w) {
 		row = 0;
 		total = 0;
 		tmp = 0;
-		setColor(w->fgColor.r, w->fgColor.g, w->fgColor.b);
-		setFontSize(20);
-		setFontName("Î¢ÈíÑÅºÚ");
+		setColor(w->tf.color.r, w->tf.color.g, w->tf.color.b);
+		setFontSize(w->tf.size);
+		_setFontName(w->tf.name);
 		while (tmp = putStringConstraint((char *)w->content + total,
 			w->pos.x + SG_CHAR_WIDTH,
-			w->pos.y + (row + 1) * SG_LINE_DELTA_DEFAULT + 8, 0,
+			w->pos.y + (row + 1) * w->tf.size + 8, 0,
 			w->size.x - 2 * SG_CHAR_WIDTH)) {
 			total += tmp;
 			row++;
-			if ((row + 4) * SG_LINE_DELTA_DEFAULT > w->size.y)break;
+			if ((row + 4) * w->tf.size > w->size.y)break;
 		}
 
 		setColor(223, 223, 223);
@@ -1991,9 +2095,9 @@ void _drawOption(widgetObj *w) {
 				w->pos.x + w->size.x - 1, w->pos.y + (w->value + 1)*SG_LINE_DELTA_DEFAULT - 1,
 				SOLID_FILL);
 			tmp = w->content;
-			setColor(w->fgColor.r, w->fgColor.g, w->fgColor.b);
-			setFontSize(20);
-			setFontName("Î¢ÈíÑÅºÚ");
+			setColor(w->tf.color.r, w->tf.color.g, w->tf.color.b);
+			setFontSize(w->tf.size);
+			_setFontName(w->tf.name);
 			for (i = 0; i < w->hide; i++) {
 				putStringConstraint(tmp, w->pos.x + SG_CHAR_WIDTH,
 					w->pos.y + w->size.y - (w->hide - i)*SG_LINE_DELTA_DEFAULT, 0,

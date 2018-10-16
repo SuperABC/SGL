@@ -70,10 +70,10 @@ void freeJson(struct JSON *json) {
 }
 
 int subObjectCont(struct JSON *obj, char *name, const char *json, int i) {
-	int j;
+	int j, point;
 	char label[256];
 	char cont[256];
-	struct JSON *element = createJson();
+	struct JSON *content = createJson();
 
 	while (json[i++] != '{');
 	while (json[i] == '\n' || json[i] == ' ' || json[i] == '\t')i++;
@@ -99,40 +99,53 @@ int subObjectCont(struct JSON *obj, char *name, const char *json, int i) {
 			}
 			cont[j] = '\0';
 
-			setStringContent(element, label, cont);
+			setStringContent(content, label, cont);
 			while (json[i] != '}' && json[i++] != ',');
 		}
 		else if (json[i] == '\'') {
 
 		}
-		else if (json[i] >= '0' && json[i] <= '9') {
-
+		else if (json[i] >= '0' && json[i] <= '9' || json[i] == '-') {
+			point = 0;
+			j = 0;
+			cont[j++] = json[i++];
+			while (json[i] >= '0' && json[i] <= '9' || json[i] == '.') {
+				if (json[i] == '.') {
+					if (point)break;
+					else point = 1;
+				}
+				cont[j++] = json[i++];
+			}
+			cont[j] = '\0';
+			if (point)setFloatContent(content, label, (float)atof(cont));
+			else setIntContent(content, label, atoi(cont));
+			while (json[i] != '}' && json[i++] != ',');
 		}
 		else if (json[i] == 't' || json[i] == 'f') {
 
 		}
 		else if (json[i] == '{') {
-			i = subObjectCont(element, label, json, i);
+			i = subObjectCont(content, label, json, i);
 
 			while (json[i] != '}' && json[i++] != ',');
 		}
 		else if (json[i] == '[') {
-			i = subArrayCont(element, label, json, i);
+			i = subArrayCont(content, label, json, i);
 
 			while (json[i] != '}' && json[i++] != ',');
 		}
 
 		while (json[i] == '\n' || json[i] == ' ' || json[i] == '\t')i++;
 	}
-	setObjectContent(obj, name, element);
+	setObjectContent(obj, name, content);
 
 	i++;
 	return i;
 }
 int subArrayCont(struct JSON *obj, char *name, const char *json, int i) {
-	int j;
+	int j, point;
 	char cont[256];
-	struct JSON *element = createJsonArray();
+	struct JSON *content = createJsonArray();
 
 	while (json[i++] != '[');
 	while (json[i] == '\n' || json[i] == ' ' || json[i] == '\t')i++;
@@ -147,38 +160,51 @@ int subArrayCont(struct JSON *obj, char *name, const char *json, int i) {
 			}
 			cont[j] = '\0';
 
-			setStringElement(element, INT_MAX, cont);
+			setStringElement(content, INT_MAX, cont);
 			while (json[i] != ']' && json[i++] != ',');
 		}
 		else if (json[i] == '\'') {
 
 		}
-		else if (json[i] >= '0' && json[i] <= '9') {
-
+		else if (json[i] >= '0' && json[i] <= '9' || json[i] == '-') {
+			point = 0;
+			j = 0;
+			cont[j++] = json[i++];
+			while (json[i] >= '0' && json[i] <= '9' || json[i] == '.') {
+				if (json[i] == '.') {
+					if (point)break;
+					else point = 1;
+				}
+				cont[j++] = json[i++];
+			}
+			cont[j] = '\0';
+			if (point)setFloatElement(content, INT_MAX, (float)atof(cont));
+			else setIntElement(content, INT_MAX, atoi(cont));
+			while (json[i] != ']' && json[i++] != ',');
 		}
 		else if (json[i] == 't' || json[i] == 'f') {
 
 		}
 		else if (json[i] == '{') {
-			i = subObjectElement(element, INT_MAX, json, i);
+			i = subObjectElement(content, INT_MAX, json, i);
 
 			while (json[i] != ']' && json[i++] != ',');
 		}
 		else if (json[i] == '[') {
-			i = subArrayElement(element, INT_MAX, json, i);
+			i = subArrayElement(content, INT_MAX, json, i);
 
 			while (json[i] != ']' && json[i++] != ',');
 		}
 
 		while (json[i] == '\n' || json[i] == ' ' || json[i] == '\t')i++;
 	}
-	setArrayContent(obj, name, element);
+	setArrayContent(obj, name, content);
 
 	i++;
 	return i;
 }
 int subObjectElement(struct JSON *obj, int idx, const char *json, int i) {
-	int j;
+	int j, point;
 	char label[256];
 	char cont[256];
 	struct JSON *element = createJson();
@@ -213,8 +239,21 @@ int subObjectElement(struct JSON *obj, int idx, const char *json, int i) {
 		else if (json[i] == '\'') {
 
 		}
-		else if (json[i] >= '0' && json[i] <= '9') {
-
+		else if (json[i] >= '0' && json[i] <= '9' || json[i] == '-') {
+			point = 0;
+			j = 0;
+			cont[j++] = json[i++];
+			while (json[i] >= '0' && json[i] <= '9' || json[i] == '.') {
+				if (json[i] == '.') {
+					if (point)break;
+					else point = 1;
+				}
+				cont[j++] = json[i++];
+			}
+			cont[j] = '\0';
+			if (point)setFloatContent(element, label, (float)atof(cont));
+			else setIntContent(element, label, atoi(cont));
+			while (json[i] != '}' && json[i++] != ',');
 		}
 		else if (json[i] == 't' || json[i] == 'f') {
 
@@ -238,7 +277,7 @@ int subObjectElement(struct JSON *obj, int idx, const char *json, int i) {
 	return i;
 }
 int subArrayElement(struct JSON *obj, int idx, const char *json, int i) {
-	int j;
+	int j, point;
 	char cont[256];
 	struct JSON *element = createJsonArray();
 
@@ -261,8 +300,21 @@ int subArrayElement(struct JSON *obj, int idx, const char *json, int i) {
 		else if (json[i] == '\'') {
 
 		}
-		else if (json[i] >= '0' && json[i] <= '9') {
-
+		else if (json[i] >= '0' && json[i] <= '9' || json[i] == '-') {
+			point = 0;
+			j = 0;
+			cont[j++] = json[i++];
+			while (json[i] >= '0' && json[i] <= '9' || json[i] == '.') {
+				if (json[i] == '.') {
+					if (point)break;
+					else point = 1;
+				}
+				cont[j++] = json[i++];
+			}
+			cont[j] = '\0';
+			if (point)setFloatElement(element, INT_MAX, (float)atof(cont));
+			else setIntElement(element, INT_MAX, atoi(cont));
+			while (json[i] != ']' && json[i++] != ',');
 		}
 		else if (json[i] == 't' || json[i] == 'f') {
 
@@ -287,6 +339,7 @@ int subArrayElement(struct JSON *obj, int idx, const char *json, int i) {
 }
 struct JSON *readJson(const char *json) {
 	int i = 0, j;
+	char point;
 	char name[256];
 	char cont[256];
 
@@ -327,8 +380,21 @@ struct JSON *readJson(const char *json) {
 			else if (json[i] == '\'') {
 
 			}
-			else if (json[i] >= '0' && json[i] <= '9') {
-
+			else if (json[i] >= '0' && json[i] <= '9' || json[i] == '-') {
+				point = 0;
+				j = 0;
+				cont[j++] = json[i++];
+				while (json[i] >= '0' && json[i] <= '9' || json[i] == '.') {
+					if (json[i] == '.') {
+						if (point)break;
+						else point = 1;
+					}
+					cont[j++] = json[i++];
+				}
+				cont[j] = '\0';
+				if(point)setFloatContent(res, name, (float)atof(cont));
+				else setIntContent(res, name, atoi(cont));
+				while (json[i] != '}' && json[i++] != ',');
 			}
 			else if (json[i] == 't' || json[i] == 'f') {
 
@@ -370,8 +436,21 @@ struct JSON *readJson(const char *json) {
 			else if (json[i] == '\'') {
 
 			}
-			else if (json[i] >= '0' && json[i] <= '9') {
-
+			else if (json[i] >= '0' && json[i] <= '9' || json[i] == '-') {
+				point = 0;
+				j = 0;
+				cont[j++] = json[i++];
+				while (json[i] >= '0' && json[i] <= '9' || json[i] == '.') {
+					if (json[i] == '.') {
+						if (point)break;
+						else point = 1;
+					}
+					cont[j++] = json[i++];
+				}
+				cont[j] = '\0';
+				if (point)setFloatContent(res, name, (float)atof(cont));
+				else setIntContent(res, name, atoi(cont));
+				while (json[i] != ']' && json[i++] != ',');
 			}
 			else if (json[i] == 't' || json[i] == 'f') {
 
@@ -447,7 +526,7 @@ char *writeJson(struct JSON *json) {
 				iter = iter->next;
 			}
 		}
-		res[strlen(res) - 2] = '\0';
+		if (res[strlen(res) - 2] == ',')res[strlen(res) - 2] = '\0';
 		strcat(res, "\n");
 		strcat(res, "}");
 	}
@@ -493,7 +572,7 @@ char *writeJson(struct JSON *json) {
 
 			iter = iter->next;
 		}
-		res[strlen(res) - 2] = '\0';
+		if(res[strlen(res) - 2] == ',')res[strlen(res) - 2] = '\0';
 		strcat(res, "\n");
 		strcat(res, "]");
 	}
@@ -509,7 +588,7 @@ struct JSON_Item *getContent(struct JSON *json, const char *name) {
 		for (i = 0; i < (int)strlen(name); i++) {
 			sum += name[i];
 		}
-		sum /= SG_HASH_NUM;
+		sum %= SG_HASH_NUM;
 
 		iter = json->hash[sum];
 		while (iter) {
@@ -543,7 +622,7 @@ void deleteContent(struct JSON *json, const char *name) {
 		for (i = 0; i < (int)strlen(name); i++) {
 			sum += name[i];
 		}
-		sum /= SG_HASH_NUM;
+		sum %= SG_HASH_NUM;
 
 		iter = json->hash[sum];
 		if (!iter)return;
@@ -804,6 +883,7 @@ void setIntElement(struct JSON *json, int idx, SGint i) {
 					iter->data.json_int = i;
 
 					iter->next = NULL;
+					return;
 				}
 			}
 		}
@@ -841,6 +921,7 @@ void setFloatElement(struct JSON *json, int idx, SGfloat f) {
 					iter->data.json_float = f;
 
 					iter->next = NULL;
+					return;
 				}
 			}
 		}
@@ -878,6 +959,7 @@ void setCharElement(struct JSON *json, int idx, SGchar c) {
 					iter->data.json_char = c;
 
 					iter->next = NULL;
+					return;
 				}
 			}
 		}
@@ -915,6 +997,7 @@ void setBoolElement(struct JSON *json, int idx, SGbool b) {
 					iter->data.json_bool = b;
 
 					iter->next = NULL;
+					return;
 				}
 			}
 		}
@@ -954,6 +1037,7 @@ void setStringElement(struct JSON *json, int idx, SGstring s) {
 					strcpy(iter->data.json_string, s);
 
 					iter->next = NULL;
+					return;
 				}
 			}
 		}

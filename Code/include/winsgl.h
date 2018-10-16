@@ -340,6 +340,7 @@ typedef struct _w{
 	int hide;
 	int value;
 	SGstring name;
+	font tf;
 	void *content;
 	struct _w *associate;
 	struct _w *next;
@@ -606,6 +607,8 @@ SGvoid closeSocket(SOCKET s);
 /* When one the connection is cut, we should close the socket of this
 * connection. */
 
+
+
 SGvoid setIcon(const char *ico);
 /* Set the running-time icon for the window. The icon will appear
 * at top_left in the caption bar and in the tray. */
@@ -862,9 +865,12 @@ widgetObj *getWidgetByIndex(int index);
 widgetObj *getWidgetByName(const char *name);
 /* Returns the widget pointer with the given name. */
 
-int getIndexByName(const char *name);
+SGint getIndexByName(const char *name);
 /* Returns the index of the widget in system list with the
  * given parameter name. */
+
+SGvoid setWidgetImg(const char *name, bitMap img);
+/* Set the background image of the widget with given name. */
 
 SGvoid showWidget(const char *name);
 /* Make the widget of name visible. */
@@ -887,6 +893,8 @@ void moveWidgetByIndex(int index, int xDelta, int yDelta);
 void moveWidgetByName(const char *name, int xDelta, int yDelta);
 /* Move the widget to (x + xDelta, y + yDelta) with the given name. */
 
+void setWidgetTop(const char *name);
+void setWidgetBottom(const char *name);
 
 /*
  * SG drawing interfaces

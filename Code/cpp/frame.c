@@ -28,7 +28,7 @@ int _activePage = 0, _visualPage = 0;
 int _mainMenu = 0, _tmpItem = 0;
 int _useTray = 0, _trayMenu = 0, _tmCreated = 0;
 int _inLoop = 0;
-int _drawingWidget = -1;
+int _drawingWidget = 0;
 int _enOpenGL = 0;
 
 int currentWindow = -1;
@@ -2616,6 +2616,38 @@ void _prepareSubText(int width) {
 		DEFAULT_QUALITY, FF_MODERN, _wndList[subNum].tf.name);
 	SelectObject(_wndList[subNum].text.memDC, _wndList[subNum].text.font);
 }
+void _setFontName(SGWINSTR name) {
+	if (_sglMode != BIT_MAP && !_innerFunc)return;
+
+	if (currentWindow == -1) {
+		if (_checkThread())return;
+
+		tf.name = name;
+
+		DeleteObject(text.font);
+		text.font = CreateFont(tf.size, 0, 0, 0, FW_THIN, tf.coeff & FONT_ITALIC,
+			tf.coeff & FONT_UNDERLINE, tf.coeff & FONT_STRIKEOUT,
+			DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS,
+			DEFAULT_QUALITY, FF_MODERN, tf.name);
+		SelectObject(text.memDC, text.font);
+	}
+	else {
+		if (_wndList[currentWindow].tf.name)
+			free((void *)_wndList[currentWindow].tf.name);
+		_wndList[currentWindow].tf.name = name;
+
+		DeleteObject(_wndList[currentWindow].text.font);
+		_wndList[currentWindow].text.font =
+			CreateFont(_wndList[currentWindow].tf.size, 0, 0, 0, FW_THIN,
+				_wndList[currentWindow].tf.coeff & FONT_ITALIC,
+				_wndList[currentWindow].tf.coeff & FONT_UNDERLINE,
+				_wndList[currentWindow].tf.coeff & FONT_STRIKEOUT,
+				DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS,
+				DEFAULT_QUALITY, FF_MODERN, _wndList[currentWindow].tf.name);
+		SelectObject(_wndList[currentWindow].text.memDC,
+			_wndList[currentWindow].text.font);
+	}
+}
 void _midiout(HMIDIOUT hMidi, int iStatus, int iChannel, int iData1, int iData2) {
 	DWORD dwMessage = iStatus | iChannel | (iData1 << 8) | (iData2 << 16);
 	midiOutShortMsg(hMidi, dwMessage);
@@ -2653,7 +2685,7 @@ int _addList(const char *name, struct _menu *super, int id) {
 	else {
 		for (i = 0; i < SG_MAX_MENU_ITEM_NUM; i++) {
 			if (super->sub[i] == NULL)return SG_OBJECT_NOT_FOUND;
-			if ((int)super->sub[i] == -1)continue;
+			if (super->sub[i] == (struct _item *) -1)continue;
 			if ((ret = _addList(name, super->sub[i]->sub, id)) !=
 				SG_OBJECT_NOT_FOUND)return ret;
 		}
@@ -2680,7 +2712,7 @@ int _addItem(const char *name, struct _menu *super, int id, void(*func)()) {
 	else {
 		for (i = 0; i < SG_MAX_MENU_ITEM_NUM; i++) {
 			if (super->sub[i] == NULL)return SG_OBJECT_NOT_FOUND;
-			if ((int)super->sub[i] == -1)continue;
+			if (super->sub[i] == (struct _item *) -1)continue;
 			if ((ret = _addItem(name, super->sub[i]->sub, id, func)) !=
 				SG_OBJECT_NOT_FOUND)return ret;
 		}
@@ -2712,7 +2744,7 @@ void _checkItem(struct _menu *m, int id, int check, int disable) {
 	int i, s;
 	for (i = 0; i < SG_MAX_MENU_ITEM_NUM; i++) {
 		if (m->sub[i]) {
-			if ((int)m->sub[i] == -1)continue;
+			if (m->sub[i] == (struct _item *) -1)continue;
 			if (m->sub[i]->id != id) {
 				if (m->sub[i]->sub != NULL)_checkItem(m->sub[i]->sub, id, check, disable);
 			}
@@ -2738,7 +2770,7 @@ void _createMenu(enum _menuType type, struct _item *it, HMENU super) {
 		if (type == MT_MAIN) {
 			for (i = 0; i < SG_MAX_MENU_ITEM_NUM; i++) {
 				if (mainMenu.sub[i]) {
-					if ((int)mainMenu.sub[i] == -1) {
+					if (mainMenu.sub[i] == (struct _item *) -1) {
 						AppendMenu(super, MF_SEPARATOR, 0, NULL);
 					}
 					else
@@ -2750,7 +2782,7 @@ void _createMenu(enum _menuType type, struct _item *it, HMENU super) {
 		if (type == MT_TRAY) {
 			for (i = 0; i < SG_MAX_MENU_ITEM_NUM; i++) {
 				if (trayMenu.sub[i]) {
-					if ((int)trayMenu.sub[i] == -1) {
+					if (trayMenu.sub[i] == (struct _item *) -1) {
 						AppendMenu(super, MF_SEPARATOR, 0, NULL);
 					}
 					else
@@ -2763,7 +2795,7 @@ void _createMenu(enum _menuType type, struct _item *it, HMENU super) {
 			type -= MT_POPUP;
 			for (i = 0; i < SG_MAX_MENU_ITEM_NUM; i++) {
 				if (popupMenu[type].sub[i]) {
-					if ((int)popupMenu[type].sub[i] == -1) {
+					if (popupMenu[type].sub[i] == (struct _item *) -1) {
 						AppendMenu(super, MF_SEPARATOR, 0, NULL);
 					}
 					else
@@ -2785,7 +2817,7 @@ void _createMenu(enum _menuType type, struct _item *it, HMENU super) {
 	it->sub->hm = it->hm = tmp;
 	for (i = 0; i < SG_MAX_MENU_ITEM_NUM; i++) {
 		if (it->sub->sub[i]) {
-			if ((int)it->sub->sub[i] == -1) {
+			if (it->sub->sub[i] == (struct _item *) -1) {
 				AppendMenu(it->hm, MF_SEPARATOR, 0, NULL);
 			}
 			else
@@ -2801,7 +2833,7 @@ void _callMenu(struct _menu *m, int id) {
 	int i;
 	for (i = 0; i < SG_MAX_MENU_ITEM_NUM; i++) {
 		if (m->sub[i]) {
-			if ((int)m->sub[i] == -1)continue;
+			if (m->sub[i] == (struct _item *) -1)continue;
 			if (m->sub[i]->id != id) {
 				if (m->sub[i]->sub != NULL)_callMenu(m->sub[i]->sub, id);
 			}
@@ -2812,6 +2844,71 @@ void _callMenu(struct _menu *m, int id) {
 		else break;
 	}
 }
+const char *_stringConvert(const char *str) {
+	int i, j, len = 0;
+	char *ret;
+	
+	for (i = 0; i < (int)strlen(str); i++) {
+		if (str[i] == '\t')len += 3;
+		if (str[i] == '\b')len -= 2;
+		len++;
+	}
+
+	ret = (char *)malloc(len + 1);
+
+	for (i = 0, j = 0; i < len; ) {
+		if (str[j] == '\t') {
+			j++;
+			ret[i++] = ' ';
+			ret[i++] = ' ';
+			ret[i++] = ' ';
+			ret[i++] = ' ';
+			continue;
+		}
+		if (str[j] == '\b') {
+			j++;
+			i--;
+			continue;
+		}
+		ret[i++] = str[j++];
+	}
+	ret[len] = 0;
+	return ret;
+}
+void _stringPut(const char *str, int x, int y) {
+	if (currentWindow == -1) {
+		if (_checkThread())return;
+
+		SGWINSTR _wd = NULL;
+		GetTextExtentPoint32(text.memDC, _wd = _widen(str), _strlenW(str), &text.strRect);
+		free((void *)_wd);
+		memset(text.bitBuf, 0, text.bufSize);
+		RECT imgRect = { 0, 0, text.strRect.cx, text.strRect.cy };
+		FillRect(text.memDC, &imgRect, (HBRUSH)GetStockObject(BLACK_BRUSH));
+
+		TextOut(text.memDC, 0, 0, _wd = _widen(str), _strlenW(str));
+		free((void *)_wd);
+		_hbmImage(text.memDC, text.hbm, x, y, str);
+	}
+	else {
+		SGWINSTR _wd = NULL;
+		GetTextExtentPoint32(_wndList[currentWindow].text.memDC, _wd = _widen(str),
+			_strlenW(str), &_wndList[currentWindow].text.strRect);
+		free((void *)_wd);
+		memset(_wndList[currentWindow].text.bitBuf, 0,
+			_wndList[currentWindow].text.bufSize);
+		RECT imgRect = { 0, 0, _wndList[currentWindow].text.strRect.cx,
+			_wndList[currentWindow].text.strRect.cy };
+		FillRect(_wndList[currentWindow].text.memDC, &imgRect,
+			(HBRUSH)GetStockObject(BLACK_BRUSH));
+
+		TextOut(_wndList[currentWindow].text.memDC, 0, 0,
+			_wd = _widen(str), _strlenW(str));
+		free((void *)_wd);
+		_hbmSubImage(currentWindow, _wndList[currentWindow].text.memDC,
+			_wndList[currentWindow].text.hbm, x, y, str);
+	}
+}
 int _stringPrintf(const char *format, va_list ap, int x, int y) {
 	int idx = 0;
 	char *tmp = (char *)malloc(2 * strlen(format) + 16);
@@ -2819,7 +2916,7 @@ int _stringPrintf(const char *format, va_list ap, int x, int y) {
 		if (*format == '\n') {
 			format++;
 			tmp[idx] = '\0';
-			putString(tmp, x, y);
+			_stringPut(tmp, x, y);
 			y += tf.size;
 			idx = 0;
 		}
@@ -2882,7 +2979,7 @@ int _stringPrintf(const char *format, va_list ap, int x, int y) {
 	}
 
 	tmp[idx] = '\0';
-	putString(tmp, x, y);
+	_stringPut(tmp, x, y);
 
 	free(tmp);
 	return SG_NO_ERORR;
@@ -2954,17 +3051,17 @@ void _drawPanel() {
 				break;
 			case 1:
 				putString(names[0],
-					panel.x - stringWidth(names[0], strlen(names[0])) / 2,
+					panel.x - stringWidth(names[0], (int)strlen(names[0])) / 2,
 					panel.y - 10);
 				break;
 			case 2:
 				if (x > 0)
 					putString(names[0],
-						panel.x - stringWidth(names[0], strlen(names[0])) / 2,
+						panel.x - stringWidth(names[0], (int)strlen(names[0])) / 2,
 						panel.y - 10);
 				else
 					putString(names[1],
-						panel.x - stringWidth(names[1], strlen(names[1])) / 2,
+						panel.x - stringWidth(names[1], (int)strlen(names[1])) / 2,
 						panel.y - 10);
 				break;
 			case 3:
@@ -2972,35 +3069,35 @@ void _drawPanel() {
 					(x > 0 && (-y) > x*tanf((float)PI / 6)) ||
 					(x < 0 && (-y) > x*(-tanf((float)PI / 6)))))
 					putString(names[0],
-						panel.x - stringWidth(names[0], strlen(names[0])) / 2,
+						panel.x - stringWidth(names[0], (int)strlen(names[0])) / 2,
 						panel.y - 10);
 				else if (x > 0)
 					putString(names[1],
-						panel.x - stringWidth(names[1], strlen(names[1])) / 2,
+						panel.x - stringWidth(names[1], (int)strlen(names[1])) / 2,
 						panel.y - 10);
 				else
 					putString(names[2],
-						panel.x - stringWidth(names[2], strlen(names[2])) / 2,
+						panel.x - stringWidth(names[2], (int)strlen(names[2])) / 2,
 						panel.y - 10);
 				break;
 			case 4:
 				if (x > y)
 					if (x < -y)
 						putString(names[0],
-							panel.x - stringWidth(names[0], strlen(names[0])) / 2,
+							panel.x - stringWidth(names[0], (int)strlen(names[0])) / 2,
 							panel.y - 10);
 					else
 						putString(names[1],
-							panel.x - stringWidth(names[1], strlen(names[1])) / 2,
+							panel.x - stringWidth(names[1], (int)strlen(names[1])) / 2,
 							panel.y - 10);
 				else
 					if (x > -y)
 						putString(names[2],
-							panel.x - stringWidth(names[2], strlen(names[2])) / 2,
+							panel.x - stringWidth(names[2], (int)strlen(names[2])) / 2,
 							panel.y - 10);
 					else
 						putString(names[3],
-							panel.x - stringWidth(names[3], strlen(names[3])) / 2,
+							panel.x - stringWidth(names[3], (int)strlen(names[3])) / 2,
 							panel.y - 10);
 				break;
 			case 5:
@@ -3066,7 +3163,7 @@ void _putPixel(int x, int y, bitMap *buf) {
 	}
 
 	for (i = 0; i < Widget->count; i++) {
-		if (_drawingWidget == i)continue;
+		if (_drawingWidget)continue;
 		if (!Widget->obj[i]->valid)continue;
 		if (inWidget(Widget->obj[i], x, y))Widget->obj[i]->valid = 0;
 	}
@@ -3284,7 +3381,7 @@ int selectFile(char name[], char start[], char format[], int idx) {
 	if (format) {
 		while (format[shortTotal]) {
 			filters[filterNum] = format + shortTotal;
-			shortTotal += (shortLen[filterNum] = strlen(format + shortTotal)) + 1;
+			shortTotal += (shortLen[filterNum] = (int)strlen(format + shortTotal)) + 1;
 			wideTotal += (wideLen[filterNum] = _strlenW(format + wideTotal)) + 1;
 			filterNum++;
 		}
@@ -3335,7 +3432,7 @@ int selectSave(char name[], char start[], char format[], char def[], int idx) {
 	if (format) {
 		while (format[shortTotal]) {
 			filters[filterNum] = format + shortTotal;
-			shortTotal += (shortLen[filterNum] = strlen(format + shortTotal)) + 1;
+			shortTotal += (shortLen[filterNum] = (int)strlen(format + shortTotal)) + 1;
 			wideTotal += (wideLen[filterNum] = _strlenW(format + wideTotal)) + 1;
 			filterNum++;
 		}
@@ -3645,7 +3742,7 @@ SOCKET acceptOne(SOCKET server) {
 	return accept(server, (SOCKADDR*)&addrClient, &len);
 }
 int socketSend(SOCKET s, const char *buffer) {
-	if (send(s, buffer, strlen(buffer), 0) == SOCKET_ERROR)return SG_CONNECTION_FAILED;
+	if (send(s, buffer, (int)strlen(buffer)+1, 0) == SOCKET_ERROR)return SG_CONNECTION_FAILED;
 	return SG_NO_ERORR;
 }
 int socketReceive(SOCKET s, char *buffer, int len) {
@@ -4736,7 +4833,7 @@ int putPixel(int x, int y) {
 		}
 
 		for (i = 0; i < Widget->count; i++) {
-			if (_drawingWidget == i)continue;
+			if (_drawingWidget)continue;
 			if (!Widget->obj[i]->valid)continue;
 			if (inWidget(Widget->obj[i], x, y))Widget->obj[i]->valid = 0;
 		}
@@ -4929,7 +5026,7 @@ void putQuad(int x1, int y1, int x2, int y2, int mode) {
 				}
 			}
 			for (i = 0; i < Widget->count; i++) {
-				if (_drawingWidget == i)continue;
+				if (_drawingWidget)continue;
 				if (!Widget->obj[i]->valid)continue;
 				if (crossWidget(Widget->obj[i], x1, y1, x2, y2))Widget->obj[i]->valid = 0;
 			}
@@ -5375,7 +5472,7 @@ void putBitmap(int x, int y, bitMap bmp) {
 		}
 
 		for (i = 0; i < Widget->count; i++) {
-			if (_drawingWidget == i)continue;
+			if (_drawingWidget)continue;
 			if (!Widget->obj[i]->valid)continue;
 			if (crossWidget(Widget->obj[i], x, y, x + bmp.sizeX, y + bmp.sizeY))Widget->obj[i]->valid = 0;
 		}
@@ -5453,7 +5550,7 @@ int drawBmp(int x, int y, const char *filename) {
 		}
 
 		for (i = 0; i < Widget->count; i++) {
-			if (_drawingWidget == i)continue;
+			if (_drawingWidget)continue;
 			if (!Widget->obj[i]->valid)continue;
 			if (crossWidget(Widget->obj[i], x, y, x + width, y + height))Widget->obj[i]->valid = 0;
 		}
@@ -5580,62 +5677,6 @@ void putChar(char ch, int x, int y) {
 				}
 	}
 }
-void putString(const char *str, int x, int y) {
-	unsigned int tab = 0, i, j;
-	char *tmp;
-
-	if (_sglMode != BIT_MAP && !_innerFunc)return;
-	if (str == NULL)return;
-	if (strlen(str) == 0)return;
-
-	for (i = 0; i < strlen(str); i++) {
-		if (str[i] == '\t')tab++;
-	}
-	tmp = (char *)malloc(strlen(str) + 3 * tab + 1);
-	memset(tmp, 0, strlen(str) + 3 * tab + 1);
-	for (i = 0, j = 0; i < strlen(str); i++) {
-		if (str[i] == '\t') {
-			tmp[j] = tmp[j + 1] = tmp[j + 2] = tmp[j + 3] = ' ';
-			j += 4;
-		}
-		else tmp[j++] = str[i];
-	}
-
-	if (currentWindow == -1) {
-		if (_checkThread())return;
-
-		SGWINSTR _wd = NULL;
-		GetTextExtentPoint32(text.memDC, _wd = _widen(tmp), _strlenW(tmp), &text.strRect);
-		free((void *)_wd);
-		memset(text.bitBuf, 0, text.bufSize);
-		RECT imgRect = { 0, 0, text.strRect.cx, text.strRect.cy };
-		FillRect(text.memDC, &imgRect, (HBRUSH)GetStockObject(BLACK_BRUSH));
-
-		TextOut(text.memDC, 0, 0, _wd = _widen(tmp), _strlenW(tmp));
-		free((void *)_wd);
-		_hbmImage(text.memDC, text.hbm, x, y, tmp);
-		free(tmp);
-	}
-	else {
-		SGWINSTR _wd = NULL;
-		GetTextExtentPoint32(_wndList[currentWindow].text.memDC, _wd = _widen(tmp),
-			_strlenW(tmp), &_wndList[currentWindow].text.strRect);
-		free((void *)_wd);
-		memset(_wndList[currentWindow].text.bitBuf, 0,
-			_wndList[currentWindow].text.bufSize);
-		RECT imgRect = { 0, 0, _wndList[currentWindow].text.strRect.cx,
-			_wndList[currentWindow].text.strRect.cy };
-		FillRect(_wndList[currentWindow].text.memDC, &imgRect,
-			(HBRUSH)GetStockObject(BLACK_BRUSH));
-
-		TextOut(_wndList[currentWindow].text.memDC, 0, 0,
-			_wd = _widen(tmp), _strlenW(tmp));
-		free((void *)_wd);
-		_hbmSubImage(currentWindow, _wndList[currentWindow].text.memDC,
-			_wndList[currentWindow].text.hbm, x, y, tmp);
-		free(tmp);
-	}
-}
 void putNumber(int n, int x, int y, char lr) {
 	int s[20], sn = 0;
 
@@ -5718,6 +5759,15 @@ int stringWidth(const char *str, int x) {
 	free(tmp);
 	return ret.cx;
 }
+void putString(const char *str, int x, int y) {
+	unsigned int tab = 0;
+
+	if (_sglMode != BIT_MAP && !_innerFunc)return;
+	if (str == NULL)return;
+	if (strlen(str) == 0)return;
+
+	_stringPut(_stringConvert(str), x, y);
+}
 void putStringFormat(const char *str, int x, int y, ...) {
 	int cnt = 0;
 	va_list ap;
@@ -5739,6 +5789,8 @@ void putStringFormat(const char *str, int x, int y, ...) {
 }
 int putStringConstraint(const char *str, int x, int y, int start, int constraint) {
 	int len, i;
+	unsigned int tab = 0;
+	char *tmp;
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return SG_INVALID_MODE;
 	if (str == NULL)return SG_NULL_POINTER;
@@ -5759,18 +5811,18 @@ int putStringConstraint(const char *str, int x, int y, int start, int constraint
 		}
 		len = _wcharAt(str, len);
 		if (len <= 1)len = 1;
-		i = 1;
+
+		i = 0;
 		while (str[i++] != '\n')
 			if (i >= len)break;
 		len = i;
 
-		memset(text.bitBuf, 0, text.bufSize);
-		RECT imgRect = { 0, 0, text.strRect.cx, text.strRect.cy };
-		FillRect(text.memDC, &imgRect, (HBRUSH)GetStockObject(BLACK_BRUSH));
+		tmp = (char *)malloc(len + 1);
+		memcpy(tmp, str, len);
+		tmp[len] = 0;
 
-		TextOut(text.memDC, 0, 0, (_wd = _widen(str)) + start, _scharAt(str, len));
-		free((void *)_wd);
-		_hbmImage(text.memDC, text.hbm, x, y, str);
+		_stringPut(_stringConvert(tmp), x, y);
+		free(tmp);
 	}
 	else {
 		len = _strlenW(str) - start > constraint / 5 ? constraint / 5 : _strlenW(str) - start;
@@ -5788,23 +5840,18 @@ int putStringConstraint(const char *str, int x, int y, int start, int constraint
 		}
 		len = _wcharAt(str, len);
 		if (len <= 1)len = 1;
-		i = 1;
+
+		i = 0;
 		while (str[i++] != '\n')
 			if (i >= len)break;
 		len = i;
 
-		memset(_wndList[currentWindow].text.bitBuf, 0,
-			_wndList[currentWindow].text.bufSize);
-		RECT imgRect = { 0, 0, _wndList[currentWindow].text.strRect.cx,
-			_wndList[currentWindow].text.strRect.cy };
-		FillRect(_wndList[currentWindow].text.memDC, &imgRect,
-			(HBRUSH)GetStockObject(BLACK_BRUSH));
+		tmp = (char *)malloc(len + 1);
+		memcpy(tmp, str, len);
+		tmp[len] = 0;
 
-		TextOut(_wndList[currentWindow].text.memDC, 0, 0,
-			(_wd = _widen(str)) + start, _scharAt(str, len));
-		free((void *)_wd);
-		_hbmSubImage(currentWindow, _wndList[currentWindow].text.memDC,
-			_wndList[currentWindow].text.hbm, x, y, str);
+		_stringPut(tmp, x, y);
+		free(tmp);
 	}
 
 	return len;

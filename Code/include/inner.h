@@ -189,6 +189,7 @@ char *_shortenStr(const LPWSTR src);
 int _strlenW(const char *str);
 void _prepareText(int width);
 void _prepareSubText(int width);
+void _setFontName(SGWINSTR name);
 void _midiout(HMIDIOUT hMidi, int iStatus, int iChannel, int iData1, int iData2);
 int _mciSend(const char *cmd);
 int _addList(const char *name, struct _menu *super, int id);
