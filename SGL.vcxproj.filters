@@ -21,9 +21,6 @@
     <ClInclude Include="Code\include\inner.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Code\include\db.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Code\cpp\widget.c">
@@ -33,12 +30,6 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="Code\cpp\data.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="Sample\6-Socket\mysql.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="Code\cpp\db.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

@@ -11,6 +11,10 @@ extern struct _Sub _wndList[SG_MAX_WINDOW_NUM];
 void(*backgroundRefresh)(int left, int top, int right, int bottom);	
 
 
+void _deleteSub(widgetObj *w) {
+
+}
+
 widgetObj *newWidget(int type, const char *name) {
 	widgetObj *ret = (widgetObj *)malloc(sizeof(widgetObj));
 
@@ -221,9 +225,9 @@ int registerWidget(widgetObj *obj) {
 	if (currentWindow == -1) {
 		if (Widget->count >= SG_QSIZE)return SG_OUT_OF_RANGE;
 	}
-	else
+	else {
 		if (_wndList[currentWindow].widget->count >= SG_QSIZE)return SG_OUT_OF_RANGE;
-	
+	}
 
 	tmp = (widgetObj *)malloc(sizeof(widgetObj));
 	memcpy(tmp, obj, sizeof(widgetObj));
@@ -458,25 +462,26 @@ int deleteWidgetByName(const char *name) {
 	}
 	while (end->next != NULL) {
 		if (strcmp(end->content, name) == 0)break;
-		end = end->next;
 		prev = end;
+		end = end->next;
 	}
 
-	backgroundRefresh(
-		Widget->obj[end->value]->pos.x, Widget->obj[end->value]->pos.y,
-		Widget->obj[end->value]->pos.x + Widget->obj[end->value]->size.x,
-		Widget->obj[end->value]->pos.y + Widget->obj[end->value]->size.y);
+	if(backgroundRefresh)
+		backgroundRefresh(
+			Widget->obj[end->value]->pos.x, Widget->obj[end->value]->pos.y,
+			Widget->obj[end->value]->pos.x + Widget->obj[end->value]->size.x,
+			Widget->obj[end->value]->pos.y + Widget->obj[end->value]->size.y);
 	if (end->next) {
 		tmp = end->next;
 		if (end->value == --Widget->count) {
-			deleteSubWidget(Widget->obj[end->value]);
+			_deleteSub(Widget->obj[end->value]);
 			free(Widget->obj[end->value]->name);
 			free(Widget->obj[end->value]);
 			Widget->obj[end->value] = NULL;
 			if (Widget->active == end->value)Widget->active = -1;
 		}
 		else {
-			deleteSubWidget(Widget->obj[end->value]);
+			_deleteSub(Widget->obj[end->value]);
 			free(Widget->obj[end->value]->name);
 			free(Widget->obj[end->value]);
 			len = (int)strlen(Widget->obj[Widget->count]->name);
@@ -503,14 +508,14 @@ int deleteWidgetByName(const char *name) {
 	}
 	else {
 		if (end->value == --Widget->count) {
-			deleteSubWidget(Widget->obj[end->value]);
+			_deleteSub(Widget->obj[end->value]);
 			free(Widget->obj[end->value]->name);
 			free(Widget->obj[end->value]);
 			Widget->obj[end->value] = NULL;
 			if (Widget->active == end->value)Widget->active = -1;
 		}
 		else {
-			deleteSubWidget(Widget->obj[end->value]);
+			_deleteSub(Widget->obj[end->value]);
 			free(Widget->obj[end->value]->name);
 			free(Widget->obj[end->value]);
 			len = (int)strlen(Widget->obj[Widget->count]->name);
@@ -537,7 +542,13 @@ int deleteWidgetByName(const char *name) {
 	}
 	return SG_NO_ERORR;
 }
-void deleteSubWidget(widgetObj *w) {
+void insertSubWidget(const char *parent, widgetObj* sub, int index) {
+	widgetObj *p = getWidgetByName(parent);
+	if (p->type != SG_COMBINED)return;
+
+
+}
+void deleteSubWidget(const char *parent, const char *name) {
 
 }
 void moveWidgetByIndex(int index, int xDelta, int yDelta) {

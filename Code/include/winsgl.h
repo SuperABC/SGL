@@ -112,6 +112,10 @@
 #endif
 
 
+//Multiple thread.
+#define NEW_THREAD_FUNC(name) DWORD WINAPI name(LPVOID param)
+
+
 //SG enums.
 
 enum _colors { //4 bit standard color.
@@ -274,6 +278,7 @@ typedef unsigned char byte;
 typedef unsigned short int word;
 typedef unsigned long int dword;
 typedef void(*vect)(void);
+typedef DWORD(WINAPI *thread)(LPVOID lpThreadParameter);
 typedef void(*mouseMoveCall)(void *w, int x, int y);
 typedef void(*mouseClickCall)(void *w, int x, int y, int status);
 typedef void(*mouseClickUser)(void *w);
@@ -563,13 +568,9 @@ SGint pauseMci(int id);
 SGint resumeMci(int id);
 /* Resume playing the music with the given id at the pause point.*/
 
-SGvoid createThread(vect func);
+SGvoid createThread(thread func, void *param);
 /* Create a thread with function func which means that the new thread
 * will start running with func. */
-
-SGvoid timerThread(vect func, int millis, int time);
-/* Create a timer using multy thread. Parameter func is the timer function,
-* millis is the interval */
 
 SGint copyText(const char *src);
 /* Copy the given text into windows clipboard so that it can be pasted
@@ -884,8 +885,11 @@ SGint deleteWidgetByIndex(int index);
 SGint deleteWidgetByName(const char *name);
 /* Delete the widget with the given name. */
 
-SGvoid deleteSubWidget(widgetObj *widget);
-/* Delete the child widget of the given parameter. */
+SGvoid insertSubWidget(const char *parent, widgetObj* sub, int index);
+/* Insert a child widget. The index decides the display order. */
+
+SGvoid deleteSubWidget(const char *parent, const char *name);
+/* Delete the child widget of the given name. */
 
 void moveWidgetByIndex(int index, int xDelta, int yDelta);
 /* Move the widget to (x + xDelta, y + yDelta) with the given index. */
