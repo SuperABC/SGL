@@ -31,13 +31,13 @@ int _inLoop = 0;
 int _drawingWidget = 0;
 int _enOpenGL = 0;
 
-int currentWindow = -1;
+int _currentWindow = -1;
 
 /*
 * Lattice font library for 256 asciis.
 * Started in v0.0.0
 */
-byte letters[256][8] = {
+byte _letters[256][8] = {
 	{ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }, //0x00
 	{ 0x7E, 0x81, 0xA5, 0x81, 0xBD, 0x99, 0x81, 0x7E }, //0x01
 	{ 0x7E, 0xFF, 0xDB, 0xFF, 0xC3, 0xE7, 0xFF, 0x7E }, //0x02
@@ -300,8 +300,8 @@ byte letters[256][8] = {
 * Global font variables.
 * Started in v2.2.0
 */
-struct _text text;
-font tf;
+struct _text _systemText;
+font _textFont;
 
 /*
 * Global midi records.
@@ -314,9 +314,9 @@ struct _mci mci;
 * Global menu list.
 * Started in v3.0.1
 */
-struct _menu mainMenu;
-struct _menu trayMenu;
-struct _menu popupMenu[SG_MAX_POPUP_NUM];
+struct _menu _mainMenuInfo;
+struct _menu _trayMenuInfo;
+struct _menu _popupMenuInfo[SG_MAX_POPUP_NUM];
 int _popupNum = 0;
 
 /*
@@ -324,6 +324,9 @@ int _popupNum = 0;
 * Started in v3.0.1
 */
 void vectDefault(void) {
+	return;
+}
+void vectDefaultWithParam(void *param) {
 	return;
 }
 int tmpThread;
@@ -343,6 +346,14 @@ int _enPanel = 0;
  */
 struct _Sub _wndList[SG_MAX_WINDOW_NUM];
 int subNum = 0;
+
+/*
+* Global drawing queue.
+* Started in v4.1.1
+*/
+vectInput _drawingQueue[SG_MINI_QSIZE];
+void *_drawingParamQueue[SG_MINI_QSIZE];
+int _drawingQueueFront = -1, _drawingQueueRear = 0;
 
 /*
 * Main functions.
@@ -365,8 +376,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		_Window->hwnd = hwnd;
 
 		if (_mainMenu) {
-			_createMenu(MT_MAIN, NULL, mainMenu.hm);
-			SetMenu(_Window->hwnd, mainMenu.hm);
+			_createMenu(MT_MAIN, NULL, _mainMenuInfo.hm);
+			SetMenu(_Window->hwnd, _mainMenuInfo.hm);
 		}
 
 		if (_sglCircle) {
@@ -379,8 +390,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		return 0;
 
 	case WM_COMMAND:
-		_callMenu(&mainMenu, LOWORD(wParam));
-		_callMenu(&trayMenu, LOWORD(wParam));
+		_callMenu(&_mainMenuInfo, LOWORD(wParam));
+		_callMenu(&_trayMenuInfo, LOWORD(wParam));
 		return 0;
 
 	case WM_SIZE:
@@ -406,6 +417,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		if (wParam == TIMER_DELTA_HANDLE) {
 			if (!_inDelay) {
 				startSubWindow(-1);
+				while ((_drawingQueueFront + 1) % SG_QSIZE != (_drawingQueueRear%SG_QSIZE)) {
+
+				}
 				sgLoop();
 				endSubWindow();
 			}
@@ -432,9 +446,9 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			GetCursorPos(lPoint);
 			if (!_tmCreated) {
 				_tmCreated = 1;
-				_createMenu(MT_TRAY, NULL, trayMenu.hm);
+				_createMenu(MT_TRAY, NULL, _trayMenuInfo.hm);
 			}
-			TrackPopupMenu(trayMenu.hm, TPM_LEFTALIGN, lPoint->x, lPoint->y, 0, hwnd, NULL);
+			TrackPopupMenu(_trayMenuInfo.hm, TPM_LEFTALIGN, lPoint->x, lPoint->y, 0, hwnd, NULL);
 			break;
 		}
 		break;
@@ -2449,8 +2463,8 @@ void _putImageRev(int left, int top, bitMap *bitmap) {
 	if (top < 0)y1 = 0;
 	else y1 = top;
 
-	if (left + text.strRect.cx >= buf->sizeX)x2 = buf->sizeX - 1;
-	else x2 = left + text.strRect.cx;
+	if (left + _systemText.strRect.cx >= buf->sizeX)x2 = buf->sizeX - 1;
+	else x2 = left + _systemText.strRect.cx;
 	y2 = top + bitmap->sizeY - 1;
 
 	int tmp;
@@ -2459,17 +2473,17 @@ void _putImageRev(int left, int top, bitMap *bitmap) {
 		for (j = 0; j < x2 - x1; j++) {
 			if (rate = bitmap->data[(bitmap->sizeX*(y2 - y1 - i) + j) * 3]) {
 				tmp = buf->data[(buf->sizeX * (i + top) + left + j) * 3] * (255 - rate);
-				tmp += tf.color.b*rate;
+				tmp += _textFont.color.b*rate;
 				buf->data[(buf->sizeX * (i + top) + left + j) * 3] = tmp >> 8;
 			}
 			if (rate = bitmap->data[(bitmap->sizeX*(y2 - y1 - i) + j) * 3 + 1]) {
 				tmp = buf->data[(buf->sizeX * (i + top) + left + j) * 3 + 1] * (255 - rate);
-				tmp += tf.color.g*rate;
+				tmp += _textFont.color.g*rate;
 				buf->data[(buf->sizeX * (i + top) + left + j) * 3 + 1] = tmp >> 8;
 			}
 			if (rate = bitmap->data[(bitmap->sizeX*(y2 - y1 - i) + j) * 3 + 2]) {
 				tmp = buf->data[(buf->sizeX * (i + top) + left + j) * 3 + 2] * (255 - rate);
-				tmp += tf.color.r*rate;
+				tmp += _textFont.color.r*rate;
 				buf->data[(buf->sizeX * (i + top) + left + j) * 3 + 2] = tmp >> 8;
 			}
 		}
@@ -2517,12 +2531,12 @@ void _putSubImageRev(int id, int left, int top, bitMap *bitmap) {
 	}
 }
 void _hbmImage(HDC hdc, HBITMAP hbm, int x, int y, const char *str) {
-	GetDIBits(hdc, hbm, 0, text.bm.bmHeight, text.bitBuf, (BITMAPINFO*)(&text.bi), DIB_RGB_COLORS);
+	GetDIBits(hdc, hbm, 0, _systemText.bm.bmHeight, _systemText.bitBuf, (BITMAPINFO*)(&_systemText.bi), DIB_RGB_COLORS);
 
 	bitMap tmp;
-	tmp.sizeX = text.bi.biWidth;
-	tmp.sizeY = tf.size;
-	tmp.data = text.bitBuf + text.bi.biWidth*(text.bi.biHeight - tmp.sizeY) * 3;
+	tmp.sizeX = _systemText.bi.biWidth;
+	tmp.sizeY = _textFont.size;
+	tmp.data = _systemText.bitBuf + _systemText.bi.biWidth*(_systemText.bi.biHeight - tmp.sizeY) * 3;
 	_putImageRev(x, y, &tmp);
 }
 void _hbmSubImage(int id, HDC hdc, HBITMAP hbm, int x, int y, const char *str) {
@@ -2537,42 +2551,42 @@ void _hbmSubImage(int id, HDC hdc, HBITMAP hbm, int x, int y, const char *str) {
 	_putSubImageRev(id, x, y, &tmp);
 }
 void _prepareText(int width) {
-	text.memDC = CreateCompatibleDC(NULL);
-	text.hbm = CreateBitmap(width, SG_MAX_FONT_SIZE, 1, 32, NULL);
+	_systemText.memDC = CreateCompatibleDC(NULL);
+	_systemText.hbm = CreateBitmap(width, SG_MAX_FONT_SIZE, 1, 32, NULL);
 
-	GetObject(text.hbm, sizeof(text.bm), &text.bm);
-	int bmRowCount = ((text.bm.bmWidth * 24 + 31) / 32) * 4;
-	text.bufSize = bmRowCount * text.bm.bmHeight;
-	text.bitBuf = (char *)malloc(text.bufSize);
-	memset(text.bitBuf, 0, text.bufSize);
+	GetObject(_systemText.hbm, sizeof(_systemText.bm), &_systemText.bm);
+	int bmRowCount = ((_systemText.bm.bmWidth * 24 + 31) / 32) * 4;
+	_systemText.bufSize = bmRowCount * _systemText.bm.bmHeight;
+	_systemText.bitBuf = (char *)malloc(_systemText.bufSize);
+	memset(_systemText.bitBuf, 0, _systemText.bufSize);
 
-	text.bi.biSize = sizeof(BITMAPINFOHEADER);
-	text.bi.biWidth = text.bm.bmWidth;
-	text.bi.biHeight = text.bm.bmHeight;
-	text.bi.biPlanes = 1;
-	text.bi.biBitCount = 24;
-	text.bi.biCompression = BI_RGB;
-	text.bi.biSizeImage = 0;
-	text.bi.biXPelsPerMeter = 0;
-	text.bi.biYPelsPerMeter = 0;
-	text.bi.biClrImportant = 0;
-	text.bi.biClrUsed = 0;
+	_systemText.bi.biSize = sizeof(BITMAPINFOHEADER);
+	_systemText.bi.biWidth = _systemText.bm.bmWidth;
+	_systemText.bi.biHeight = _systemText.bm.bmHeight;
+	_systemText.bi.biPlanes = 1;
+	_systemText.bi.biBitCount = 24;
+	_systemText.bi.biCompression = BI_RGB;
+	_systemText.bi.biSizeImage = 0;
+	_systemText.bi.biXPelsPerMeter = 0;
+	_systemText.bi.biYPelsPerMeter = 0;
+	_systemText.bi.biClrImportant = 0;
+	_systemText.bi.biClrUsed = 0;
 
-	SelectObject(text.memDC, text.hbm);
+	SelectObject(_systemText.memDC, _systemText.hbm);
 
-	tf.color.r = tf.color.g = tf.color.b = 0;
-	tf.size = 20;
-	tf.name = _widen("Î¢ÈíÑÅºÚ");
-	tf.coeff = 0;
+	_textFont.color.r = _textFont.color.g = _textFont.color.b = 0;
+	_textFont.size = 20;
+	_textFont.name = _widen("Î¢ÈíÑÅºÚ");
+	_textFont.coeff = 0;
 
-	SetTextColor(text.memDC, RGB(255, 255, 255));
-	SetBkMode(text.memDC, TRANSPARENT);
+	SetTextColor(_systemText.memDC, RGB(255, 255, 255));
+	SetBkMode(_systemText.memDC, TRANSPARENT);
 
-	text.font = CreateFont(tf.size, 0, 0, 0, FW_THIN, tf.coeff & FONT_ITALIC,
-		tf.coeff & FONT_UNDERLINE, tf.coeff & FONT_STRIKEOUT,
+	_systemText.font = CreateFont(_textFont.size, 0, 0, 0, FW_THIN, _textFont.coeff & FONT_ITALIC,
+		_textFont.coeff & FONT_UNDERLINE, _textFont.coeff & FONT_STRIKEOUT,
 		DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS,
-		DEFAULT_QUALITY, FF_MODERN, tf.name);
-	SelectObject(text.memDC, text.font);
+		DEFAULT_QUALITY, FF_MODERN, _textFont.name);
+	SelectObject(_systemText.memDC, _systemText.font);
 }
 void _prepareSubText(int width) {
 	_wndList[subNum].text.memDC = CreateCompatibleDC(NULL);
@@ -2618,33 +2632,33 @@ void _prepareSubText(int width) {
 void _setFontName(SGWINSTR name) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (_checkThread())return;
 
-		tf.name = name;
+		_textFont.name = name;
 
-		DeleteObject(text.font);
-		text.font = CreateFont(tf.size, 0, 0, 0, FW_THIN, tf.coeff & FONT_ITALIC,
-			tf.coeff & FONT_UNDERLINE, tf.coeff & FONT_STRIKEOUT,
+		DeleteObject(_systemText.font);
+		_systemText.font = CreateFont(_textFont.size, 0, 0, 0, FW_THIN, _textFont.coeff & FONT_ITALIC,
+			_textFont.coeff & FONT_UNDERLINE, _textFont.coeff & FONT_STRIKEOUT,
 			DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS,
-			DEFAULT_QUALITY, FF_MODERN, tf.name);
-		SelectObject(text.memDC, text.font);
+			DEFAULT_QUALITY, FF_MODERN, _textFont.name);
+		SelectObject(_systemText.memDC, _systemText.font);
 	}
 	else {
-		if (_wndList[currentWindow].tf.name)
-			free((void *)_wndList[currentWindow].tf.name);
-		_wndList[currentWindow].tf.name = name;
+		if (_wndList[_currentWindow].tf.name)
+			free((void *)_wndList[_currentWindow].tf.name);
+		_wndList[_currentWindow].tf.name = name;
 
-		DeleteObject(_wndList[currentWindow].text.font);
-		_wndList[currentWindow].text.font =
-			CreateFont(_wndList[currentWindow].tf.size, 0, 0, 0, FW_THIN,
-				_wndList[currentWindow].tf.coeff & FONT_ITALIC,
-				_wndList[currentWindow].tf.coeff & FONT_UNDERLINE,
-				_wndList[currentWindow].tf.coeff & FONT_STRIKEOUT,
+		DeleteObject(_wndList[_currentWindow].text.font);
+		_wndList[_currentWindow].text.font =
+			CreateFont(_wndList[_currentWindow].tf.size, 0, 0, 0, FW_THIN,
+				_wndList[_currentWindow].tf.coeff & FONT_ITALIC,
+				_wndList[_currentWindow].tf.coeff & FONT_UNDERLINE,
+				_wndList[_currentWindow].tf.coeff & FONT_STRIKEOUT,
 				DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS,
-				DEFAULT_QUALITY, FF_MODERN, _wndList[currentWindow].tf.name);
-		SelectObject(_wndList[currentWindow].text.memDC,
-			_wndList[currentWindow].text.font);
+				DEFAULT_QUALITY, FF_MODERN, _wndList[_currentWindow].tf.name);
+		SelectObject(_wndList[_currentWindow].text.memDC,
+			_wndList[_currentWindow].text.font);
 	}
 }
 void _midiout(HMIDIOUT hMidi, int iStatus, int iChannel, int iData1, int iData2) {
@@ -2768,24 +2782,24 @@ void _createMenu(enum _menuType type, struct _item *it, HMENU super) {
 	if (it == NULL) {
 		if (type == MT_MAIN) {
 			for (i = 0; i < SG_MAX_MENU_ITEM_NUM; i++) {
-				if (mainMenu.sub[i]) {
-					if (mainMenu.sub[i] == (struct _item *) -1) {
+				if (_mainMenuInfo.sub[i]) {
+					if (_mainMenuInfo.sub[i] == (struct _item *) -1) {
 						AppendMenu(super, MF_SEPARATOR, 0, NULL);
 					}
 					else
-						_createMenu(MT_SUB, mainMenu.sub[i], mainMenu.hm);
+						_createMenu(MT_SUB, _mainMenuInfo.sub[i], _mainMenuInfo.hm);
 				}
 				else break;
 			}
 		}
 		if (type == MT_TRAY) {
 			for (i = 0; i < SG_MAX_MENU_ITEM_NUM; i++) {
-				if (trayMenu.sub[i]) {
-					if (trayMenu.sub[i] == (struct _item *) -1) {
+				if (_trayMenuInfo.sub[i]) {
+					if (_trayMenuInfo.sub[i] == (struct _item *) -1) {
 						AppendMenu(super, MF_SEPARATOR, 0, NULL);
 					}
 					else
-						_createMenu(MT_SUB, trayMenu.sub[i], trayMenu.hm);
+						_createMenu(MT_SUB, _trayMenuInfo.sub[i], _trayMenuInfo.hm);
 				}
 				else break;
 			}
@@ -2793,12 +2807,12 @@ void _createMenu(enum _menuType type, struct _item *it, HMENU super) {
 		if (type >= MT_POPUP) {
 			type -= MT_POPUP;
 			for (i = 0; i < SG_MAX_MENU_ITEM_NUM; i++) {
-				if (popupMenu[type].sub[i]) {
-					if (popupMenu[type].sub[i] == (struct _item *) -1) {
+				if (_popupMenuInfo[type].sub[i]) {
+					if (_popupMenuInfo[type].sub[i] == (struct _item *) -1) {
 						AppendMenu(super, MF_SEPARATOR, 0, NULL);
 					}
 					else
-						_createMenu(MT_SUB, popupMenu[type].sub[i], popupMenu[type].hm);
+						_createMenu(MT_SUB, _popupMenuInfo[type].sub[i], _popupMenuInfo[type].hm);
 				}
 				else break;
 			}
@@ -2875,37 +2889,37 @@ const char *_stringConvert(const char *str) {
 	return ret;
 }
 void _stringPut(const char *str, int x, int y) {
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (_checkThread())return;
 
 		SGWINSTR _wd = NULL;
-		GetTextExtentPoint32(text.memDC, _wd = _widen(str), _strlenW(str), &text.strRect);
+		GetTextExtentPoint32(_systemText.memDC, _wd = _widen(str), _strlenW(str), &_systemText.strRect);
 		free((void *)_wd);
-		memset(text.bitBuf, 0, text.bufSize);
-		RECT imgRect = { 0, 0, text.strRect.cx, text.strRect.cy };
-		FillRect(text.memDC, &imgRect, (HBRUSH)GetStockObject(BLACK_BRUSH));
+		memset(_systemText.bitBuf, 0, _systemText.bufSize);
+		RECT imgRect = { 0, 0, _systemText.strRect.cx, _systemText.strRect.cy };
+		FillRect(_systemText.memDC, &imgRect, (HBRUSH)GetStockObject(BLACK_BRUSH));
 
-		TextOut(text.memDC, 0, 0, _wd = _widen(str), _strlenW(str));
+		TextOut(_systemText.memDC, 0, 0, _wd = _widen(str), _strlenW(str));
 		free((void *)_wd);
-		_hbmImage(text.memDC, text.hbm, x, y, str);
+		_hbmImage(_systemText.memDC, _systemText.hbm, x, y, str);
 	}
 	else {
 		SGWINSTR _wd = NULL;
-		GetTextExtentPoint32(_wndList[currentWindow].text.memDC, _wd = _widen(str),
-			_strlenW(str), &_wndList[currentWindow].text.strRect);
+		GetTextExtentPoint32(_wndList[_currentWindow].text.memDC, _wd = _widen(str),
+			_strlenW(str), &_wndList[_currentWindow].text.strRect);
 		free((void *)_wd);
-		memset(_wndList[currentWindow].text.bitBuf, 0,
-			_wndList[currentWindow].text.bufSize);
-		RECT imgRect = { 0, 0, _wndList[currentWindow].text.strRect.cx,
-			_wndList[currentWindow].text.strRect.cy };
-		FillRect(_wndList[currentWindow].text.memDC, &imgRect,
+		memset(_wndList[_currentWindow].text.bitBuf, 0,
+			_wndList[_currentWindow].text.bufSize);
+		RECT imgRect = { 0, 0, _wndList[_currentWindow].text.strRect.cx,
+			_wndList[_currentWindow].text.strRect.cy };
+		FillRect(_wndList[_currentWindow].text.memDC, &imgRect,
 			(HBRUSH)GetStockObject(BLACK_BRUSH));
 
-		TextOut(_wndList[currentWindow].text.memDC, 0, 0,
+		TextOut(_wndList[_currentWindow].text.memDC, 0, 0,
 			_wd = _widen(str), _strlenW(str));
 		free((void *)_wd);
-		_hbmSubImage(currentWindow, _wndList[currentWindow].text.memDC,
-			_wndList[currentWindow].text.hbm, x, y, str);
+		_hbmSubImage(_currentWindow, _wndList[_currentWindow].text.memDC,
+			_wndList[_currentWindow].text.hbm, x, y, str);
 	}
 }
 int _stringPrintf(const char *format, va_list ap, int x, int y) {
@@ -2916,7 +2930,7 @@ int _stringPrintf(const char *format, va_list ap, int x, int y) {
 			format++;
 			tmp[idx] = '\0';
 			_stringPut(tmp, x, y);
-			y += tf.size;
+			y += _textFont.size;
 			idx = 0;
 		}
 		else if (*format == '\t') {
@@ -3147,27 +3161,27 @@ void _putSubPixel(int x, int y, bitMap *buf) {
 	int p, i;
 
 	p = (y * buf->sizeX + x) * 3;
-	if (_wndList[currentWindow].alpha == 1.f) {
-		buf->data[p] = _wndList[currentWindow].rgb[2];
-		buf->data[p + 1] = _wndList[currentWindow].rgb[1];
-		buf->data[p + 2] = _wndList[currentWindow].rgb[0];
+	if (_wndList[_currentWindow].alpha == 1.f) {
+		buf->data[p] = _wndList[_currentWindow].rgb[2];
+		buf->data[p + 1] = _wndList[_currentWindow].rgb[1];
+		buf->data[p + 2] = _wndList[_currentWindow].rgb[0];
 	}
 	else {
-		buf->data[p] = (int)(buf->data[p] * (1.f - _wndList[currentWindow].alpha));
+		buf->data[p] = (int)(buf->data[p] * (1.f - _wndList[_currentWindow].alpha));
 		buf->data[p] +=
-			(int)(_wndList[currentWindow].rgb[2] * (_wndList[currentWindow].alpha));
-		buf->data[p + 1] = (int)(buf->data[p + 1] * (1.f - _wndList[currentWindow].alpha));
+			(int)(_wndList[_currentWindow].rgb[2] * (_wndList[_currentWindow].alpha));
+		buf->data[p + 1] = (int)(buf->data[p + 1] * (1.f - _wndList[_currentWindow].alpha));
 		buf->data[p + 1] +=
-			(int)(_wndList[currentWindow].rgb[1] * (_wndList[currentWindow].alpha));
-		buf->data[p + 2] = (int)(buf->data[p + 2] * (1.f - _wndList[currentWindow].alpha));
+			(int)(_wndList[_currentWindow].rgb[1] * (_wndList[_currentWindow].alpha));
+		buf->data[p + 2] = (int)(buf->data[p + 2] * (1.f - _wndList[_currentWindow].alpha));
 		buf->data[p + 2] +=
-			(int)(_wndList[currentWindow].rgb[0] * (_wndList[currentWindow].alpha));
+			(int)(_wndList[_currentWindow].rgb[0] * (_wndList[_currentWindow].alpha));
 	}
-	for (i = 0; i < _wndList[currentWindow].widget->count; i++) {
-		if (_wndList[currentWindow].drawingWidget == i)continue;
-		if (!_wndList[currentWindow].widget->obj[i]->valid)continue;
-		if (inWidget(_wndList[currentWindow].widget->obj[i], x, y))
-			_wndList[currentWindow].widget->obj[i]->valid = 0;
+	for (i = 0; i < _wndList[_currentWindow].widget->count; i++) {
+		if (_wndList[_currentWindow].drawingWidget == i)continue;
+		if (!_wndList[_currentWindow].widget->obj[i]->valid)continue;
+		if (inWidget(_wndList[_currentWindow].widget->obj[i], x, y))
+			_wndList[_currentWindow].widget->obj[i]->valid = 0;
 	}
 }
 void _bgDrawDefault(int left, int top, int right, int bottom) {
@@ -3302,7 +3316,7 @@ void closeWindow(int id) {
 }
 void startSubWindow(int id) {
 	SEM_P();
-	currentWindow = id;
+	_currentWindow = id;
 }
 void endSubWindow() {
 	SEM_V();
@@ -3724,13 +3738,13 @@ void closeSocket(SOCKET s) {
 }
 void setIcon(const char *ico) {
 	SGWINSTR _wd = NULL;
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		_Window->hIcon = LoadImage(NULL, _wd = _widen(ico), IMAGE_ICON, 0, 0,
 			LR_LOADFROMFILE | LR_DEFAULTSIZE);
 		free((void *)_wd);
 	}
 	else {
-		_wndList[currentWindow].hIcon =
+		_wndList[_currentWindow].hIcon =
 			LoadImage(NULL, _wd = _widen(ico), IMAGE_ICON, 0, 0,
 			LR_LOADFROMFILE | LR_DEFAULTSIZE);
 		free((void *)_wd);
@@ -3988,25 +4002,25 @@ void setWindow(int left, int up) {
 	_Window->posUp = up;
 }
 void setResizeable() {
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (!_inLoop)
 			_scrResizeable = 1;
 	}
 	else {
-		if (!_wndList[currentWindow].inLoop)
-			_wndList[currentWindow].scrResizeable = 1;
+		if (!_wndList[_currentWindow].inLoop)
+			_wndList[_currentWindow].scrResizeable = 1;
 	}
 }
 void resizeFuntion(void(*func)(int x, int y)) {
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		_resizeFunc = func;
 	}
 	else {
-		_wndList[currentWindow].resizeFunc = func;
+		_wndList[_currentWindow].resizeFunc = func;
 	}
 }
 int getWidth(int obj) {
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		switch (obj) {
 		case SG_WINDOW:
 			return _Window->winWidth;
@@ -4020,19 +4034,19 @@ int getWidth(int obj) {
 	else {
 		switch (obj) {
 		case SG_WINDOW:
-			return _wndList[currentWindow].winWidth;
+			return _wndList[_currentWindow].winWidth;
 		case SG_SCREEN:
-			if (_wndList[currentWindow].inLoop)
-				return _wndList[currentWindow].buffer1->sizeX == 
-					_wndList[currentWindow].buffer2->sizeX ?
-					_wndList[currentWindow].buffer1->sizeX : SG_SIZE_MISMATCH;
-			else return _wndList[currentWindow].winWidth;
+			if (_wndList[_currentWindow].inLoop)
+				return _wndList[_currentWindow].buffer1->sizeX == 
+					_wndList[_currentWindow].buffer2->sizeX ?
+					_wndList[_currentWindow].buffer1->sizeX : SG_SIZE_MISMATCH;
+			else return _wndList[_currentWindow].winWidth;
 		}
 	}
 	return 0;
 }
 int getHeight(int obj) {
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		switch (obj) {
 		case SG_WINDOW:
 			return _Window->winHeight;
@@ -4046,13 +4060,13 @@ int getHeight(int obj) {
 	else {
 		switch (obj) {
 		case SG_WINDOW:
-			return _wndList[currentWindow].winHeight;
+			return _wndList[_currentWindow].winHeight;
 		case SG_SCREEN:
-			if (_wndList[currentWindow].inLoop)
-				return _wndList[currentWindow].buffer1->sizeY ==
-					_wndList[currentWindow].buffer2->sizeY ?
-					_wndList[currentWindow].buffer1->sizeY : SG_SIZE_MISMATCH;
-			else return _wndList[currentWindow].winHeight;
+			if (_wndList[_currentWindow].inLoop)
+				return _wndList[_currentWindow].buffer1->sizeY ==
+					_wndList[_currentWindow].buffer2->sizeY ?
+					_wndList[_currentWindow].buffer1->sizeY : SG_SIZE_MISMATCH;
+			else return _wndList[_currentWindow].winHeight;
 		}
 	}
 	return 0;
@@ -4063,7 +4077,7 @@ void initKey() {
 int biosKey(int cmd) {
 	word ret;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (cmd == 1)return (_Key->front + 1) % 1024 != _Key->rear;
 		if (cmd != 0)return 0;
 
@@ -4073,26 +4087,26 @@ int biosKey(int cmd) {
 	}
 	else {
 		if (cmd == 1)
-			return (_wndList[currentWindow].key->front + 1) % 1024 !=
-			_wndList[currentWindow].key->rear;
+			return (_wndList[_currentWindow].key->front + 1) % 1024 !=
+			_wndList[_currentWindow].key->rear;
 		if (cmd != 0)return 0;
 
-		while ((_wndList[currentWindow].key->front + 1) % 1024 ==
-			_wndList[currentWindow].key->rear);
-		ret = _wndList[currentWindow].key->
-			keyBuf[_wndList[currentWindow].key->rear++];
-		_wndList[currentWindow].key->rear %= 1024;
+		while ((_wndList[_currentWindow].key->front + 1) % 1024 ==
+			_wndList[_currentWindow].key->rear);
+		ret = _wndList[_currentWindow].key->
+			keyBuf[_wndList[_currentWindow].key->rear++];
+		_wndList[_currentWindow].key->rear %= 1024;
 	}
 
 	return ret;
 }
 void clearKeyBuffer() {
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		_Key->rear = (_Key->front + 1) % 1024;
 	}
 	else {
-		_wndList[currentWindow].key->rear =
-			(_wndList[currentWindow].key->front + 1) % 1024;
+		_wndList[_currentWindow].key->rear =
+			(_wndList[_currentWindow].key->front + 1) % 1024;
 	}
 }
 void initMouse(int mode) {
@@ -4102,7 +4116,7 @@ void initMouse(int mode) {
 	_enMouse = 1;
 }
 int mouseStatus(int b) {
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		switch (b) {
 		case SG_LEFT_BUTTON:
 			return _Mouse->left;
@@ -4117,11 +4131,11 @@ int mouseStatus(int b) {
 	else {
 		switch (b) {
 		case SG_LEFT_BUTTON:
-			return _wndList[currentWindow].mouse->left;
+			return _wndList[_currentWindow].mouse->left;
 		case SG_RIGHT_BUTTON:
-			return _wndList[currentWindow].mouse->right;
+			return _wndList[_currentWindow].mouse->right;
 		case SG_MIDDLE_BUTTON:
-			return _wndList[currentWindow].mouse->middle;
+			return _wndList[_currentWindow].mouse->middle;
 		default:
 			return 0;
 		}
@@ -4130,20 +4144,20 @@ int mouseStatus(int b) {
 vec2 mousePos() {
 	vec2 ret;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		ret.x = _Mouse->Pos.x;
 		ret.y = _Mouse->Pos.y;
 	}
 	else {
-		ret.x = _wndList[currentWindow].mouse->Pos.x;
-		ret.y = _wndList[currentWindow].mouse->Pos.y;
+		ret.x = _wndList[_currentWindow].mouse->Pos.x;
+		ret.y = _wndList[_currentWindow].mouse->Pos.y;
 	}
 	return ret;
 }
 vec3 biosMouse(int cmd) {
 	vec3 ret;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (cmd == 1) {
 			ret.z = (_Mouse->front + 1) % 1024 != _Mouse->rear;
 			return ret;
@@ -4159,8 +4173,8 @@ vec3 biosMouse(int cmd) {
 	}
 	else {
 		if (cmd == 1) {
-			ret.z =(_wndList[currentWindow].mouse->front + 1) % 1024 !=
-				_wndList[currentWindow].mouse->rear;
+			ret.z =(_wndList[_currentWindow].mouse->front + 1) % 1024 !=
+				_wndList[_currentWindow].mouse->rear;
 			return ret;
 		}
 		if (cmd != 0) {
@@ -4168,22 +4182,22 @@ vec3 biosMouse(int cmd) {
 			return ret;
 		}
 
-		while ((_wndList[currentWindow].mouse->front + 1) % 1024 ==
-			_wndList[currentWindow].mouse->rear);
-		ret = _wndList[currentWindow].mouse->
-			mouseBuf[_wndList[currentWindow].mouse->rear++];
-		_wndList[currentWindow].mouse->rear %= 1024;
+		while ((_wndList[_currentWindow].mouse->front + 1) % 1024 ==
+			_wndList[_currentWindow].mouse->rear);
+		ret = _wndList[_currentWindow].mouse->
+			mouseBuf[_wndList[_currentWindow].mouse->rear++];
+		_wndList[_currentWindow].mouse->rear %= 1024;
 	}
 
 	return ret;
 }
 void clearMouseBuffer() {
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		_Mouse->rear = (_Mouse->front + 1) % 1024;
 	}
 	else {
-		_wndList[currentWindow].mouse->rear =
-			(_wndList[currentWindow].mouse->front + 1) % 1024;
+		_wndList[_currentWindow].mouse->rear =
+			(_wndList[_currentWindow].mouse->front + 1) % 1024;
 	}
 }
 void enablePanel() {
@@ -4335,7 +4349,7 @@ void hideMouse() {
 void setMousePos(int x, int y) {
 	LPPOINT point;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		point = (LPPOINT)malloc(sizeof(POINT));
 		point->x = x;
 		point->y = y;
@@ -4349,7 +4363,7 @@ void setMousePos(int x, int y) {
 		point->x = x;
 		point->y = y;
 
-		ClientToScreen(_wndList[currentWindow].hwnd, point);
+		ClientToScreen(_wndList[_currentWindow].hwnd, point);
 		SetCursorPos(point->x, point->y);
 		free(point);
 	}
@@ -4358,81 +4372,81 @@ void setMouseIcon(SGWINSTR icon) {
 	SetSystemCursor(LoadCursor(NULL, icon), 0);
 }
 void setActivePage(int page) {
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (page != 0 && page != 1)return;
 		_activePage = page;
 	}
 	else {
 		if (page != 0 && page != 1)return;
-		_wndList[currentWindow].activePage = page;
+		_wndList[_currentWindow].activePage = page;
 	}
 }
 void setVisualPage(int page) {
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (page != 0 && page != 1)return;
 		_visualPage = page;
 	}
 	else {
 		if (page != 0 && page != 1)return;
-		_wndList[currentWindow].visualPage = page;
+		_wndList[_currentWindow].visualPage = page;
 	}
 }
 int initMenu() {
 	int i;
 
 	_mainMenu = 1;
-	mainMenu.id = _tmpItem++;
-	mainMenu.name = "main";
-	mainMenu.hm = CreateMenu();
+	_mainMenuInfo.id = _tmpItem++;
+	_mainMenuInfo.name = "main";
+	_mainMenuInfo.hm = CreateMenu();
 	for (i = 0; i < SG_MAX_MENU_ITEM_NUM; i++) {
-		mainMenu.sub[i] = NULL;
+		_mainMenuInfo.sub[i] = NULL;
 	}
-	return mainMenu.id;
+	return _mainMenuInfo.id;
 }
 int addMenuList(const char *title, int id) {
 	if (_mainMenu == 0)return SG_INVALID_MODE;
-	return _addList(title, &mainMenu, id);
+	return _addList(title, &_mainMenuInfo, id);
 }
 int addMenuItem(const char *title, int id, void(*func)()) {
 	if (_mainMenu == 0)return SG_INVALID_MODE;
-	return _addItem(title, &mainMenu, id, func);
+	return _addItem(title, &_mainMenuInfo, id, func);
 }
 int addMenuSeparator(int id) {
 	if (_mainMenu == 0)return SG_INVALID_MODE;
-	return _addSeparator(&mainMenu, id);
+	return _addSeparator(&_mainMenuInfo, id);
 }
 int enableItem(int id) {
-	_checkItem(&mainMenu, id, -1, 0);
+	_checkItem(&_mainMenuInfo, id, -1, 0);
 	return 0;
 }
 int disableItem(int id) {
-	_checkItem(&mainMenu, id, -1, 1);
+	_checkItem(&_mainMenuInfo, id, -1, 1);
 	return 0;
 }
 void checkItem(int id) {
-	_checkItem(&mainMenu, id, 1, -1);
+	_checkItem(&_mainMenuInfo, id, 1, -1);
 }
 void uncheckItem(int id) {
-	_checkItem(&mainMenu, id, 0, -1);
+	_checkItem(&_mainMenuInfo, id, 0, -1);
 }
 void hideCaption() {
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		LONG lStyle = GetWindowLong(_Window->hwnd, GWL_STYLE);
 		SetWindowLong(_Window->hwnd, GWL_STYLE, lStyle & ~WS_CAPTION);
 	}
 	else {
-		LONG lStyle = GetWindowLong(_wndList[currentWindow].hwnd, GWL_STYLE);
-		SetWindowLong(_wndList[currentWindow].hwnd, GWL_STYLE, lStyle & ~WS_CAPTION);
+		LONG lStyle = GetWindowLong(_wndList[_currentWindow].hwnd, GWL_STYLE);
+		SetWindowLong(_wndList[_currentWindow].hwnd, GWL_STYLE, lStyle & ~WS_CAPTION);
 	}
 }
 void showCaption() {
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		LONG lStyle = GetWindowLong(_Window->hwnd, GWL_STYLE);
 		SetWindowLong(_Window->hwnd, GWL_STYLE, lStyle | WS_CAPTION);
 	}
 	else {
-		LONG lStyle = GetWindowLong(_wndList[currentWindow].hwnd, GWL_STYLE);
-		SetWindowLong(_wndList[currentWindow].hwnd, GWL_STYLE, lStyle | WS_CAPTION);
+		LONG lStyle = GetWindowLong(_wndList[_currentWindow].hwnd, GWL_STYLE);
+		SetWindowLong(_wndList[_currentWindow].hwnd, GWL_STYLE, lStyle | WS_CAPTION);
 	}
 }
 void addTray() {
@@ -4465,41 +4479,41 @@ int initTrayMenu() {
 	int i;
 
 	_trayMenu = 1;
-	trayMenu.id = _tmpItem++;
-	trayMenu.name = "tray";
-	trayMenu.hm = CreatePopupMenu();
+	_trayMenuInfo.id = _tmpItem++;
+	_trayMenuInfo.name = "tray";
+	_trayMenuInfo.hm = CreatePopupMenu();
 	for (i = 0; i < SG_MAX_MENU_ITEM_NUM; i++) {
-		trayMenu.sub[i] = NULL;
+		_trayMenuInfo.sub[i] = NULL;
 	}
-	return trayMenu.id;
+	return _trayMenuInfo.id;
 }
 int addTrayMenuList(const char *title, int id) {
 	if (_trayMenu == 0)return SG_INVALID_MODE;
-	return _addList(title, &trayMenu, id);
+	return _addList(title, &_trayMenuInfo, id);
 }
 int addTrayMenuItem(const char *title, int id, void(*func)()) {
 	if (_trayMenu == 0)return SG_INVALID_MODE;
-	return _addItem(title, &trayMenu, id, func);
+	return _addItem(title, &_trayMenuInfo, id, func);
 }
 int addTrayMenuSeparator(int id) {
 	if (_trayMenu == 0)return SG_INVALID_MODE;
-	return _addSeparator(&trayMenu, id);
+	return _addSeparator(&_trayMenuInfo, id);
 }
 int createPopupMenu() {
 	int i;
 
-	popupMenu[_popupNum].id = _tmpItem++;
-	popupMenu[_popupNum].name = "popup";
-	popupMenu[_popupNum].hm = CreatePopupMenu();
+	_popupMenuInfo[_popupNum].id = _tmpItem++;
+	_popupMenuInfo[_popupNum].name = "popup";
+	_popupMenuInfo[_popupNum].hm = CreatePopupMenu();
 	for (i = 0; i < SG_MAX_MENU_ITEM_NUM; i++) {
-		popupMenu[_popupNum].sub[i] = NULL;
+		_popupMenuInfo[_popupNum].sub[i] = NULL;
 	}
-	return popupMenu[_popupNum++].id;
+	return _popupMenuInfo[_popupNum++].id;
 }
 int addPopupMenuList(const char *title, int id) {
 	int i, ret;
 	for (i = 0; i < _popupNum; i++) {
-		if ((ret = _addList(title, &popupMenu[i], id)) < 0)continue;
+		if ((ret = _addList(title, &_popupMenuInfo[i], id)) < 0)continue;
 		break;
 	}
 	if (i == _popupNum)return SG_OBJECT_NOT_FOUND;
@@ -4508,7 +4522,7 @@ int addPopupMenuList(const char *title, int id) {
 int addPopupMenuItem(const char *title, int id, void(*func)()) {
 	int i, ret;
 	for (i = 0; i < _popupNum; i++) {
-		if ((ret = _addItem(title, &popupMenu[i], id, func)) < 0)continue;
+		if ((ret = _addItem(title, &_popupMenuInfo[i], id, func)) < 0)continue;
 		break;
 	}
 	if (i == _popupNum)return SG_OBJECT_NOT_FOUND;
@@ -4517,7 +4531,7 @@ int addPopupMenuItem(const char *title, int id, void(*func)()) {
 int addPopupMenuSeparator(int id) {
 	int i, ret;
 	for (i = 0; i < _popupNum; i++) {
-		if ((ret = _addSeparator(&popupMenu[i], id)) < 0)continue;
+		if ((ret = _addSeparator(&_popupMenuInfo[i], id)) < 0)continue;
 		break;
 	}
 	if (i == _popupNum)return SG_OBJECT_NOT_FOUND;
@@ -4526,19 +4540,19 @@ int addPopupMenuSeparator(int id) {
 int finishPopupMenu(int id) {
 	int i;
 	for (i = 0; i < _popupNum; i++) {
-		if (popupMenu[i].id == id)break;
+		if (_popupMenuInfo[i].id == id)break;
 	}
 	if (i == _popupNum)return SG_OBJECT_NOT_FOUND;
-	_createMenu(MT_POPUP, NULL, popupMenu[i].hm);
+	_createMenu(MT_POPUP, NULL, _popupMenuInfo[i].hm);
 	return SG_NO_ERORR;
 }
 int showPopupMenu(int menu, int x, int y) {
 	int i;
 	struct tagPOINT p;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		for (i = 0; i < _popupNum; i++) {
-			if (popupMenu[i].id == menu)break;
+			if (_popupMenuInfo[i].id == menu)break;
 		}
 		if (i == _popupNum)return SG_OBJECT_NOT_FOUND;
 		if (!_scrResizeable) {
@@ -4550,27 +4564,27 @@ int showPopupMenu(int menu, int x, int y) {
 			p.y = y;
 		}
 		ClientToScreen(_Window->hwnd, &p);
-		TrackPopupMenu(popupMenu[i].hm, TPM_LEFTALIGN,
+		TrackPopupMenu(_popupMenuInfo[i].hm, TPM_LEFTALIGN,
 			p.x, p.y, 0, _Window->hwnd, NULL);
 	}
 	else {
 		for (i = 0; i < _popupNum; i++) {
-			if (popupMenu[i].id == menu)break;
+			if (_popupMenuInfo[i].id == menu)break;
 		}
 		if (i == _popupNum)return SG_OBJECT_NOT_FOUND;
-		if (_wndList[currentWindow].scrResizeable) {
-			p.x = x * _wndList[currentWindow].winWidth /
-				_wndList[currentWindow].buffer1->sizeX;
-			p.y = y * _wndList[currentWindow].winHeight /
-				_wndList[currentWindow].buffer1->sizeY;
+		if (_wndList[_currentWindow].scrResizeable) {
+			p.x = x * _wndList[_currentWindow].winWidth /
+				_wndList[_currentWindow].buffer1->sizeX;
+			p.y = y * _wndList[_currentWindow].winHeight /
+				_wndList[_currentWindow].buffer1->sizeY;
 		}
 		else {
 			p.x = x;
 			p.y = y;
 		}
-		ClientToScreen(_wndList[currentWindow].hwnd, &p);
-		TrackPopupMenu(popupMenu[i].hm, TPM_LEFTALIGN,
-			p.x, p.y, 0, _wndList[currentWindow].hwnd, NULL);
+		ClientToScreen(_wndList[_currentWindow].hwnd, &p);
+		TrackPopupMenu(_popupMenuInfo[i].hm, TPM_LEFTALIGN,
+			p.x, p.y, 0, _wndList[_currentWindow].hwnd, NULL);
 	}
 
 	return SG_NO_ERORR;
@@ -4584,142 +4598,142 @@ int showPopupMenu(int menu, int x, int y) {
 void setColor(int r, int g, int b) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (_checkThread())return;
 
 		_Screen->rgb[0] = r % 256;
 		_Screen->rgb[1] = g % 256;
 		_Screen->rgb[2] = b % 256;
 
-		tf.color.r = r;
-		tf.color.g = g;
-		tf.color.b = b;
+		_textFont.color.r = r;
+		_textFont.color.g = g;
+		_textFont.color.b = b;
 	}
 	else {
-		_wndList[currentWindow].rgb[0] = r % 256;
-		_wndList[currentWindow].rgb[1] = g % 256;
-		_wndList[currentWindow].rgb[2] = b % 256;
+		_wndList[_currentWindow].rgb[0] = r % 256;
+		_wndList[_currentWindow].rgb[1] = g % 256;
+		_wndList[_currentWindow].rgb[2] = b % 256;
 
-		_wndList[currentWindow].tf.color.r = r;
-		_wndList[currentWindow].tf.color.g = g;
-		_wndList[currentWindow].tf.color.b = b;
+		_wndList[_currentWindow].tf.color.r = r;
+		_wndList[_currentWindow].tf.color.g = g;
+		_wndList[_currentWindow].tf.color.b = b;
 	}
 }
 void setFontSize(int height) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (_checkThread())return;
 
-		if (height<SG_MAX_FONT_LENGTH)tf.size = height;
-		else tf.size = SG_MAX_FONT_LENGTH;
+		if (height<SG_MAX_FONT_LENGTH)_textFont.size = height;
+		else _textFont.size = SG_MAX_FONT_LENGTH;
 
-		DeleteObject(text.font);
-		text.font = CreateFont(tf.size, 0, 0, 0, FW_THIN, tf.coeff & FONT_ITALIC,
-			tf.coeff & FONT_UNDERLINE, tf.coeff & FONT_STRIKEOUT,
+		DeleteObject(_systemText.font);
+		_systemText.font = CreateFont(_textFont.size, 0, 0, 0, FW_THIN, _textFont.coeff & FONT_ITALIC,
+			_textFont.coeff & FONT_UNDERLINE, _textFont.coeff & FONT_STRIKEOUT,
 			DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS,
-			DEFAULT_QUALITY, FF_MODERN, tf.name);
-		SelectObject(text.memDC, text.font);
+			DEFAULT_QUALITY, FF_MODERN, _textFont.name);
+		SelectObject(_systemText.memDC, _systemText.font);
 	}
 	else {
-		if (height<SG_MAX_FONT_LENGTH)_wndList[currentWindow].tf.size = height;
-		else _wndList[currentWindow].tf.size = SG_MAX_FONT_LENGTH;
+		if (height<SG_MAX_FONT_LENGTH)_wndList[_currentWindow].tf.size = height;
+		else _wndList[_currentWindow].tf.size = SG_MAX_FONT_LENGTH;
 
-		DeleteObject(_wndList[currentWindow].text.font);
-		_wndList[currentWindow].text.font = 
-			CreateFont(_wndList[currentWindow].tf.size, 0, 0, 0, FW_THIN,
-			_wndList[currentWindow].tf.coeff & FONT_ITALIC,
-			_wndList[currentWindow].tf.coeff & FONT_UNDERLINE,
-			_wndList[currentWindow].tf.coeff & FONT_STRIKEOUT,
+		DeleteObject(_wndList[_currentWindow].text.font);
+		_wndList[_currentWindow].text.font = 
+			CreateFont(_wndList[_currentWindow].tf.size, 0, 0, 0, FW_THIN,
+			_wndList[_currentWindow].tf.coeff & FONT_ITALIC,
+			_wndList[_currentWindow].tf.coeff & FONT_UNDERLINE,
+			_wndList[_currentWindow].tf.coeff & FONT_STRIKEOUT,
 			DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS,
-			DEFAULT_QUALITY, FF_MODERN, _wndList[currentWindow].tf.name);
-		SelectObject(_wndList[currentWindow].text.memDC,
-			_wndList[currentWindow].text.font);
+			DEFAULT_QUALITY, FF_MODERN, _wndList[_currentWindow].tf.name);
+		SelectObject(_wndList[_currentWindow].text.memDC,
+			_wndList[_currentWindow].text.font);
 	}
 }
 void setFontName(const char *name) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (_checkThread())return;
 
-		if (tf.name)free((void *)tf.name);
-		tf.name = _widen(name);
+		if (_textFont.name)free((void *)_textFont.name);
+		_textFont.name = _widen(name);
 
-		DeleteObject(text.font);
-		text.font = CreateFont(tf.size, 0, 0, 0, FW_THIN, tf.coeff & FONT_ITALIC,
-			tf.coeff & FONT_UNDERLINE, tf.coeff & FONT_STRIKEOUT,
+		DeleteObject(_systemText.font);
+		_systemText.font = CreateFont(_textFont.size, 0, 0, 0, FW_THIN, _textFont.coeff & FONT_ITALIC,
+			_textFont.coeff & FONT_UNDERLINE, _textFont.coeff & FONT_STRIKEOUT,
 			DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS,
-			DEFAULT_QUALITY, FF_MODERN, tf.name);
-		SelectObject(text.memDC, text.font);
+			DEFAULT_QUALITY, FF_MODERN, _textFont.name);
+		SelectObject(_systemText.memDC, _systemText.font);
 	}
 	else {
-		if (_wndList[currentWindow].tf.name)
-			free((void *)_wndList[currentWindow].tf.name);
-		_wndList[currentWindow].tf.name = _widen(name);
+		if (_wndList[_currentWindow].tf.name)
+			free((void *)_wndList[_currentWindow].tf.name);
+		_wndList[_currentWindow].tf.name = _widen(name);
 
-		DeleteObject(_wndList[currentWindow].text.font);
-		_wndList[currentWindow].text.font =
-			CreateFont(_wndList[currentWindow].tf.size, 0, 0, 0, FW_THIN,
-			_wndList[currentWindow].tf.coeff & FONT_ITALIC,
-			_wndList[currentWindow].tf.coeff & FONT_UNDERLINE,
-			_wndList[currentWindow].tf.coeff & FONT_STRIKEOUT,
+		DeleteObject(_wndList[_currentWindow].text.font);
+		_wndList[_currentWindow].text.font =
+			CreateFont(_wndList[_currentWindow].tf.size, 0, 0, 0, FW_THIN,
+			_wndList[_currentWindow].tf.coeff & FONT_ITALIC,
+			_wndList[_currentWindow].tf.coeff & FONT_UNDERLINE,
+			_wndList[_currentWindow].tf.coeff & FONT_STRIKEOUT,
 			DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS,
-			DEFAULT_QUALITY, FF_MODERN, _wndList[currentWindow].tf.name);
-		SelectObject(_wndList[currentWindow].text.memDC,
-			_wndList[currentWindow].text.font);
+			DEFAULT_QUALITY, FF_MODERN, _wndList[_currentWindow].tf.name);
+		SelectObject(_wndList[_currentWindow].text.memDC,
+			_wndList[_currentWindow].text.font);
 	}
 }
 void setFontStyle(int coeff) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (_checkThread())return;
 
-		tf.coeff = coeff;
+		_textFont.coeff = coeff;
 
-		DeleteObject(text.font);
-		text.font = CreateFont(tf.size, 0, 0, 0, FW_THIN, tf.coeff & FONT_ITALIC,
-			tf.coeff & FONT_UNDERLINE, tf.coeff & FONT_STRIKEOUT,
+		DeleteObject(_systemText.font);
+		_systemText.font = CreateFont(_textFont.size, 0, 0, 0, FW_THIN, _textFont.coeff & FONT_ITALIC,
+			_textFont.coeff & FONT_UNDERLINE, _textFont.coeff & FONT_STRIKEOUT,
 			DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS,
-			DEFAULT_QUALITY, FF_MODERN, tf.name);
-		SelectObject(text.memDC, text.font);
+			DEFAULT_QUALITY, FF_MODERN, _textFont.name);
+		SelectObject(_systemText.memDC, _systemText.font);
 	}
 	else {
-		_wndList[currentWindow].tf.coeff = coeff;
+		_wndList[_currentWindow].tf.coeff = coeff;
 
-		DeleteObject(_wndList[currentWindow].text.font);
-		_wndList[currentWindow].text.font =
-			CreateFont(_wndList[currentWindow].tf.size, 0, 0, 0, FW_THIN,
-			_wndList[currentWindow].tf.coeff & FONT_ITALIC,
-			_wndList[currentWindow].tf.coeff & FONT_UNDERLINE,
-			_wndList[currentWindow].tf.coeff & FONT_STRIKEOUT,
+		DeleteObject(_wndList[_currentWindow].text.font);
+		_wndList[_currentWindow].text.font =
+			CreateFont(_wndList[_currentWindow].tf.size, 0, 0, 0, FW_THIN,
+			_wndList[_currentWindow].tf.coeff & FONT_ITALIC,
+			_wndList[_currentWindow].tf.coeff & FONT_UNDERLINE,
+			_wndList[_currentWindow].tf.coeff & FONT_STRIKEOUT,
 			DEFAULT_CHARSET, OUT_CHARACTER_PRECIS, CLIP_CHARACTER_PRECIS,
-			DEFAULT_QUALITY, FF_MODERN, _wndList[currentWindow].tf.name);
-		SelectObject(_wndList[currentWindow].text.memDC,
-			_wndList[currentWindow].text.font);
+			DEFAULT_QUALITY, FF_MODERN, _wndList[_currentWindow].tf.name);
+		SelectObject(_wndList[_currentWindow].text.memDC,
+			_wndList[_currentWindow].text.font);
 	}
 }
 void setAlpha(float alpha) {
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (_checkThread())return;
 
 		_Screen->alpha = alpha;
 	}
 	else {
-		_wndList[currentWindow].alpha = alpha;
+		_wndList[_currentWindow].alpha = alpha;
 	}
 }
 float getAlpha() {
 	if (_sglMode != BIT_MAP && !_innerFunc)return 0.f;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		return _Screen->alpha;
 	}
 	else {
-		return _wndList[currentWindow].alpha;
+		return _wndList[_currentWindow].alpha;
 	}
 }
 void clearScreen() {
@@ -4728,7 +4742,7 @@ void clearScreen() {
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (_checkThread())return;
 
 		if (_activePage == 0) buf = _Screen->buffer1;
@@ -4750,26 +4764,26 @@ void clearScreen() {
 		}
 	}
 	else {
-		if (_wndList[currentWindow].activePage == 0) buf = _wndList[currentWindow].buffer1;
-		else buf = _wndList[currentWindow].buffer2;
+		if (_wndList[_currentWindow].activePage == 0) buf = _wndList[_currentWindow].buffer1;
+		else buf = _wndList[_currentWindow].buffer2;
 
-		if ((_wndList[currentWindow].rgb[0] &
-			_wndList[currentWindow].rgb[1] &
-			_wndList[currentWindow].rgb[2]) == 255) {
+		if ((_wndList[_currentWindow].rgb[0] &
+			_wndList[_currentWindow].rgb[1] &
+			_wndList[_currentWindow].rgb[2]) == 255) {
 			memset(buf->data, -1, 3 * buf->sizeX*buf->sizeY);
 			return;
 		}
-		if ((_wndList[currentWindow].rgb[0] |
-			_wndList[currentWindow].rgb[1] |
-			_wndList[currentWindow].rgb[2]) == 0) {
+		if ((_wndList[_currentWindow].rgb[0] |
+			_wndList[_currentWindow].rgb[1] |
+			_wndList[_currentWindow].rgb[2]) == 0) {
 			memset(buf->data, 0, 3 * buf->sizeX*buf->sizeY);
 			return;
 		}
 
 		for (i = 0; i < 3 * buf->sizeX*buf->sizeY; i += 3) {
-			buf->data[i] = _wndList[currentWindow].rgb[2];
-			buf->data[i + 1] = _wndList[currentWindow].rgb[1];
-			buf->data[i + 2] = _wndList[currentWindow].rgb[0];
+			buf->data[i] = _wndList[_currentWindow].rgb[2];
+			buf->data[i + 1] = _wndList[_currentWindow].rgb[1];
+			buf->data[i + 2] = _wndList[_currentWindow].rgb[0];
 		}
 	}
 }
@@ -4779,7 +4793,7 @@ int putPixel(int x, int y) {
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return SG_INVALID_MODE;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (_checkThread())return SG_WRONG_THREAD;
 
 		if (_activePage == 0) buf = _Screen->buffer1;
@@ -4809,34 +4823,34 @@ int putPixel(int x, int y) {
 		}
 	}
 	else {
-		if (_wndList[currentWindow].activePage == 0)
-			buf = _wndList[currentWindow].buffer1;
-		else buf = _wndList[currentWindow].buffer2;
+		if (_wndList[_currentWindow].activePage == 0)
+			buf = _wndList[_currentWindow].buffer1;
+		else buf = _wndList[_currentWindow].buffer2;
 
 		if (x < 0 || x >= buf->sizeX || y < 0 || y >= buf->sizeY)return SG_OUT_OF_RANGE;
 
 		p = (y * buf->sizeX + x) * 3;
-		if (_wndList[currentWindow].alpha == 1.f) {
-			buf->data[p] = _wndList[currentWindow].rgb[2];
-			buf->data[p + 1] = _wndList[currentWindow].rgb[1];
-			buf->data[p + 2] = _wndList[currentWindow].rgb[0];
+		if (_wndList[_currentWindow].alpha == 1.f) {
+			buf->data[p] = _wndList[_currentWindow].rgb[2];
+			buf->data[p + 1] = _wndList[_currentWindow].rgb[1];
+			buf->data[p + 2] = _wndList[_currentWindow].rgb[0];
 		}
 		else {
-			buf->data[p] = (int)(buf->data[p] * (1.f - _wndList[currentWindow].alpha));
+			buf->data[p] = (int)(buf->data[p] * (1.f - _wndList[_currentWindow].alpha));
 			buf->data[p] +=
-				(int)(_wndList[currentWindow].rgb[2] * (_wndList[currentWindow].alpha));
-			buf->data[p + 1] = (int)(buf->data[p + 1] * (1.f - _wndList[currentWindow].alpha));
+				(int)(_wndList[_currentWindow].rgb[2] * (_wndList[_currentWindow].alpha));
+			buf->data[p + 1] = (int)(buf->data[p + 1] * (1.f - _wndList[_currentWindow].alpha));
 			buf->data[p + 1] +=
-				(int)(_wndList[currentWindow].rgb[1] * (_wndList[currentWindow].alpha));
-			buf->data[p + 2] = (int)(buf->data[p + 2] * (1.f - _wndList[currentWindow].alpha));
+				(int)(_wndList[_currentWindow].rgb[1] * (_wndList[_currentWindow].alpha));
+			buf->data[p + 2] = (int)(buf->data[p + 2] * (1.f - _wndList[_currentWindow].alpha));
 			buf->data[p + 2] +=
-				(int)(_wndList[currentWindow].rgb[0] * (_wndList[currentWindow].alpha));
+				(int)(_wndList[_currentWindow].rgb[0] * (_wndList[_currentWindow].alpha));
 		}
-		for (i = 0; i < _wndList[currentWindow].widget->count; i++) {
-			if (_wndList[currentWindow].drawingWidget == i)continue;
-			if (!_wndList[currentWindow].widget->obj[i]->valid)continue;
-			if (inWidget(_wndList[currentWindow].widget->obj[i], x, y))
-				_wndList[currentWindow].widget->obj[i]->valid = 0;
+		for (i = 0; i < _wndList[_currentWindow].widget->count; i++) {
+			if (_wndList[_currentWindow].drawingWidget == i)continue;
+			if (!_wndList[_currentWindow].widget->obj[i]->valid)continue;
+			if (inWidget(_wndList[_currentWindow].widget->obj[i], x, y))
+				_wndList[_currentWindow].widget->obj[i]->valid = 0;
 		}
 	}
 
@@ -4852,7 +4866,7 @@ RGB getPixel(int x, int y) {
 		return im;
 	}
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (_checkThread()) {
 			im.r = im.g = im.b = SG_WRONG_THREAD;
 			return im;
@@ -4870,9 +4884,9 @@ RGB getPixel(int x, int y) {
 		ret.b = buf->data[p++];
 	}
 	else {
-		if (_wndList[currentWindow].activePage == 0)
-			buf = _wndList[currentWindow].buffer1;
-		else buf = _wndList[currentWindow].buffer2;
+		if (_wndList[_currentWindow].activePage == 0)
+			buf = _wndList[_currentWindow].buffer1;
+		else buf = _wndList[_currentWindow].buffer2;
 
 		ret.r = ret.g = ret.b = SG_OUT_OF_RANGE;
 
@@ -4892,7 +4906,7 @@ void putLine(int x1, int y1, int x2, int y2, int mode) {
 
 #define ABS(x) ((x > 0) ? (x) : (-x))
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (_checkThread())return;
 
 		dx = x2 - x1;
@@ -4973,7 +4987,7 @@ void putQuad(int x1, int y1, int x2, int y2, int mode) {
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (_checkThread())return;
 
 		if (_activePage == 0) buf = _Screen->buffer1;
@@ -5014,9 +5028,9 @@ void putQuad(int x1, int y1, int x2, int y2, int mode) {
 		}
 	}
 	else {
-		if (_wndList[currentWindow].activePage == 0)
-			buf = _wndList[currentWindow].buffer1;
-		else buf = _wndList[currentWindow].buffer2;
+		if (_wndList[_currentWindow].activePage == 0)
+			buf = _wndList[_currentWindow].buffer1;
+		else buf = _wndList[_currentWindow].buffer2;
 
 		if (x1 > x2)x1 ^= x2 ^= x1 ^= x2;
 		if (y1 > y2)y1 ^= y2 ^= y1 ^= y2;
@@ -5034,11 +5048,11 @@ void putQuad(int x1, int y1, int x2, int y2, int mode) {
 					buf->data[p + i + 2] = _Screen->rgb[0];
 				}
 			}
-			for (i = 0; i < _wndList[currentWindow].widget->count; i++) {
-				if (_wndList[currentWindow].drawingWidget == i)continue;
-				if (!_wndList[currentWindow].widget->obj[i]->valid)continue;
-				if (crossWidget(_wndList[currentWindow].widget->obj[i], x1, y1, x2, y2))
-					_wndList[currentWindow].widget->obj[i]->valid = 0;
+			for (i = 0; i < _wndList[_currentWindow].widget->count; i++) {
+				if (_wndList[_currentWindow].drawingWidget == i)continue;
+				if (!_wndList[_currentWindow].widget->obj[i]->valid)continue;
+				if (crossWidget(_wndList[_currentWindow].widget->obj[i], x1, y1, x2, y2))
+					_wndList[_currentWindow].widget->obj[i]->valid = 0;
 			}
 		}
 
@@ -5059,7 +5073,7 @@ void putTriangle(int x1, int y1, int x2, int y2, int x3, int y3, int mode) {
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (_checkThread())return;
 
 		c.r = _Screen->rgb[0];
@@ -5071,9 +5085,9 @@ void putTriangle(int x1, int y1, int x2, int y2, int x3, int y3, int mode) {
 		if (mode == SOLID_FILL)floodFill((x1 + x2 + x3) / 3, (y1 + y2 + y3) / 3, c);
 	}
 	else {
-		c.r = _wndList[currentWindow].rgb[0];
-		c.g = _wndList[currentWindow].rgb[1];
-		c.b = _wndList[currentWindow].rgb[2];
+		c.r = _wndList[_currentWindow].rgb[0];
+		c.g = _wndList[_currentWindow].rgb[1];
+		c.b = _wndList[_currentWindow].rgb[2];
 		putLine(x1, y1, x2, y2, SOLID_LINE);
 		putLine(x1, y1, x3, y3, SOLID_LINE);
 		putLine(x2, y2, x3, y3, SOLID_LINE);
@@ -5085,7 +5099,7 @@ void putCircle(int xc, int yc, int r, int mode) {
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (_checkThread())return;
 
 		x = 0;
@@ -5231,7 +5245,7 @@ void putEllipse(int xc, int yc, int a, int b, int mode) {
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (_checkThread())return;
 
 		sqa = a * a;
@@ -5425,7 +5439,7 @@ void putBitmap(int x, int y, bitMap bmp) {
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (_checkThread())return;
 
 		if (_activePage == 0) buf = _Screen->buffer1;
@@ -5448,9 +5462,9 @@ void putBitmap(int x, int y, bitMap bmp) {
 		}
 	}
 	else{
-		if (_wndList[currentWindow].activePage == 0)
-			buf = _wndList[currentWindow].buffer1;
-		else buf = _wndList[currentWindow].buffer2;
+		if (_wndList[_currentWindow].activePage == 0)
+			buf = _wndList[_currentWindow].buffer1;
+		else buf = _wndList[_currentWindow].buffer2;
 		vp = buf->data + (y*buf->sizeX + x) * 3;
 
 		width = bmp.sizeX;
@@ -5462,11 +5476,11 @@ void putBitmap(int x, int y, bitMap bmp) {
 			else memcpy(vp + lines, bmp.data + i * width * 3, width * 3);
 		}
 
-		for (i = 0; i < _wndList[currentWindow].widget->count; i++) {
-			if (_wndList[currentWindow].drawingWidget == i)continue;
-			if (!_wndList[currentWindow].widget->obj[i]->valid)continue;
-			if (crossWidget(_wndList[currentWindow].widget->obj[i], x, y, x + bmp.sizeX, y + bmp.sizeY))
-				_wndList[currentWindow].widget->obj[i]->valid = 0;
+		for (i = 0; i < _wndList[_currentWindow].widget->count; i++) {
+			if (_wndList[_currentWindow].drawingWidget == i)continue;
+			if (!_wndList[_currentWindow].widget->obj[i]->valid)continue;
+			if (crossWidget(_wndList[_currentWindow].widget->obj[i], x, y, x + bmp.sizeX, y + bmp.sizeY))
+				_wndList[_currentWindow].widget->obj[i]->valid = 0;
 		}
 	}
 }
@@ -5482,7 +5496,7 @@ int drawBmp(int x, int y, const char *filename) {
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return SG_INVALID_MODE;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (_checkThread())return SG_WRONG_THREAD;
 
 		if (_activePage == 0) buf = _Screen->buffer1;
@@ -5526,9 +5540,9 @@ int drawBmp(int x, int y, const char *filename) {
 		}
 	}
 	else {
-		if (_wndList[currentWindow].activePage == 0)
-			buf = _wndList[currentWindow].buffer1;
-		else buf = _wndList[currentWindow].buffer2;
+		if (_wndList[_currentWindow].activePage == 0)
+			buf = _wndList[_currentWindow].buffer1;
+		else buf = _wndList[_currentWindow].buffer2;
 		vp = buf->data + (y*buf->sizeX + x) * 3;
 
 		if (x < 0 || y < 0)goto displayError;
@@ -5561,11 +5575,11 @@ int drawBmp(int x, int y, const char *filename) {
 			else memcpy(vp + lines, p, width * 3);
 		}
 
-		for (i = 0; i < _wndList[currentWindow].widget->count; i++) {
-			if (_wndList[currentWindow].drawingWidget == i)continue;
-			if (!_wndList[currentWindow].widget->obj[i]->valid)continue;
-			if (crossWidget(_wndList[currentWindow].widget->obj[i], x, y, x + width, y + height))
-				_wndList[currentWindow].widget->obj[i]->valid = 0;
+		for (i = 0; i < _wndList[_currentWindow].widget->count; i++) {
+			if (_wndList[_currentWindow].drawingWidget == i)continue;
+			if (!_wndList[_currentWindow].widget->obj[i]->valid)continue;
+			if (crossWidget(_wndList[_currentWindow].widget->obj[i], x, y, x + width, y + height))
+				_wndList[_currentWindow].widget->obj[i]->valid = 0;
 		}
 	}
 
@@ -5628,12 +5642,12 @@ void putChar(char ch, int x, int y) {
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (_checkThread())return;
 
 		for (j = 0; j < 8; j++)
 			for (k = 7; k >= 0; k--)
-				if ((letters[ch][j] >> k) & 1) {
+				if ((_letters[ch][j] >> k) & 1) {
 					putPixel(x + 7 - k, y + 2 * j);
 					putPixel(x + 7 - k, y + 2 * j + 1);
 				}
@@ -5641,7 +5655,7 @@ void putChar(char ch, int x, int y) {
 	else {
 		for (j = 0; j < 8; j++)
 			for (k = 7; k >= 0; k--)
-				if ((letters[ch][j] >> k) & 1) {
+				if ((_letters[ch][j] >> k) & 1) {
 					putPixel(x + 7 - k, y + 2 * j);
 					putPixel(x + 7 - k, y + 2 * j + 1);
 				}
@@ -5652,7 +5666,7 @@ void putNumber(int n, int x, int y, char lr) {
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (_checkThread())return;
 
 		if (lr == 'l') {
@@ -5724,7 +5738,7 @@ int stringWidth(const char *str, int x) {
 	x += 3 * tab;
 
 	SGWINSTR _wd = NULL;
-	GetTextExtentPoint32(text.memDC, _wd = _widen(tmp), x, &ret);
+	GetTextExtentPoint32(_systemText.memDC, _wd = _widen(tmp), x, &ret);
 	free((void *)_wd);
 	free(tmp);
 	return ret.cx;
@@ -5744,7 +5758,7 @@ void putStringFormat(const char *str, int x, int y, ...) {
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (_checkThread())return;
 
 		va_start(ap, y);
@@ -5765,18 +5779,18 @@ int putStringConstraint(const char *str, int x, int y, int start, int constraint
 	if (_sglMode != BIT_MAP && !_innerFunc)return SG_INVALID_MODE;
 	if (str == NULL)return SG_NULL_POINTER;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (_checkThread())return SG_WRONG_THREAD;
 
 		len = _strlenW(str) - start > constraint / 5 ? constraint / 5 : _strlenW(str) - start;
 		if (len <= 0)return 0;
 
 		SGWINSTR _wd = NULL;
-		GetTextExtentPoint32(text.memDC, (_wd = _widen(str)) + start, len, &text.strRect);
+		GetTextExtentPoint32(_systemText.memDC, (_wd = _widen(str)) + start, len, &_systemText.strRect);
 		free((void *)_wd);
-		while (text.strRect.cx > constraint) {
+		while (_systemText.strRect.cx > constraint) {
 			len--;
-			GetTextExtentPoint32(text.memDC, (_wd = _widen(str)) + start, len, &text.strRect);
+			GetTextExtentPoint32(_systemText.memDC, (_wd = _widen(str)) + start, len, &_systemText.strRect);
 			free((void *)_wd);
 		}
 		len = _wcharAt(str, len);
@@ -5799,13 +5813,13 @@ int putStringConstraint(const char *str, int x, int y, int start, int constraint
 		if (len <= 0)return 0;
 
 		SGWINSTR _wd = NULL;
-		GetTextExtentPoint32(_wndList[currentWindow].text.memDC,
-			(_wd = _widen(str)) + start, len, &_wndList[currentWindow].text.strRect);
+		GetTextExtentPoint32(_wndList[_currentWindow].text.memDC,
+			(_wd = _widen(str)) + start, len, &_wndList[_currentWindow].text.strRect);
 		free((void *)_wd);
-		while (_wndList[currentWindow].text.strRect.cx > constraint) {
+		while (_wndList[_currentWindow].text.strRect.cx > constraint) {
 			len--;
-			GetTextExtentPoint32(_wndList[currentWindow].text.memDC,
-				(_wd = _widen(str)) + start, len, &_wndList[currentWindow].text.strRect);
+			GetTextExtentPoint32(_wndList[_currentWindow].text.memDC,
+				(_wd = _widen(str)) + start, len, &_wndList[_currentWindow].text.strRect);
 			free((void *)_wd);
 		}
 		len = _wcharAt(str, len);
@@ -5832,7 +5846,7 @@ int getImage(int left, int top, int right, int bottom, bitMap *bitmap) {
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return SG_INVALID_MODE;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (_checkThread())return SG_WRONG_THREAD;
 
 		if (_activePage == 0) buf = _Screen->buffer1;
@@ -5859,9 +5873,9 @@ int getImage(int left, int top, int right, int bottom, bitMap *bitmap) {
 		}
 	}
 	else {
-		if (_wndList[currentWindow].activePage == 0)
-			buf = _wndList[currentWindow].buffer1;
-		else buf = _wndList[currentWindow].buffer2;
+		if (_wndList[_currentWindow].activePage == 0)
+			buf = _wndList[_currentWindow].buffer1;
+		else buf = _wndList[_currentWindow].buffer2;
 
 		if (right <left)left ^= right ^= left ^= right;
 		if (bottom < top)top ^= bottom ^= top ^= bottom;
@@ -5892,7 +5906,7 @@ void putImage(int left, int top, bitMap *bitmap, int op) {
 
 	if (_sglMode != BIT_MAP && !_innerFunc)return;
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (_checkThread())return;
 
 		if (_activePage == 0) buf = _Screen->buffer1;
@@ -5974,9 +5988,9 @@ void putImage(int left, int top, bitMap *bitmap, int op) {
 		}
 	}
 	else {
-		if (_wndList[currentWindow].activePage == 0)
-			buf = _wndList[currentWindow].buffer1;
-		else buf = _wndList[currentWindow].buffer2;
+		if (_wndList[_currentWindow].activePage == 0)
+			buf = _wndList[_currentWindow].buffer1;
+		else buf = _wndList[_currentWindow].buffer2;
 
 		if (left >= buf->sizeX || top >= buf->sizeY)return;
 		if (left + bitmap->sizeX <= 0 || top + bitmap->sizeY <= 0)return;
@@ -6050,7 +6064,7 @@ void funcMap(int x1, int x2, int y1, int y2, float(*vect)(float x)) {
 
 #define XCHG(a, b) {tmp = a; a = b; b = tmp;}
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (x1 > x2)XCHG(x1, x2);
 		if (y1 > y2)XCHG(y1, y2);
 
@@ -6160,7 +6174,7 @@ void floodFill(int x, int y, RGB c) {
 #define DEQUE() Q[(rear++)%SG_QSIZE]
 #define ISEMPTY() ((front+1)%SG_QSIZE==(rear%SG_QSIZE))
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (_checkThread())return;
 
 		if (_activePage == 0) buf = _Screen->buffer1;
@@ -6189,9 +6203,9 @@ void floodFill(int x, int y, RGB c) {
 		}
 	}
 	else {
-		if (_wndList[currentWindow].activePage == 0)
-			buf = _wndList[currentWindow].buffer1;
-		else buf = _wndList[currentWindow].buffer2;
+		if (_wndList[_currentWindow].activePage == 0)
+			buf = _wndList[_currentWindow].buffer1;
+		else buf = _wndList[_currentWindow].buffer2;
 
 		tmp.x = x;
 		tmp.y = y;
@@ -6201,9 +6215,9 @@ void floodFill(int x, int y, RGB c) {
 			tmp = DEQUE();
 			p = (tmp.y*buf->sizeX + tmp.x) * 3;
 			if ((buf->data[p] == c.b&&buf->data[p + 1] == c.g&&buf->data[p + 2] == c.r) ||
-				(buf->data[p] == _wndList[currentWindow].rgb[2] &&
-					buf->data[p + 1] == _wndList[currentWindow].rgb[1] &&
-					buf->data[p + 2] == _wndList[currentWindow].rgb[0]))continue;
+				(buf->data[p] == _wndList[_currentWindow].rgb[2] &&
+					buf->data[p + 1] == _wndList[_currentWindow].rgb[1] &&
+					buf->data[p + 2] == _wndList[_currentWindow].rgb[0]))continue;
 			if (tmp.x < 0 || tmp.x >= buf->sizeX)continue;
 			if (tmp.y < 0 || tmp.y >= buf->sizeY)continue;
 			putPixel(tmp.x, tmp.y);
@@ -6267,6 +6281,14 @@ int maskImage(int left, int top, bitMap *mask, bitMap *bitmap) {
 	}
 
 	return SG_NO_ERORR;
+}
+void laterDraw(vectInput func, void *param) {
+	_drawingQueueFront = (_drawingQueueFront + 1) % SG_MINI_QSIZE;
+	_drawingQueue[_drawingQueueFront] = func;
+	_drawingParamQueue[_drawingQueueFront] = param;
+}
+void showNotice(const char *notice) {
+
 }
 void initOpenGL() {
 	_enOpenGL = 1;

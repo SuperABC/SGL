@@ -5,7 +5,7 @@
 
 extern int _sglMode;
 extern int _drawingWidget;
-extern struct _text text;
+extern struct _text _systemText;
 extern struct _Sub _wndList[SG_MAX_WINDOW_NUM];
 
 void(*backgroundRefresh)(int left, int top, int right, int bottom);	
@@ -222,11 +222,11 @@ int registerWidget(widgetObj *obj) {
 
 	if (obj == NULL)return SG_NULL_POINTER;
 	if (obj->name == NULL || obj->name[0] == 0)return SG_INCOMPLETE_STRUCT;
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		if (Widget->count >= SG_QSIZE)return SG_OUT_OF_RANGE;
 	}
 	else {
-		if (_wndList[currentWindow].widget->count >= SG_QSIZE)return SG_OUT_OF_RANGE;
+		if (_wndList[_currentWindow].widget->count >= SG_QSIZE)return SG_OUT_OF_RANGE;
 	}
 
 	tmp = (widgetObj *)malloc(sizeof(widgetObj));
@@ -235,9 +235,7 @@ int registerWidget(widgetObj *obj) {
 	strcpy(tmp->name, obj->name);
 
 	if (obj->type == SG_PIC) {
-		void *pre = tmp->content;
-		*((bitMap *)tmp->content) = loadBmp(tmp->content);
-		free(pre);
+		tmp->bgImg = loadBmp(tmp->content);
 	}
 	if (obj->type == SG_COMBINED) {
 		sub = tmp;
@@ -277,7 +275,7 @@ int registerWidget(widgetObj *obj) {
 		else sub->child = NULL;
 	}
 
-	if (currentWindow == -1) {
+	if (_currentWindow == -1) {
 		Widget->obj[Widget->count] = tmp;
 
 		len = (int)strlen(tmp->name);
@@ -305,18 +303,18 @@ int registerWidget(widgetObj *obj) {
 		return Widget->count++;
 	}
 	else {
-		_wndList[currentWindow].widget->obj[_wndList[currentWindow].widget->count] = tmp;
+		_wndList[_currentWindow].widget->obj[_wndList[_currentWindow].widget->count] = tmp;
 
 		len = (int)strlen(tmp->name);
 		for (i = 0; i < len; i++)sum += tmp->name[i];
 		sum %= 256;
-		end = _wndList[currentWindow].widget->hash[sum];
+		end = _wndList[_currentWindow].widget->hash[sum];
 		if (end == NULL) {
-			_wndList[currentWindow].widget->hash[sum] = (struct _hash *)malloc(sizeof(struct _hash));
-			_wndList[currentWindow].widget->hash[sum]->content = (char *)malloc(strlen(tmp->name) + 1);
-			strcpy(_wndList[currentWindow].widget->hash[sum]->content, tmp->name);
-			_wndList[currentWindow].widget->hash[sum]->value = _wndList[currentWindow].widget->count;
-			_wndList[currentWindow].widget->hash[sum]->next = NULL;
+			_wndList[_currentWindow].widget->hash[sum] = (struct _hash *)malloc(sizeof(struct _hash));
+			_wndList[_currentWindow].widget->hash[sum]->content = (char *)malloc(strlen(tmp->name) + 1);
+			strcpy(_wndList[_currentWindow].widget->hash[sum]->content, tmp->name);
+			_wndList[_currentWindow].widget->hash[sum]->value = _wndList[_currentWindow].widget->count;
+			_wndList[_currentWindow].widget->hash[sum]->next = NULL;
 		}
 		else {
 			while (end->next != NULL) {
@@ -326,10 +324,10 @@ int registerWidget(widgetObj *obj) {
 			end->next = (struct _hash *)malloc(sizeof(struct _hash));
 			end->next->content = (char *)malloc(strlen(tmp->name) + 1);
 			strcpy(end->next->content, tmp->name);
-			end->next->value = _wndList[currentWindow].widget->count;
+			end->next->value = _wndList[_currentWindow].widget->count;
 			end->next->next = NULL;
 		}
-		return _wndList[currentWindow].widget->count++;
+		return _wndList[_currentWindow].widget->count++;
 	}
 }
 int inWidget(widgetObj *obj, int x, int y) {
@@ -385,10 +383,10 @@ int easyWidget(int type, const char *name,
 	return registerWidget(tmp);
 }
 void setBackgroundRefresh(void(*refresh)(int left, int top, int right, int bottom)) {
-	if (currentWindow == -1)
+	if (_currentWindow == -1)
 		backgroundRefresh = refresh;
 	else
-		_wndList[currentWindow].background = refresh;
+		_wndList[_currentWindow].background = refresh;
 }
 widgetObj *getWidgetByIndex(int index) {
 	if (index < 0 || index >= Widget->count)return NULL;
@@ -476,6 +474,7 @@ int deleteWidgetByName(const char *name) {
 		if (end->value == --Widget->count) {
 			_deleteSub(Widget->obj[end->value]);
 			free(Widget->obj[end->value]->name);
+			free(Widget->obj[end->value]->content);
 			free(Widget->obj[end->value]);
 			Widget->obj[end->value] = NULL;
 			if (Widget->active == end->value)Widget->active = -1;
@@ -483,6 +482,7 @@ int deleteWidgetByName(const char *name) {
 		else {
 			_deleteSub(Widget->obj[end->value]);
 			free(Widget->obj[end->value]->name);
+			free(Widget->obj[end->value]->content);
 			free(Widget->obj[end->value]);
 			len = (int)strlen(Widget->obj[Widget->count]->name);
 			for (i = 0; i < len; i++)sum2 += Widget->obj[Widget->count]->name[i];
@@ -510,6 +510,7 @@ int deleteWidgetByName(const char *name) {
 		if (end->value == --Widget->count) {
 			_deleteSub(Widget->obj[end->value]);
 			free(Widget->obj[end->value]->name);
+			free(Widget->obj[end->value]->content);
 			free(Widget->obj[end->value]);
 			Widget->obj[end->value] = NULL;
 			if (Widget->active == end->value)Widget->active = -1;
@@ -517,6 +518,7 @@ int deleteWidgetByName(const char *name) {
 		else {
 			_deleteSub(Widget->obj[end->value]);
 			free(Widget->obj[end->value]->name);
+			free(Widget->obj[end->value]->content);
 			free(Widget->obj[end->value]);
 			len = (int)strlen(Widget->obj[Widget->count]->name);
 			for (i = 0; i < len; i++)sum2 += Widget->obj[Widget->count]->name[i];
@@ -542,14 +544,65 @@ int deleteWidgetByName(const char *name) {
 	}
 	return SG_NO_ERORR;
 }
+widgetObj *getSubWidget(const char *parent, const char *name) {
+	widgetObj *p = getWidgetByName(parent);
+	widgetObj *iter = p->child;
+	while (iter) {
+		if (strcmp(iter->name, name) == 0) {
+			return iter;
+		}
+		iter = iter->next;
+	}
+	return NULL;
+}
 void insertSubWidget(const char *parent, widgetObj* sub, int index) {
 	widgetObj *p = getWidgetByName(parent);
 	if (p->type != SG_COMBINED)return;
 
+	int offx = p->pos.x;
+	int offy = p->pos.y;
+	sub->pos.x += offx;
+	sub->pos.y += offy;
 
+	if (sub->pos.x + sub->size.x > p->size.x)p->size.x = sub->pos.x + sub->size.x;
+	if (sub->pos.y + sub->size.y > p->size.y)p->size.y = sub->pos.y + sub->size.y;
+
+	if (index <= 0) {
+		widgetObj *old = p->child;
+		p->child = sub;
+		sub->next = old;
+	}
+	else {
+		widgetObj *iter = p->child;
+		while (--index > 0) {
+			if (iter->next == NULL)break;
+			iter = iter->next;
+		}
+		widgetObj *old = iter->next;
+		iter->next = sub;
+		sub->next = old;
+	}
 }
 void deleteSubWidget(const char *parent, const char *name) {
-
+	widgetObj *p = getWidgetByName(parent);
+	widgetObj *iter = p->child;
+	if (strcmp(iter->name, name) == 0) {
+		p->child = iter->next;
+		free(iter->name);
+		free(iter->content);
+		free(iter);
+	}
+	while (iter->next) {
+		if (strcmp(iter->next->name, name) == 0) {
+			widgetObj *old = iter->next;
+			iter->next = iter->next->next;
+			free(old->name);
+			free(old->content);
+			free(old);
+			break;
+		}
+		iter = iter->next;
+	}
 }
 void moveWidgetByIndex(int index, int xDelta, int yDelta) {
 	widgetObj *tmp = getWidgetByIndex(index);
@@ -904,13 +957,13 @@ void mouseClickInput(widgetObj *w, int x, int y, int status) {
 			w->valid = 0;
 			if (((char *)w->content)[0] == '\0')w->value = 0;
 			else if (x >= w->pos.x + 2 && x < w->pos.x + w->size.x - 2) {
-				GetTextExtentPoint32(text.memDC, _wd = _widen(w->content), w->hide, &tmp);
+				GetTextExtentPoint32(_systemText.memDC, _wd = _widen(w->content), w->hide, &tmp);
 				free((void *)_wd);
 				w->value = (x - w->pos.x) / 20 + w->hide;
 				x += tmp.cx - w->pos.x;
 				do {
 					w->value++;
-					GetTextExtentPoint32(text.memDC, _wd = _widen(w->content), w->value, &tmp);
+					GetTextExtentPoint32(_systemText.memDC, _wd = _widen(w->content), w->value, &tmp);
 					free((void *)_wd);
 				} while (tmp.cx < x - 4);
 				w->value--;
@@ -1559,14 +1612,14 @@ void _drawSubWidget(int id, int fb) {
 
 	if (_sglMode == BIT_MAP) {
 		startSubWindow(id);
-		for (i = 0; i < _wndList[currentWindow].widget->count; i++) {
-			current = _wndList[currentWindow].widget->obj[i];
+		for (i = 0; i < _wndList[_currentWindow].widget->count; i++) {
+			current = _wndList[_currentWindow].widget->obj[i];
 			if (!current || !current->visible || current->priority != fb)continue;
 
 			if (current->valid)continue;
 			current->valid = 1;
 
-			_wndList[currentWindow].drawingWidget = i;
+			_wndList[_currentWindow].drawingWidget = i;
 			switch (current->type) {
 			case SG_BUTTON:
 				_drawButton(current);
@@ -1612,7 +1665,7 @@ void _drawSubWidget(int id, int fb) {
 				_drawCombined(current);
 				break;
 			}
-			_wndList[currentWindow].drawingWidget = -1;
+			_wndList[_currentWindow].drawingWidget = -1;
 		}
 		endSubWindow();
 	}
@@ -1646,10 +1699,10 @@ void _drawButton(widgetObj *w) {
 		setFontSize(w->tf.size);
 		_setFontName(w->tf.name);
 		SGWINSTR _wd = NULL;
-		GetTextExtentPoint32(text.memDC, _wd = _widen(w->content), _strlenW(w->content), &text.strRect);
+		GetTextExtentPoint32(_systemText.memDC, _wd = _widen(w->content), _strlenW(w->content), &_systemText.strRect);
 		free((void *)_wd);
 		putString(w->content,
-			w->pos.x + w->size.x / 2 - text.strRect.cx / 2,
+			w->pos.x + w->size.x / 2 - _systemText.strRect.cx / 2,
 			w->pos.y + w->size.y / 2 - SG_CHAR_HEIGHT / 2 - 3);
 		break;
 	case WIN_XP:
@@ -1700,16 +1753,16 @@ void _drawInput(widgetObj *w) {
 		}
 		if (w->value <= w->hide && w->value)w->hide = w->value - 1;
 		SGWINSTR _wd = NULL;
-		GetTextExtentPoint32(text.memDC, _wd = _widen(w->content), w->value, &tmp1);
+		GetTextExtentPoint32(_systemText.memDC, _wd = _widen(w->content), w->value, &tmp1);
 		free((void *)_wd);
-		GetTextExtentPoint32(text.memDC, _wd = _widen(w->content), w->hide, &tmp2);
+		GetTextExtentPoint32(_systemText.memDC, _wd = _widen(w->content), w->hide, &tmp2);
 		free((void *)_wd);
 		if (tmp1.cx > tmp2.cx + w->size.x - 2 * SG_CHAR_WIDTH) {
 			do {
 				w->hide++;
-				GetTextExtentPoint32(text.memDC, _wd = _widen(w->content), w->value, &tmp1);
+				GetTextExtentPoint32(_systemText.memDC, _wd = _widen(w->content), w->value, &tmp1);
 				free((void *)_wd);
-				GetTextExtentPoint32(text.memDC, _wd = _widen(w->content), w->hide, &tmp2);
+				GetTextExtentPoint32(_systemText.memDC, _wd = _widen(w->content), w->hide, &tmp2);
 				free((void *)_wd);
 			} while (tmp1.cx > tmp2.cx + w->size.x - 2 * SG_CHAR_WIDTH);
 		}
@@ -1951,7 +2004,7 @@ void _drawLable(widgetObj *w) {
 	switch (w->style) {
 	case SG_DESIGN:
 		backgroundRefresh(
-			w->pos.x, w->pos.y, w->pos.x + w->size.x, w->pos.y + w->size.y);
+			w->pos.x, w->pos.y, w->pos.x + w->size.x - 1, w->pos.y + w->size.y - 1);
 		setColor(w->tf.color.r, w->tf.color.g, w->tf.color.b);
 		setFontSize(w->tf.size);
 		_setFontName(w->tf.name);
@@ -1970,7 +2023,7 @@ void _drawLable(widgetObj *w) {
 	}
 }
 void _drawPic(widgetObj *w) {
-	putBitmap(w->pos.x, w->pos.y, *((bitMap *)w->content));
+	putBitmap(w->pos.x, w->pos.y, w->bgImg);
 }
 void _drawCheck(widgetObj *w) {
 	switch (w->style) {

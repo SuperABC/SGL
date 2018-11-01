@@ -53,6 +53,7 @@
 #define SG_CHAR_WIDTH 8
 #define SG_CHAR_HEIGHT 16
 #define SG_LINE_DELTA_DEFAULT 20
+#define SG_MINI_QSIZE 32
 #define SG_QSIZE 32768
 #define SG_HASH_NUM 256
 #define SG_MAX_FONT_SIZE 128
@@ -278,6 +279,7 @@ typedef unsigned char byte;
 typedef unsigned short int word;
 typedef unsigned long int dword;
 typedef void(*vect)(void);
+typedef void(*vectInput)(void *param);
 typedef DWORD(WINAPI *thread)(LPVOID lpThreadParameter);
 typedef void(*mouseMoveCall)(void *w, int x, int y);
 typedef void(*mouseClickCall)(void *w, int x, int y, int status);
@@ -403,7 +405,7 @@ struct JSON {
 
 
 //The active window id when dealing with widget events.
-extern int currentWindow;
+extern int _currentWindow;
 
 
 #ifdef __cplusplus
@@ -414,6 +416,7 @@ extern "C" {
 //Widget callbacks. Declared here for users to 'inherit'.
 
 void vectDefault(void);
+void vectDefaultWithParam(void *param);
 /* An empty function. */
 
 void mouseUserDefault(widgetObj *w);
@@ -885,6 +888,9 @@ SGint deleteWidgetByIndex(int index);
 SGint deleteWidgetByName(const char *name);
 /* Delete the widget with the given name. */
 
+widgetObj *getSubWidget(const char *parent, const char *name);
+/* Returns the sub widget with the given name in parent's childs. */
+
 SGvoid insertSubWidget(const char *parent, widgetObj* sub, int index);
 /* Insert a child widget. The index decides the display order. */
 
@@ -1000,6 +1006,12 @@ SGvoid floodFill(int x, int y, RGB c);
 
 bitMap loadBmp(const char *filename);
 /* Load bmp to a bitMap struct other than showing it on screen. */
+
+SGvoid laterDraw(vectInput func, void *param);
+/* The func will be called later in the main thread. */
+
+SGvoid showNotice(const char *notice);
+/* Show the notice int the middle bottom. */
 
 SGvoid initOpenGL();
 /* Enable SGL to use OpenGL. */

@@ -202,6 +202,7 @@ int _stringPrintf(const char *format, va_list ap, int x, int y);
 void _drawPanel();
 void _clearPanel();
 int _checkThread();
+void _deleteSub(widgetObj *w);
 void _bgDrawDefault(int left, int top, int right, int bottom);
 
 void _textLoop(void);
