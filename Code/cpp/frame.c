@@ -2839,7 +2839,7 @@ void _createMenu(enum _menuType type, struct _item *it, HMENU super) {
 		else break;
 	}
 	SGWINSTR _wd = NULL;
-	AppendMenu(super, MF_STRING | MF_POPUP, (UINT)tmp, _wd = _widen(it->name));
+	AppendMenu(super, MF_STRING | MF_POPUP, (UINT_PTR)tmp, _wd = _widen(it->name));
 	free((void *)_wd);
 }
 void _callMenu(struct _menu *m, int id) {

@@ -40,13 +40,13 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -76,7 +76,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
-    <IncludePath>C:\Program Files\MySQL\MySQL Connector C 6.1\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);E:\项目\Github\SGL\Code\include;</IncludePath>
+    <IncludePath>C:\Program Files\MySQL\MySQL Connector.C 6.1\include;C:\Program Files\MySQL\MySQL Connector C 6.1\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);E:\项目\Github\SGL\Code\include;</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
@@ -84,7 +84,7 @@
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
-    <IncludePath>C:\Program Files\MySQL\MySQL Connector C 6.1\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);E:\项目\Github\SGL\Code\include;</IncludePath>
+    <IncludePath>C:\Program Files\MySQL\MySQL Connector.C 6.1\include;C:\Program Files\MySQL\MySQL Connector C 6.1\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);E:\项目\Github\SGL\Code\include;</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -143,11 +143,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Code\include\db.h" />
     <ClInclude Include="Code\include\inner.h" />
     <ClInclude Include="Code\include\winsgl.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Code\cpp\data.c" />
+    <ClCompile Include="Code\cpp\db.c" />
     <ClCompile Include="Code\cpp\frame.c" />
     <ClCompile Include="Code\cpp\widget.c" />
   </ItemGroup>
