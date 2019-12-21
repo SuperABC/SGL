@@ -494,6 +494,10 @@ void sgWheel(int dir) {
 	}
 	m.z = dir > 0 ? SG_MIDDLE_BUTTON_UP : SG_MIDDLE_BUTTON_DOWN;
 	_windowList[_currentWindow]->mouse->enqueue(m);
+
+	for (auto w : _windowList[_currentWindow]->widgets) {
+		w->mouseClick(x, y, m.z);
+	}
 }
 void sgIdle(HWND hwnd) {
 
@@ -1822,6 +1826,30 @@ void registerWidget(widget obj) {
 	case SG_OUTPUT:
 		_windowList[_currentWindow]->widgets.push_back(new Output(obj, _currentWindow));
 		break;
+	case SG_LIST:
+		_windowList[_currentWindow]->widgets.push_back(new List(obj, _currentWindow));
+		break;
+	case SG_LABEL:
+		_windowList[_currentWindow]->widgets.push_back(new Label(obj, _currentWindow));
+		break;
+	case SG_PIC:
+		_windowList[_currentWindow]->widgets.push_back(new Pic(obj, _currentWindow));
+		break;
+	case SG_CHECK:
+		_windowList[_currentWindow]->widgets.push_back(new Check(obj, _currentWindow));
+		break;
+	case SG_DRAG:
+		_windowList[_currentWindow]->widgets.push_back(new Drag(obj, _currentWindow));
+		break;
+	case SG_PROCESS:
+		_windowList[_currentWindow]->widgets.push_back(new Process(obj, _currentWindow));
+		break;
+	case SG_SCROLLVERT:
+		_windowList[_currentWindow]->widgets.push_back(new ScrollVert(obj, _currentWindow));
+		break;
+	case SG_SCROLLHORIZ:
+		_windowList[_currentWindow]->widgets.push_back(new ScrollHoriz(obj, _currentWindow));
+		break;
 	}
 }
 void easyWidget(int type, const char *name, int x, int y, int width, int height, const char *content, mouseUser click) {
@@ -1842,6 +1870,10 @@ widget *getWidgetByName(const char *name) {
 }
 SGvoid refreshWidget(const char *name) {
 	Widget *tmp = _getByName(name);
+	tmp->valid = false;
+	tmp->content = tmp->obj->content;
+	tmp->value = tmp->obj->value;
+	tmp->extra = tmp->obj->extra;
 }
 int inWidget(widget *obj, int x, int y) {
 	if (obj == NULL)return 0;

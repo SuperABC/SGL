@@ -152,7 +152,6 @@
     <ClCompile Include="frame.cpp" />
     <ClCompile Include="geometry.cpp" />
     <ClCompile Include="graph.cpp" />
-    <ClCompile Include="Sample\7.Widget\output.c" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

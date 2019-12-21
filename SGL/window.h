@@ -905,6 +905,7 @@ public:
 			buffer->data[p + 2] += (int)(rgb[0] * alpha);
 		}
 
+		if (drawingWidget == -1)widgetCover(-1, x, y, x, y);
 		return SG_NO_ERORR;
 	}
 	RGB getPixel(int x, int y) {
@@ -933,10 +934,12 @@ public:
 
 		if ((rgb[0] & rgb[1] & rgb[2]) == 255) {
 			memset(buffer->data, -1, 3 * buffer->sizeX*buffer->sizeY);
+			if (drawingWidget == -1)widgetCover(-1, 0, 0, winWidth, winHeight);
 			return;
 		}
 		if ((rgb[0] | rgb[1] | rgb[2]) == 0) {
 			memset(buffer->data, 0, 3 * buffer->sizeX*buffer->sizeY);
+			if (drawingWidget == -1)widgetCover(-1, 0, 0, winWidth, winHeight);
 			return;
 		}
 
@@ -945,6 +948,7 @@ public:
 			buffer->data[i + 1] = rgb[1];
 			buffer->data[i + 2] = rgb[0];
 		}
+		if (drawingWidget == -1)widgetCover(-1, 0, 0, winWidth, winHeight);
 	}
 	void putLine(int x1, int y1, int x2, int y2, int mode) {
 		int dx, dy, ux, uy, x, y, eps;
@@ -1011,6 +1015,7 @@ public:
 					buffer->data[p + i + 2] = rgb[0];
 				}
 			}
+			if(drawingWidget == -1)widgetCover(-1, x1, y1, x2, y2);
 		}
 
 		if (mode == EMPTY_FILL) {
@@ -1932,7 +1937,10 @@ public:
 	void widgetCover(int id, int left, int top, int right, int bottom) {
 		for (int i = id + 1; i < widgets.size(); i++) {
 			if (crossWidget(widgets[i]->getObj(), left, top, right, bottom)) {
+				int prev = drawingWidget;
+				drawingWidget = i;
 				if(widgets[i]->visible)widgets[i]->draw(i);
+				drawingWidget = prev;
 			}
 		}
 	}

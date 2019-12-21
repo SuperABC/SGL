@@ -623,7 +623,13 @@ public:
 };
 class List : public Widget {
 public:
-	List(widget w, int window) :Widget(w, window) {}
+	List(widget w, int window) :Widget(w, window) {
+		int length = strlen((char *)w.content);
+		for (int i = 0; i < length; i++) {
+			if (((char *)w.content)[i] == '\n')
+				((char *)w.content)[i] = '\0';
+		}
+	}
 
 	virtual void draw(int id) {
 		int i;
@@ -779,7 +785,7 @@ public:
 			}
 			else if (x >= pos.x&&x < pos.x + size.x&&
 				y >= pos.y + size.y - extra * SG_LINE_DELTA_DEFAULT&&y < pos.y + size.y) {
-				if (status == (SG_BUTTON_UP | SG_LEFT_BUTTON)) {
+				if (button == (SG_BUTTON_UP | SG_LEFT_BUTTON)) {
 					status &= 0xFF ^ WIDGET_SELECTED;
 					status &= 0xFF ^ WIDGET_PASS;
 					valid = 0;
@@ -814,7 +820,7 @@ public:
 		}
 	}
 	virtual void keyPress(int key) {
-		if (status != WIDGET_SELECTED)return;
+		if (status & WIDGET_SELECTED == 0)return;
 
 		if (key == SG_UP) {
 			if (value) {
@@ -872,7 +878,9 @@ public:
 };
 class Pic :public Widget {
 public:
-	Pic(widget w, int window) :Widget(w, window) {}
+	Pic(widget w, int window) :Widget(w, window) {
+		obj->bgImg = bgImg = loadBmp((char *)w.content);
+	}
 
 	virtual void draw(int id) {
 		putBitmap(pos.x, pos.y, bgImg);
@@ -937,6 +945,97 @@ public:
 				status |= WIDGET_SELECTED;
 				if (value)value--;
 				else value = 1;
+				valid = 0;
+			}
+		}
+		else {
+			if (button == (SG_BUTTON_DOWN | SG_LEFT_BUTTON) &&
+				(status & WIDGET_SELECTED)) {
+				status &= 0xFF ^ WIDGET_SELECTED;
+				valid = 0;
+			}
+		}
+		if (status & WIDGET_PASS && status & WIDGET_SELECTED &&
+			button == (SG_BUTTON_UP | SG_LEFT_BUTTON))
+			click();
+
+	}
+};
+class Drag :public Widget {
+public:
+	Drag(widget w, int window) :Widget(w, window) {}
+
+	virtual void draw(int id) {
+		useBackgroundRefresh(
+			pos.x, pos.y, pos.x + size.x - 1, pos.y + size.y - 1);
+		switch (style) {
+		case SG_DESIGN:
+			setColor(passColor.r, passColor.g, passColor.b);
+			putQuad(pos.x, pos.y + size.y / 2 - 2,
+				pos.x + size.x, pos.y + size.y / 2 + 2, EMPTY_FILL);
+			if (status&WIDGET_PRESSED)
+				setColor(pressColor.r, pressColor.g, pressColor.b);
+			else if (status&WIDGET_PASS)
+				setColor(passColor.r, passColor.g, passColor.b);
+			else setColor(bgColor.r, bgColor.g, bgColor.b);
+			putQuad(pos.x + value* (size.x - 12) / 100 + 2, pos.y,
+				pos.x + value * (size.x - 12) / 100 + 10, pos.y + size.y - 1, SOLID_FILL);
+			setColor(fgColor.r, fgColor.g, fgColor.b);
+			putQuad(pos.x + value * (size.x - 12) / 100 + 2, pos.y,
+				pos.x + value * (size.x - 12) / 100 + 10, pos.y + size.y - 1, EMPTY_FILL);
+			break;
+		case WIN_XP:
+			break;
+		case WIN_10:
+			break;
+		case LINUX:
+			break;
+		case WEBSITE:
+			break;
+		case ANDROID:
+			break;
+		}
+		widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
+	}
+	virtual void mouseMove(int x, int y) {
+		if (status & WIDGET_PRESSED) {
+			if (x < pos.x + 6)obj->value = value = 0;
+			else if (x >= pos.x + size.x - 6)obj->value = value = 100;
+			else {
+				obj->value = value = (x - pos.x - 6) * 100 / (size.x - 12);
+			}
+			valid = 0;
+		}
+		if (x >= pos.x + (float)value / 100 * (size.x - 12) + 2 &&
+			x < pos.x + (float)value / 100 * (size.x - 12) + 10 &&
+			y >= pos.y&&y < pos.y + size.y) {
+			if (!(status & WIDGET_PASS)) {
+				status |= WIDGET_PASS;
+				valid = 0;
+			}
+		}
+		else {
+			if (status & WIDGET_PASS) {
+				status &= 0xFF ^ WIDGET_PASS;
+				valid = 0;
+			}
+		}
+	}
+	virtual void mouseClick(int x, int y, int button) {
+		if (button == (SG_BUTTON_UP | SG_LEFT_BUTTON) &&
+			(status & WIDGET_PRESSED)) {
+			status &= 0xFF ^ WIDGET_PRESSED;
+			valid = 0;
+		}
+		if (x >= pos.x + (float)value / 100 * (size.x - 12) + 2 &&
+			x < pos.x + (float)value / 100 * (size.x - 12) + 10 &&
+			y >= pos.y&&y < pos.y + size.y) {
+			if (button == (SG_BUTTON_DOWN | SG_LEFT_BUTTON)) {
+				status |= WIDGET_PRESSED;
+				valid = 0;
+			}
+			if (button == (SG_BUTTON_UP | SG_LEFT_BUTTON)) {
+				status |= WIDGET_SELECTED;
 				valid = 0;
 			}
 		}
@@ -1066,97 +1165,6 @@ public:
 					ceaseWidget(name.data());
 					return;
 				}
-				status |= WIDGET_SELECTED;
-				valid = 0;
-			}
-		}
-		else {
-			if (button == (SG_BUTTON_DOWN | SG_LEFT_BUTTON) &&
-				(status & WIDGET_SELECTED)) {
-				status &= 0xFF ^ WIDGET_SELECTED;
-				valid = 0;
-			}
-		}
-	}
-};
-class Drag :public Widget {
-public:
-	Drag(widget w, int window) :Widget(w, window) {}
-
-	virtual void draw(int id) {
-		RGB inverse = getPixel(pos.x, pos.y);
-		inverse.r = 255 - inverse.r;
-		inverse.g = 255 - inverse.g;
-		inverse.b = 255 - inverse.b;
-		useBackgroundRefresh(
-			pos.x, pos.y, pos.x + size.x - 1, pos.y + size.y - 1);
-		switch (style) {
-		case SG_DESIGN:
-			setColor(inverse.r, inverse.g, inverse.b);
-			putQuad(pos.x, pos.y + size.y / 2 - 2,
-				pos.x + size.x, pos.y + size.y / 2 + 2, EMPTY_FILL);
-			if (status&WIDGET_PRESSED)
-				setColor(pressColor.r, pressColor.g, pressColor.b);
-			else if (status&WIDGET_PASS)
-				setColor(passColor.r, passColor.g, passColor.b);
-			else setColor(bgColor.r, bgColor.g, bgColor.b);
-			putQuad(pos.x + value* (size.x - 12) / 100 + 2, pos.y,
-				pos.x + value * (size.x - 12) / 100 + 10, pos.y + size.y - 1, SOLID_FILL);
-			setColor(fgColor.r, fgColor.g, fgColor.b);
-			putQuad(pos.x + value * (size.x - 12) / 100 + 2, pos.y,
-				pos.x + value * (size.x - 12) / 100 + 10, pos.y + size.y - 1, EMPTY_FILL);
-			break;
-		case WIN_XP:
-			break;
-		case WIN_10:
-			break;
-		case LINUX:
-			break;
-		case WEBSITE:
-			break;
-		case ANDROID:
-			break;
-		}
-		widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
-	}
-	virtual void mouseMove(int x, int y) {
-		if (status & WIDGET_PRESSED) {
-			if (x < pos.x + 6)value = 0;
-			else if (x >= pos.x + size.x - 6)value = 100;
-			else {
-				value = (x - pos.x - 6) * 100 / (size.x - 12);
-			}
-			valid = 0;
-		}
-		if (x >= pos.x + (float)value / 100 * (size.x - 12) + 2 &&
-			x < pos.x + (float)value / 100 * (size.x - 12) + 10 &&
-			y >= pos.y&&y < pos.y + size.y) {
-			if (!(status & WIDGET_PASS)) {
-				status |= WIDGET_PASS;
-				valid = 0;
-			}
-		}
-		else {
-			if (status & WIDGET_PASS) {
-				status &= 0xFF ^ WIDGET_PASS;
-				valid = 0;
-			}
-		}
-	}
-	virtual void mouseClick(int x, int y, int button) {
-		if (button == (SG_BUTTON_UP | SG_LEFT_BUTTON) &&
-			(status & WIDGET_PRESSED)) {
-			status &= 0xFF ^ WIDGET_PRESSED;
-			valid = 0;
-		}
-		if (x >= pos.x + (float)value / 100 * (size.x - 12) + 2 &&
-			x < pos.x + (float)value / 100 * (size.x - 12) + 10 &&
-			y >= pos.y&&y < pos.y + size.y) {
-			if (button == (SG_BUTTON_DOWN | SG_LEFT_BUTTON)) {
-				status |= WIDGET_PRESSED;
-				valid = 0;
-			}
-			if (button == (SG_BUTTON_UP | SG_LEFT_BUTTON)) {
 				status |= WIDGET_SELECTED;
 				valid = 0;
 			}
