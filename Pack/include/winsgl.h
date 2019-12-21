@@ -17,9 +17,9 @@
 #define SGL_H
 
 
+#define _SGL_V500
 #define _CRT_SECURE_NO_WARNINGS
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
-#define _SGL_V500
 
 #ifdef _DEBUG
 #define SG_LIB(name) name "d.lib"
@@ -40,6 +40,8 @@
 #include <windows.h>
 #include <winsock.h>
 
+#include "geometry.h"
+
 #ifdef __cplusplus
 #include <iostream>
 #include <fstream>
@@ -48,8 +50,6 @@
 
 
 //SG const macros.
-
-#define PI 3.1415926535897932
 
 #define SG_PI 3.14159265358979323846
 #define SG_CHAR_WIDTH 8
@@ -65,9 +65,10 @@
 #define SG_MAX_CONNECTION 4096
 #define SG_MCI_BUFFER_SIZE 256
 #define SG_MCI_MAX_NUM 256
-#define SG_MAX_POPUP_NUM 256
+#define SG_MAX_POPUP_NUM 16
 #define SG_MAX_FORMAT_FILTERS 256
 #define SG_MAX_WINDOW_NUM 256
+#define SG_MAX_WIDGET_NUM 256
 #define SG_MAX_PANEL_FUNCTION 12
 
 
@@ -299,15 +300,6 @@ typedef char SGbool;
 #endif
 
 typedef struct {
-	int x, y;
-}vec2;
-typedef struct {
-	int x, y, z;
-}vec3;
-typedef struct {
-	int x, y, z, w;
-}vec4;
-typedef struct {
 	byte r, g, b;
 }RGB;
 typedef struct {
@@ -327,8 +319,8 @@ typedef struct {
 typedef struct _w{
 	enum _control type;
 
-	vec2 pos;
-	vec2 size;
+	vec2i pos;
+	vec2i size;
 
 	int style;
 
@@ -337,11 +329,13 @@ typedef struct _w{
 	int value, extra;
 
 	font tf;
-	SGstring associate;
 	struct _w *child, *next;
 
 	RGB bgColor, passColor, pressColor, fgColor;
 	bitMap bgImg;
+
+	mouseUser click;
+	keyUser press;
 }widget;
 
 
@@ -441,6 +435,10 @@ extern "C" {
 	/* Returns the height of the obj. The parameter obj can be SG_WINDOW
 	* (the current window) or SG_CANVAS(The screen of the computer). */
 
+	vec2i getSize(int obj);
+	/* Returns the size of the obj. The parameter obj can be SG_WINDOW
+	* (the current window) or SG_CANVAS(The screen of the computer). */
+
 	SGvoid debugf(const char *format, ...);
 	/* Print the message with format to the output window when debugging. */
 
@@ -483,11 +481,6 @@ extern "C" {
 	* name is used to receive the selected directory name with its
 	* path, and start is the path to begin with so set it to NULL as
 	* default. */
-
-	SGvoid alertInfo(const char *info, const char *title, int mode);
-	/* Create a new dialog to show or confirm some information.
-	* Parameter info is the text while title is title, and mode is one
-	* of the enums in _alert. */
 
 	SGvoid initMci();
 	/* Initialize the media(mp3) device. */
@@ -649,8 +642,12 @@ extern "C" {
 	* number, or 'r', which means the bottom-right corner. Details are
 	* in instruction pdf. */
 
-	SGvoid putString(const char *str, int x, int y);
+	SGint putString(const char *str, int x, int y);
 	/* Draw one string str on the screen of position (x, y). */
+
+	SGint putStringConstraint(const char *str, int x, int y, int start, int constraint);
+	/* Draw one string str on the screen of position (x, y) with maximum
+	* length constraint. */
 
 	SGint stringWidth(const char *str, int x);
 	/* Get the width on x axis of the given string in current font. */
@@ -673,6 +670,88 @@ extern "C" {
 	SGvoid floodFill(int x, int y, RGB c);
 	/* Fill from coordinate (x, y) recursively with current color until
 	* meeting the given color c. */
+
+	SGint showFps();
+	/* Show the fps on the screen for testing. */
+
+	SGint setGraphRegion(int left, int top, int right, int bottom);
+	/* Use the region with given parameters to draw 3D graph, the
+	* return value is the canvas id.*/
+
+	SGint deleteGraphRegion(int id);
+	/* Delete the graph region with given id. */
+
+	SGvoid clearGraphBuffer(int id);
+	/* Clear the graph region with black color. */
+
+	SGvoid setPipelineVariable(int id, const char *name, void *var);
+	/* Pass a variable from user coding environment to programmable pipeline coding
+	* environment. Parameter id is the graph id and pos is the variable index. Parameter
+	* name is the unique name of this variable. The last parament is the value pointer
+	* that need to be set. It's designed to be a pointer so that this set variable
+	* function needn't be called frequently. */
+
+	SGvoid *getPipelineVariable(int id, const char *name);
+	/* Get the variable with given graph id and variable name. */
+
+	SGvoid refreshGraph(int id, int elementNum);
+	/* When finish sending data strips and uniform variables, draw the
+	* whole graph region. The num is the element num.*/
+
+	SGvoid refreshTracer(int id);
+	/* When finish sending objects, draw the whole graph region using
+	* the tracer defined.*/
+
+	SGint pushDataArray(int id, float *data, int step);
+	/* Give one data strip to vertex shader with given graph id. */
+
+	SGvoid vertexShader(int id, int(*vs)(int id, float *datas[], int step[], int dataNum,
+		vec3f position[], float *outs[]));
+	/* The first part of the programmable pipeline. The times that this function
+	* will be executed is equal to the elementNum given in refreshGraph. Every
+	* time this function is executed, it calculate the map of an element's vertex
+	* from the given data to screen position. Parameter id is the graph id, datas
+	* and steps is an array of array which contains the datas and steps given in
+	* pushDataArray, dataNum is the number of data strips. It can be refered
+	* that datas size is (dataNum, elementNum * step * vertexNum). Parameter
+	* position and outs is the output of vertex shader. position is an array with
+	* length vertexNum of an element, it saves the map result. outs is an array
+	* of array that pass data from vertex shader to fragment shader. The size
+	* of outs is (vertexNum, return value) which means the data length for one
+	* vertex need to be returned. */
+
+	SGvoid fragmentShader(int id, vec3i(*fs)(int id, int x, int y, float *data));
+	/* The second part of the programmable pipeline. The times that this function
+	* will be executed is the number of pixels that need to be drawn. The parameter
+	* x and y is the screen coordinate when calling this function. The parameter
+	* data comes from the ous in vertex shader, and it has been interpolated using
+	* temporary position and vertex positions. The return value of fragment shader
+	* is the color that need to be drawn in (x, y). */
+
+	vec3f randHemi(vec3f normal);
+	/* Randomly select one direction from the hemisphere using the given normal. */
+
+	SGint pushObject(int id, float *data, int length, int vertices,
+		float(*intersect)(int id, void *points, vec3f point, vec3f dir, vec3f *norm),
+		void(*hit)(int id, float dist, void *prd, vec3f norm), void(*shadow)(int id, void *prd));
+	/* An object means a sequence of triangles and their material which contains
+	 * intersect function, hit function and shadow function. Parameter id is the graph
+	 * id, data is the triangle vertices sequence, vertices is the num of triangles. */
+
+	SGvoid rtTrace(int id, int obj, vec3f light, vec3f dir, int type, float tmin, float tmax, void *prd);
+	/* This is the main tracing function. Use the light with starting point light and 
+	 * the direction dir to trace the obj that has been pushed with the given obj id.
+	 * Parameter id is the graph id, prd is the struct pointer that carries the ray
+	 * data for accumulating. */
+
+	SGvoid rtGenerate(int id, vec3i(*generate)(int id, vec2i index, vec2i size));
+	/* Set the generate function. It is the first function executed when calling
+	 * refresh. the index and size is the position of the drawing pixel and the whole
+	 * screen. */
+
+	SGvoid rtMiss(int id, void(*miss)(int id, void *prd));
+	/* Set the miss function. That is, when rtTrace function did not hit any objects,
+	 the miss function will be called. */
 
 	SGvoid laterDraw(vectInput func, void *param);
 	/* The func will be called later in the main thread. */
@@ -728,7 +807,7 @@ extern "C" {
 	SGvoid clearKeyBuffer();
 	/* Delete all key events before current time. */
 
-	vec2 mousePos();
+	vec2i mousePos();
 	/* Returns the current position of the cursor. */
 
 	SGint mouseStatus(int b);
@@ -736,7 +815,7 @@ extern "C" {
 	* Parameter b can be SG_LEFT_BUTTON or SG_RIGHT_BUTTON or
 	* SG_MIDDLE_BUTTON. */
 
-	vec3 biosMouse(int cmd);
+	vec3i biosMouse(int cmd);
 	/* Main function to deal with mouse event. The parameter cmd can be
 	* 0 or 1. Details of the usage are in instruction pdf. */
 
@@ -776,33 +855,33 @@ extern "C" {
 	SGvoid setMouseIcon(SGWINSTR icon);
 	/* Set the icon of the cursor. */
 
-	SGint initMenu();
+	SGint initMainMenu();
 	/* Allow this program to use windows main menu. The return value
 	* is the main menu id which will be used when add lists or items into
 	* main menu. */
 
-	SGint addMenuList(const char *title, int id);
+	SGint addMainMenuList(const char *title, int id);
 	/* Add a new list of name title into the menu with the given id. The
 	* return value is the new list id.*/
 
-	SGint addMenuItem(const char *title, int id, void(*func)());
+	SGint addMainMenuItem(const char *title, int id, void(*func)());
 	/* Add a new item of name title into the menu with the given id.
 	* The parameter func is the callback function which means that it
 	* will be called after the user click the item. */
 
-	SGint addMenuSeparator(int id);
+	SGint addMainMenuSeparator(int id);
 	/* Add a separate line in the list with given id. */
 
-	SGint enableItem(int id);
+	SGint enableMainItem(int id);
 	/* Make the item or menu of id enabled. That is, it can be clicked. */
 
-	SGint disableItem(int id);
+	SGint disableMainItem(int id);
 	/* Make the item or menu of id disabled. That is, it can't be clicked.*/
 
-	SGvoid checkItem(int id);
+	SGvoid checkMainItem(int id);
 	/* Make the item of id checked with a tick on the left.*/
 
-	SGvoid uncheckItem(int id);
+	SGvoid uncheckMainItem(int id);
 	/* Make the item of id unchecked and clear the tick on the left.*/
 
 	SGvoid addTray();
@@ -829,6 +908,18 @@ extern "C" {
 	SGint addTrayMenuSeparator(int id);
 	/* Add a separator in the tray menu. Parameter is same to main menu.*/
 
+	SGint enableTrayItem(int id);
+	/* Make the item or menu of id enabled. That is, it can be clicked. */
+
+	SGint disableTrayItem(int id);
+	/* Make the item or menu of id disabled. That is, it can't be clicked.*/
+
+	SGvoid checkTrayItem(int id);
+	/* Make the item of id checked with a tick on the left.*/
+
+	SGvoid uncheckTrayItem(int id);
+	/* Make the item of id unchecked and clear the tick on the left.*/
+
 	SGint createPopupMenu();
 	/* Init one popup menu, the return value is the menu id. */
 
@@ -840,6 +931,18 @@ extern "C" {
 
 	SGint addPopupMenuSeparator(int id);
 	/* Add a separator in the popup menu. Parameter is same to main menu.*/
+
+	SGint enablePopupItem(int id);
+	/* Make the item or menu of id enabled. That is, it can be clicked. */
+
+	SGint disablePopupItem(int id);
+	/* Make the item or menu of id disabled. That is, it can't be clicked.*/
+
+	SGvoid checkPopupItem(int id);
+	/* Make the item of id checked with a tick on the left.*/
+
+	SGvoid uncheckPopupItem(int id);
+	/* Make the item of id unchecked and clear the tick on the left.*/
 
 	SGint finishPopupMenu(int id);
 	/* The popup menu need to be finished by the programmer which means
@@ -860,6 +963,9 @@ extern "C" {
 	* the function refresh will be called. The parameter of refresh is
 	* the area that need to be redrew. */
 
+	SGvoid useBackgroundRefresh(int left, int top, int right, int bottom);
+	/* Refresh the background of the given area. */
+
 	widget newWidget(enum _control type, const char *name);
 	/* Returns a widget with default parameter. */
 
@@ -867,13 +973,21 @@ extern "C" {
 	/* Create a combined widget. Pass the sub widget number and
 	* then those sub widget pointers.*/
 
-	SGint registerWidget(widget *obj);
+	SGvoid registerWidget(widget obj);
 	/* After setting all the parameters, give back the widget to
 	* the system. After this function, all callbacks are activated.*/
 
-	SGint easyWidget(int type, const char *name,
+	SGvoid easyWidget(int type, const char *name,
 		int x, int y, int width, int height, const char *content, mouseUser click);
 	/* Create and register a widget fastly. */
+
+
+	widget *getWidgetByName(const char *name);
+	/* Get the widget structure by the given name. */
+
+	SGvoid refreshWidget(const char *name);
+	/* After modifing the structure returned by getWidgetByName, apply the
+	 * modification. */
 
 	SGint inWidget(widget *obj, int x, int y);
 	/* Judge if coordinate (x, y) is in widget obj. */
@@ -881,16 +995,10 @@ extern "C" {
 	SGint crossWidget(widget *obj, int left, int top, int right, int bottom);
 	/* Judge if rectangle (left, top, right, bottom) is crossing widget obj. */
 
-	widget getWidget(const char *name);
-	/* Returns the widget pointer with the given name. */
-
-	SGint getWidgetIndex(const char *name);
-	/* Returns the widget pointer with the given name. */
-
-	SGvoid showWidget(const char *name);
+	SGint showWidget(const char *name);
 	/* Make the widget of name visible. */
 
-	SGvoid ceaseWidget(const char *name);
+	SGint ceaseWidget(const char *name);
 	/* Make the widget of name disvisible. */
 
 	SGint deleteWidget(const char *name);
@@ -916,6 +1024,8 @@ extern "C" {
 	/* Set the widget with the given name to the bottom which means any
 	* widget can conver it. */
 
+	void widgetCover(int window, int id, int left, int top, int right, int bottom);
+	/* Redraw the widget covered by the widget */
 
 	/*
 	* SG data interfaces

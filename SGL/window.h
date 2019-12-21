@@ -1002,9 +1002,9 @@ public:
 		if (x1 > x2)x1 ^= x2 ^= x1 ^= x2;
 		if (y1 > y2)y1 ^= y2 ^= y1 ^= y2;
 		if (x1 < 0)x1 = 0;
-		if (x2 >= buffer->sizeX)x2 = buffer->sizeX - 1;
+		if (x2 > buffer->sizeX)x2 = buffer->sizeX;
 		if (y1 < 0)y1 = 0;
-		if (y2 >= buffer->sizeY)y2 = buffer->sizeY - 1;
+		if (y2 > buffer->sizeY)y2 = buffer->sizeY;
 
 		if (mode == SOLID_FILL) {
 			for (j = y1; j < y2; j++) {
