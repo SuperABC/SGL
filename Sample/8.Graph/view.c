@@ -1,4 +1,4 @@
-#include "../../winsgl.h"
+#include "winsgl.h"
 
 int graphHandle;
 

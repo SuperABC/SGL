@@ -1,9 +1,7 @@
-#include "../../winsgl.h"
+#include "winsgl.h"
 
 void resize(int x, int y) {
-	char text[64];
-	sprintf(text, "resize to %d * %d", x, y);
-	alertInfo(text, "resize", 0);
+	debugf("resize to %d * %d\n", x, y);
 }
 
 void sgSetup() {

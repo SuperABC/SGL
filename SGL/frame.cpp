@@ -62,12 +62,14 @@ int createWindow(int width, int height, const char *title, int mode, vect setup,
 	wc.hInstance = NULL;
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-	wc.lpszClassName = _widen((string("SubClass") + std::to_string(_windowList.size())).data());
+	wc.lpszClassName = _widen((string("SubClass") + std::to_string(_windowList.size()*2)).data());
 	wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
 
 	if (!RegisterClassEx(&wc)) {
 		MessageBox(NULL, TEXT("Window Registration Failed!"), TEXT("Error!"), MB_ICONEXCLAMATION | MB_OK);
-		return -1;
+		
+		delete sub;
+		return SG_IO_ERROR;
 	}
 
 	sub->loop = loop;
@@ -75,12 +77,12 @@ int createWindow(int width, int height, const char *title, int mode, vect setup,
 
 	ShowWindow(sub->getHwnd(), SW_SHOWDEFAULT);
 
-	for (unsigned int i = 0; i < _windowList.size(); i++) {
+	/*for (unsigned int i = 0; i < _windowList.size(); i++) {
 		if (_windowList[i] == NULL) {
 			_windowList[i] = sub;
 			return i;
 		}
-	}
+	}*/
 	_windowList.push_back(sub);
 
 	int tmp = _currentWindow;
@@ -95,6 +97,7 @@ void closeWindow(int id) {
 	if (id < 0 || id >= (int)_windowList.size())return;
 
 	PostMessage(_windowList[id]->getHwnd(), WM_CLOSE, 0, 0);
+	//UnregisterClass(_widen((string("SubClass") + std::to_string(id)).data()), NULL);
 	delete _windowList[id];
 	_windowList[id] = NULL;
 }
@@ -102,7 +105,8 @@ void resizeFuntion(void(*func)(int x, int y)) {
 	if (_windowList[_currentWindow]->resize == NULL) {
 		_windowList[_currentWindow]->setResize();
 	}
-	_windowList[_currentWindow]->resize = func;
+	if(func)_windowList[_currentWindow]->resize = func;
+	else _windowList[_currentWindow]->resize = [](int x, int y) {};
 }
 void renameCaption(const char *name) {
 	SetWindowText(_windowList[_currentWindow]->getHwnd(), _widen(String(name)));
@@ -1244,7 +1248,7 @@ bitMap *contrastPic(bitMap *src) {
 */
 
 int _stringPrintf(const char *format, va_list ap, char *buffer) {
-	/*string buf;
+	string buf;
 	while (*format) {
 		if (*format == '\t') {
 			buf +=  "    ";
@@ -1288,8 +1292,6 @@ int _stringPrintf(const char *format, va_list ap, char *buffer) {
 	}
 
 	strcpy(buffer, buf.data());
-	return SG_NO_ERORR;*/
-	sprintf(buffer, format, ap);
 	return SG_NO_ERORR;
 }
 int _stringLength(const char *format, va_list ap) {
@@ -1677,11 +1679,15 @@ int deletePanelItem(int id) {
 void _clickDefault() {
 
 }
+void _moveDefault(int x, int y) {
+
+}
 void _pressDefault(int k) {
 
 }
 Widget *_getByName(const char *name) {
 	for (auto wnd : _windowList) {
+		if (!wnd)continue;
 		for (auto w : wnd->widgets) {
 			if (w->name == name)return w;
 		}
@@ -1728,6 +1734,7 @@ widget newWidget(enum _control type, const char *name) {
 	ret.bgImg.data = NULL;
 
 	ret.click = _clickDefault;
+	ret.move = _moveDefault;
 	ret.press = _pressDefault;
 
 	switch (type) {
@@ -1852,7 +1859,7 @@ void registerWidget(widget obj) {
 		break;
 	}
 }
-void easyWidget(int type, const char *name, int x, int y, int width, int height, const char *content, mouseUser click) {
+void easyWidget(int type, const char *name, int x, int y, int width, int height, const char *content, void(*click)()) {
 	widget tmp = newWidget((enum _control)type, name);
 	tmp.pos.x = x;
 	tmp.pos.y = y;
@@ -1871,9 +1878,18 @@ widget *getWidgetByName(const char *name) {
 SGvoid refreshWidget(const char *name) {
 	Widget *tmp = _getByName(name);
 	tmp->valid = false;
+
+	tmp->style = tmp->obj->style;
 	tmp->content = tmp->obj->content;
 	tmp->value = tmp->obj->value;
 	tmp->extra = tmp->obj->extra;
+	tmp->bgImg = tmp->obj->bgImg;
+
+	tmp->click = tmp->obj->click;
+	tmp->move = tmp->obj->move;
+	tmp->press = tmp->obj->press;
+
+	tmp->update();
 }
 int inWidget(widget *obj, int x, int y) {
 	if (obj == NULL)return 0;
@@ -1917,6 +1933,7 @@ int ceaseWidget(const char *name) {
 }
 int deleteWidget(const char *name) {
 	for (auto wnd : _windowList) {
+		if (!wnd)continue;
 		for (auto &w : wnd->widgets) {
 			if (w->name == name) {
 				w = wnd->widgets.back();
@@ -1926,6 +1943,21 @@ int deleteWidget(const char *name) {
 		}
 	}
 	return NULL;
+}
+int moveWidget(const char *name, int xDelta, int yDelta) {
+	Widget *tmp = _getByName(name);
+	if (tmp) {
+		tmp->cease();
+		if (_windowList[tmp->window]->backgroundRefresh)
+			_windowList[tmp->window]->backgroundRefresh(
+				tmp->pos.x, tmp->pos.y, tmp->pos.x + tmp->size.x, tmp->pos.y + tmp->size.y);
+		tmp->obj->pos.x = tmp->pos.x = tmp->pos.x + xDelta;
+		tmp->obj->pos.y = tmp->pos.y = tmp->pos.y + yDelta;
+		tmp->valid = false;
+		tmp->show();
+		return SG_NO_ERORR;
+	}
+	else return SG_OBJECT_NOT_FOUND;
 }
 void widgetCover(int window, int id, int left, int top, int right, int bottom) {
 	_windowList[window]->widgetCover(id, left, top, right, bottom);
@@ -2363,6 +2395,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		break;
 
 	case WM_PAINT:
+		if (_windowSem <= 0)break;
 		_startSubWindow(0);
 		_baseWindow->drawWidgets(WIDGET_FRONT);
 		_baseWindow->drawPanel();
@@ -2408,12 +2441,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		break;
 
 	case WM_KEYDOWN:
+		if (_windowSem <= 0)break;
 		_startSubWindow(0);
 		sgSpecialDown((int)wParam, 0, 0);
 		_endSubWindow();
 		break;
 
 	case WM_CHAR:
+		if (_windowSem <= 0)break;
 		_startSubWindow(0);
 		sgKeyDown((int)wParam |
 			((GetKeyState(VK_CONTROL) & 0x8000) >> 1) |
@@ -2422,6 +2457,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		break;
 
 	case WM_KEYUP:
+		if (_windowSem <= 0)break;
 		_startSubWindow(0);
 		sgKeyUp((int)wParam, 0, 0);
 		sgSpecialUp((int)wParam, 0, 0);
@@ -2429,6 +2465,7 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		break;
 
 	case WM_MOUSEMOVE:
+		if (_windowSem <= 0)break;
 		_startSubWindow(0);
 		if (!wParam)sgMouse(LOWORD(lParam), HIWORD(lParam));
 		else sgDrag(LOWORD(lParam), HIWORD(lParam));
@@ -2436,42 +2473,49 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 		break;
 
 	case WM_MOUSEWHEEL:
+		if (_windowSem <= 0)break;
 		_startSubWindow(0);
 		sgWheel((short)HIWORD(wParam));
 		_endSubWindow();
 		break;
 
 	case WM_LBUTTONDOWN:
+		if (_windowSem <= 0)break;
 		_startSubWindow(0);
 		sgClick(SG_LEFT_BUTTON, SG_BUTTON_DOWN, LOWORD(lParam), HIWORD(lParam));
 		_endSubWindow();
 		break;
 
 	case WM_MBUTTONDOWN:
+		if (_windowSem <= 0)break;
 		_startSubWindow(0);
 		sgClick(SG_MIDDLE_BUTTON, SG_BUTTON_DOWN, LOWORD(lParam), HIWORD(lParam));
 		_endSubWindow();
 		break;
 
 	case WM_RBUTTONDOWN:
+		if (_windowSem <= 0)break;
 		_startSubWindow(0);
 		sgClick(SG_RIGHT_BUTTON, SG_BUTTON_DOWN, LOWORD(lParam), HIWORD(lParam));
 		_endSubWindow();
 		break;
 
 	case WM_LBUTTONUP:
+		if (_windowSem <= 0)break;
 		_startSubWindow(0);
 		sgClick(SG_LEFT_BUTTON, SG_BUTTON_UP, LOWORD(lParam), HIWORD(lParam));
 		_endSubWindow();
 		break;
 
 	case WM_MBUTTONUP:
+		if (_windowSem <= 0)break;
 		_startSubWindow(0);
 		sgClick(SG_MIDDLE_BUTTON, SG_BUTTON_UP, LOWORD(lParam), HIWORD(lParam));
 		_endSubWindow();
 		break;
 
 	case WM_RBUTTONUP:
+		if (_windowSem <= 0)break;
 		_startSubWindow(0);
 		sgClick(SG_RIGHT_BUTTON, SG_BUTTON_UP, LOWORD(lParam), HIWORD(lParam));
 		_endSubWindow();
@@ -2489,7 +2533,7 @@ LRESULT CALLBACK SubWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
 	for (index = 0; index < _windowList.size(); index++) {
 		if (_windowList[index] && hwnd == _windowList[index]->getHwnd())break;
 	}
-	if (index == _windowList.size())
+	if (index == _windowList.size() || !_windowList[index])
 		return DefWindowProc(hwnd, message, wParam, lParam);
 
 	if (!_windowList[index]->inLoop) {
@@ -2528,6 +2572,7 @@ LRESULT CALLBACK SubWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
 		break;
 
 	case WM_PAINT:
+		if (_windowSem <= 0)break;
 		_startSubWindow(index);
 		_windowList[index]->drawWidgets(WIDGET_FRONT);
 		_windowList[index]->drawPanel();
@@ -2539,11 +2584,12 @@ LRESULT CALLBACK SubWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
 
 	case WM_TIMER:
 		if (wParam == TIMER_DELTA_HANDLE) {
+			if (_windowSem <= 0)break;
 			_startSubWindow(index);
 			_windowList[index]->loop();
 			_endSubWindow();
 		}
-		if (_windowList[index]->sglMode == TEXT_MAP)_windowList[index]->textLoop();
+		if (_windowList[index] && _windowList[index]->sglMode == TEXT_MAP)_windowList[index]->textLoop();
 		InvalidateRect(hwnd, NULL, FALSE);
 		break;
 
@@ -2567,15 +2613,18 @@ LRESULT CALLBACK SubWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
 		break;
 
 	case	WM_SETCURSOR:
-		return 0;
+		//return 0;
+		break;
 
 	case WM_KEYDOWN:
+		if (_windowSem <= 0)break;
 		_startSubWindow(index);
 		sgSpecialDown((int)wParam, 0, 0);
 		_endSubWindow();
 		break;
 
 	case WM_CHAR:
+		if (_windowSem <= 0)break;
 		_startSubWindow(index);
 		sgKeyDown((int)wParam |
 			((GetKeyState(VK_CONTROL) & 0x8000) >> 1) |
@@ -2584,6 +2633,7 @@ LRESULT CALLBACK SubWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
 		break;
 
 	case WM_KEYUP:
+		if (_windowSem <= 0)break;
 		_startSubWindow(index);
 		sgKeyUp((int)wParam, 0, 0);
 		sgSpecialUp((int)wParam, 0, 0);
@@ -2591,6 +2641,7 @@ LRESULT CALLBACK SubWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
 		break;
 
 	case WM_MOUSEMOVE:
+		if (_windowSem <= 0)break;
 		_startSubWindow(index);
 		if (!wParam)sgMouse(LOWORD(lParam), HIWORD(lParam));
 		else sgDrag(LOWORD(lParam), HIWORD(lParam));
@@ -2598,49 +2649,57 @@ LRESULT CALLBACK SubWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
 		break;
 
 	case WM_MOUSEWHEEL:
+		if (_windowSem <= 0)break;
 		_startSubWindow(index);
 		sgWheel((short)HIWORD(wParam));
 		_endSubWindow();
 		break;
 
 	case WM_LBUTTONDOWN:
+		if (_windowSem <= 0)break;
 		_startSubWindow(index);
 		sgClick(SG_LEFT_BUTTON, SG_BUTTON_DOWN, LOWORD(lParam), HIWORD(lParam));
 		_endSubWindow();
 		break;
 
 	case WM_MBUTTONDOWN:
+		if (_windowSem <= 0)break;
 		_startSubWindow(index);
 		sgClick(SG_MIDDLE_BUTTON, SG_BUTTON_DOWN, LOWORD(lParam), HIWORD(lParam));
 		_endSubWindow();
 		break;
 
 	case WM_RBUTTONDOWN:
+		if (_windowSem <= 0)break;
 		_startSubWindow(index);
 		sgClick(SG_RIGHT_BUTTON, SG_BUTTON_DOWN, LOWORD(lParam), HIWORD(lParam));
 		_endSubWindow();
 		break;
 
 	case WM_LBUTTONUP:
+		if (_windowSem <= 0)break;
 		_startSubWindow(index);
 		sgClick(SG_LEFT_BUTTON, SG_BUTTON_UP, LOWORD(lParam), HIWORD(lParam));
 		_endSubWindow();
 		break;
 
 	case WM_MBUTTONUP:
+		if (_windowSem <= 0)break;
 		_startSubWindow(index);
 		sgClick(SG_MIDDLE_BUTTON, SG_BUTTON_UP, LOWORD(lParam), HIWORD(lParam));
 		_endSubWindow();
 		break;
 
 	case WM_RBUTTONUP:
+		if (_windowSem <= 0)break;
 		_startSubWindow(index);
 		sgClick(SG_RIGHT_BUTTON, SG_BUTTON_UP, LOWORD(lParam), HIWORD(lParam));
 		_endSubWindow();
 		break;
 
 	case WM_DESTROY:
-		break;
+		closeWindow(index);
+		return 0;
 	}
 
 	return DefWindowProc(hwnd, message, wParam, lParam);

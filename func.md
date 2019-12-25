@@ -37,4 +37,18 @@
    3. (popup)
 7. Widget
    1. button
+   2. input
+   3. dialog
+   4. output
+   5. list
+   6. label
+   7. pic
+   8. check
+   9. drag
+   10. process
+   11. scroll
+8. Graph
+   1. scan line
+   2. ray tracing
+9. 
 

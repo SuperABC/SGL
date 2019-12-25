@@ -1,4 +1,4 @@
-#include "../../winsgl.h"
+#include "winsgl.h"
 
 const char *txt = "Hello, welcome to sgl text mode!\n"
 	"\n"

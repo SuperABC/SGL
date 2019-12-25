@@ -445,27 +445,27 @@ private:
 		else y1 = top;
 
 		if (left + text.strRect.cx >= buffer->sizeX)x2 = buffer->sizeX - 1;
-		else x2 = left + text.strRect.cx;
+		else x2 = x1 + text.strRect.cx;
 		y2 = top + bitmap->sizeY - 1;
 
 		int tmp;
 		for (i = 0; i < y2 - y1; i++) {
-			if (top + i >= buffer->sizeY)break;
+			if (y1 + i >= buffer->sizeY)break;
 			for (j = 0; j < x2 - x1; j++) {
 				if (rate = bitmap->data[(bitmap->sizeX*(y2 - y1 - i) + j) * 3]) {
-					tmp = buffer->data[(buffer->sizeX * (i + top) + left + j) * 3] * (255 - rate);
+					tmp = buffer->data[(buffer->sizeX * (i + y1) + x1 + j) * 3] * (255 - rate);
 					tmp += tf.color.b*rate;
-					buffer->data[(buffer->sizeX * (i + top) + left + j) * 3] = tmp >> 8;
+					buffer->data[(buffer->sizeX * (i + y1) + x1 + j) * 3] = tmp >> 8;
 				}
 				if (rate = bitmap->data[(bitmap->sizeX*(y2 - y1 - i) + j) * 3 + 1]) {
-					tmp = buffer->data[(buffer->sizeX * (i + top) + left + j) * 3 + 1] * (255 - rate);
+					tmp = buffer->data[(buffer->sizeX * (i + y1) + x1 + j) * 3 + 1] * (255 - rate);
 					tmp += tf.color.g*rate;
-					buffer->data[(buffer->sizeX * (i + top) + left + j) * 3 + 1] = tmp >> 8;
+					buffer->data[(buffer->sizeX * (i + y1) + x1 + j) * 3 + 1] = tmp >> 8;
 				}
 				if (rate = bitmap->data[(bitmap->sizeX*(y2 - y1 - i) + j) * 3 + 2]) {
-					tmp = buffer->data[(buffer->sizeX * (i + top) + left + j) * 3 + 2] * (255 - rate);
+					tmp = buffer->data[(buffer->sizeX * (i + y1) + x1 + j) * 3 + 2] * (255 - rate);
 					tmp += tf.color.r*rate;
-					buffer->data[(buffer->sizeX * (i + top) + left + j) * 3 + 2] = tmp >> 8;
+					buffer->data[(buffer->sizeX * (i + y1) + x1 + j) * 3 + 2] = tmp >> 8;
 				}
 			}
 		}
@@ -749,6 +749,14 @@ public:
 		free(text.bitBuf);
 		free(tf.name);
 		free(winName);
+
+		delete key;
+		delete mouse;
+		delete panel;
+
+		for (auto w : widgets) {
+			deleteWidget(w->name.data());
+		}
 	}
 	HWND getHwnd() {
 		return hwnd;
@@ -1229,7 +1237,9 @@ public:
 
 		width = bmp.sizeX;
 		height = bmp.sizeY;
-		for (i = height - 1; i >= 0; i--) {
+		i = height - 1;
+		while (i + y >= buffer->sizeY)i--;
+		for (; i >= 0; i--) {
 			lines = i * buffer->sizeX * 3;
 			if (x + width > buffer->sizeX)
 				memcpy(vp + lines, bmp.data + i * width * 3, (buffer->sizeX - x) * 3);
@@ -1343,18 +1353,25 @@ public:
 		for (i = 0; i < x; i++) {
 			if (str[i] == '\t')tab++;
 		}
-		tmp = (char *)malloc(x + 3 * tab + 1);
+		tmp = (char *)malloc(_wcharAt(str, x) + 3 * tab + 1);
 		memset(tmp, 0, x + 3 * tab + 1);
+		int wl = x;
 		for (i = 0, j = 0; i < x; i++) {
 			if (str[i] == '\t') {
 				tmp[j] = tmp[j + 1] = tmp[j + 2] = tmp[j + 3] = ' ';
 				j += 4;
 			}
-			else tmp[j++] = str[i];
+			else {
+				if (str[i] < 0) {
+					tmp[j++] = str[i++];
+					x++;
+				}
+				tmp[j++] = str[i];
+			}
 		}
 		x += 3 * tab;
 
-		GetTextExtentPoint32(text.memDC, _widen(tmp), x, &ret);
+		GetTextExtentPoint32(text.memDC, _widen(tmp), wl, &ret);
 		free(tmp);
 		return ret.cx;
 	}

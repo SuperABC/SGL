@@ -1,7 +1,7 @@
-#include "../../winsgl.h"
+#include "winsgl.h"
 
 void callBack() {
-	alertInfo("success.", "Alert", ALERT_BUTTON_OKCANCEL | ALERT_ICON_EXCLAMATION);
+
 }
 
 int idPopup;

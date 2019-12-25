@@ -41,11 +41,20 @@ int _wcharAt(const char *src, int pos) {
 }
 int _scharAt(const char *src, int pos) {
 	int ret = 0, i = 0;
-	while (i < pos) {
-		if (src[i] == 0)return ret;
-		if (src[i] < 0)i++;
-		ret++;
-		i++;
+	if (pos >= 0) {
+		while (i < pos) {
+			if (src[i] == 0)return ret;
+			if (src[i] < 0)i++;
+			ret++;
+			i++;
+		}
+	}
+	else {
+		while (src[i]) {
+			if (src[i] < 0)i++;
+			ret++;
+			i++;
+		}
 	}
 	return ret;
 }
@@ -110,8 +119,9 @@ public:
 	RGB bgColor, passColor, pressColor, fgColor;
 	bitMap bgImg;
 
-	mouseUser click;
-	keyUser press;
+	void(*click)();
+	void(*move)(int x, int y);
+	void(*press)(int key);
 
 	widget *obj;
 
@@ -201,6 +211,7 @@ public:
 		this->bgImg = this->obj->bgImg = w.bgImg;
 
 		this->click = this->obj->click = w.click;
+		this->move = this->obj->move = w.move;
 		this->press = this->obj->press = w.press;
 	}
 	~Widget() {
@@ -219,29 +230,7 @@ public:
 		visible = FALSE;
 	}
 
-	void update() {
-		this->pos = this->obj->pos;
-		this->size = this->obj->size;
-
-		this->style = this->obj->style;
-
-		this->value = this->obj->value;
-		this->extra = this->obj->extra;
-
-		this->tf.color = this->obj->tf.color;
-		free(this->tf.name);
-		this->tf.name = (LPWSTR)malloc((_strlen(this->obj->tf.name) + 1) * sizeof(wchar_t));
-		_strcpy(this->tf.name, this->obj->tf.name);
-		this->tf.size = this->obj->tf.size;
-		this->tf.coeff = this->obj->tf.coeff;
-		this->content = this->obj->content;
-
-		this->bgColor = this->obj->bgColor;
-		this->passColor = this->obj->passColor;
-		this->pressColor = this->obj->pressColor;
-		this->fgColor = this->obj->fgColor;
-		this->bgImg = this->obj->bgImg;
-	}
+	virtual void update() {}
 };
 
 class Button : public Widget {
@@ -262,21 +251,22 @@ public:
 				setColor(127, 127, 127);
 				putQuad(pos.x, pos.y,
 					pos.x + size.x, pos.y + size.y, EMPTY_FILL);
+
+				if (status&WIDGET_SELECTED) {
+					setColor(127, 127, 127);
+					putQuad(pos.x + 2, pos.y + 2,
+						pos.x + size.x - 2, pos.y + size.y - 2, EMPTY_FILL);
+				}
 			}
 			else {
 				putBitmap(pos.x, pos.y, bgImg);
 			}
 
-			if (status&WIDGET_SELECTED) {
-				setColor(127, 127, 127);
-				putQuad(pos.x + 2, pos.y + 2,
-					pos.x + size.x - 2, pos.y + size.y - 2, EMPTY_FILL);
-			}
-
 			setColor(tf.color.r, tf.color.g, tf.color.b);
 			setFontSize(tf.size);
 			setFontName(_shorten(tf.name));
-			putString((char *)content, pos.x + size.x / 2 - stringWidth((char *)content, strlen((char *)content)) / 2,
+			putString((char *)content,
+				pos.x + size.x / 2 - stringWidth((char *)content, _scharAt((char *)content, -1)) / 2,
 				pos.y + size.y / 2 - SG_CHAR_HEIGHT / 2 - 3);
 			break;
 		case WIN_XP:
@@ -294,6 +284,9 @@ public:
 	}
 };
 class Input : public Widget {
+private:
+	int start = -1;
+	int end = -1;
 public:
 	Input(widget w, int window) :Widget(w, window) {}
 
@@ -860,7 +853,7 @@ public:
 			setColor(tf.color.r, tf.color.g, tf.color.b);
 			setFontSize(tf.size);
 			setFontName(_shorten(tf.name));
-			putString((char *)content, pos.x, pos.y - 2);
+			putString((char *)content, pos.x, pos.y);
 			break;
 		case WIN_XP:
 			break;
@@ -1179,6 +1172,9 @@ public:
 	}
 };
 class ScrollVert : public Widget {
+private:
+	int previous = 0;
+
 public:
 	ScrollVert(widget w, int window) :Widget(w, window) {}
 
@@ -1232,9 +1228,9 @@ public:
 				moveDelta = (size.y - barHeight) / (extra - 1);
 			}
 
-			value = (int)((y - pos.y - barHeight / 2) / moveDelta);
-			if (value < 0)value = 0;
-			if (value >= extra)value = extra - 1;
+			value = obj->value = (int)((y - pos.y - barHeight / 2) / moveDelta);
+			if (value < 0)value = obj->value = 0;
+			if (value >= extra)value = obj->value = extra - 1;
 
 			valid = 0;
 		}
@@ -1252,6 +1248,8 @@ public:
 				}
 			}
 		}
+		move(0, value - previous);
+		previous = value;
 	}
 	virtual void mouseClick(int x, int y, int button) {
 		if (button == (SG_BUTTON_UP | SG_LEFT_BUTTON) &&
@@ -1273,10 +1271,16 @@ public:
 				}
 
 				if (y < pos.y + value * moveDelta) {
-					if (value > 0)value--;
+					if (value > 0) {
+						value--;
+						obj->value--;
+					}
 				}
 				else if (y >= pos.y + value * moveDelta + barHeight) {
-					if (value < extra - 1)value++;
+					if (value < extra - 1) {
+						value++;
+						obj->value++;
+					}
 				}
 				status |= WIDGET_PRESSED;
 				valid = 0;
@@ -1294,8 +1298,15 @@ public:
 			}
 		}
 	}
+
+	virtual void update() {
+		previous = value;
+	}
 };
 class ScrollHoriz : public Widget {
+private:
+	int previous = 0;
+
 public:
 	ScrollHoriz(widget w, int window) :Widget(w, window) {}
 
@@ -1349,9 +1360,9 @@ public:
 				moveDelta = (size.x - barWidth) / (extra - 1);
 			}
 
-			value = (int)((x - pos.x - barWidth / 2) / moveDelta);
-			if (value < 0)value = 0;
-			if (value >= extra)value = extra - 1;
+			value = obj->value = (int)((x - pos.x - barWidth / 2) / moveDelta);
+			if (value < 0)value = obj->value = 0;
+			if (value >= extra)value = obj->value = extra - 1;
 
 			valid = 0;
 		}
@@ -1369,6 +1380,8 @@ public:
 				}
 			}
 		}
+		move(x, y);
+		previous = value;
 	}
 	virtual void mouseClick(int x, int y, int button) {
 		if (button == (SG_BUTTON_UP | SG_LEFT_BUTTON) &&
@@ -1390,10 +1403,16 @@ public:
 				}
 
 				if (x < pos.x + value * moveDelta) {
-					if (value > 0)value--;
+					if (value > 0) {
+						value--;
+						obj->value--;
+					}
 				}
 				else if (x >= pos.x + value * moveDelta + barWidth) {
-					if (value < extra - 1)value++;
+					if (value < extra - 1) {
+						value++;
+						obj->value++;
+					}
 				}
 				status |= WIDGET_PRESSED;
 				valid = 0;

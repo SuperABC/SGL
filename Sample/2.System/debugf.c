@@ -1,4 +1,4 @@
-#include "../../winsgl.h"
+#include "winsgl.h"
 
 void sgSetup() {
 	initWindow(640, 480, "Debugf", BIT_MAP);

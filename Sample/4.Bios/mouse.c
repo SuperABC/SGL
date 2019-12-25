@@ -1,5 +1,5 @@
-#include "../../winsgl.h"
-#define DRAG
+#include "winsgl.h"
+#define CLICK
 
 void sgSetup() {
 	initWindow(640, 480, "Mouse", BIT_MAP);
@@ -7,7 +7,7 @@ void sgSetup() {
 void sgLoop() {
 
 #ifdef CLICK
-	vec3 mouse;
+	vec3i mouse;
 	setColor(0, 0, 0);
 	if (biosMouse(1).z) {
 		mouse = biosMouse(0);
@@ -17,7 +17,7 @@ void sgLoop() {
 #endif
 
 #ifdef DRAG
-	vec2 v;
+	vec2i v;
 	setColor(0, 0, 0);
 	if (!mouseStatus(SG_LEFT_BUTTON)) {
 		v = mousePos();

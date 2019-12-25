@@ -277,8 +277,6 @@ typedef unsigned long int dword;
 typedef void(*vect)(void);
 typedef void(*vectInput)(void *param);
 typedef DWORD(WINAPI *thread)(LPVOID lpThreadParameter);
-typedef void(*mouseUser)();
-typedef void(*keyUser)(int key);
 
 typedef void SGvoid;
 typedef char SGchar;
@@ -334,8 +332,9 @@ typedef struct _w{
 	RGB bgColor, passColor, pressColor, fgColor;
 	bitMap bgImg;
 
-	mouseUser click;
-	keyUser press;
+	void(*click)();
+	void(*move)(int x, int y);
+	void(*press)(int key);
 }widget;
 
 
@@ -978,9 +977,8 @@ extern "C" {
 	* the system. After this function, all callbacks are activated.*/
 
 	SGvoid easyWidget(int type, const char *name,
-		int x, int y, int width, int height, const char *content, mouseUser click);
+		int x, int y, int width, int height, const char *content, void(*click)());
 	/* Create and register a widget fastly. */
-
 
 	widget *getWidgetByName(const char *name);
 	/* Get the widget structure by the given name. */
@@ -1013,7 +1011,7 @@ extern "C" {
 	SGvoid deleteSubWidget(const char *parent, const char *name);
 	/* Delete the child widget of the given name. */
 
-	void moveWidget(const char *name, int xDelta, int yDelta);
+	int moveWidget(const char *name, int xDelta, int yDelta);
 	/* Move the widget to (x + xDelta, y + yDelta) with the given name. */
 
 	void setWidgetTop(const char *name);
