@@ -31,6 +31,7 @@
 #pragma comment(lib, SG_LIB("winsgl"))
 #pragma comment(lib, "winmm.lib")
 #pragma comment(lib, "ws2_32.lib")
+#pragma comment(lib, "shlwapi.lib")
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -70,6 +71,7 @@
 #define SG_MAX_WINDOW_NUM 256
 #define SG_MAX_WIDGET_NUM 256
 #define SG_MAX_PANEL_FUNCTION 12
+#define SG_MIN_WIDGET_CONTENT 1024
 
 
 //SG io macros.
@@ -480,6 +482,12 @@ extern "C" {
 	* name is used to receive the selected directory name with its
 	* path, and start is the path to begin with so set it to NULL as
 	* default. */
+
+	SGint makePath(const char path[]);
+	/* If the given folder does not exist, then create it. */
+
+	SGint fileExist(const char path[]);
+	/* If the given file exists, return 1. Or else return 0. */
 
 	SGvoid initMci();
 	/* Initialize the media(mp3) device. */

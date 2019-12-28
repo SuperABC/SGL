@@ -5,6 +5,7 @@
 #include "util.h"
 #include "window.h"
 #include "users.h"
+#include <shlwapi.h>
 #include <vector>
 
 
@@ -54,6 +55,7 @@ void initWindow(int width, int height, const char *title, int mode) {
 int createWindow(int width, int height, const char *title, int mode, vect setup, vect loop) {
 	WNDCLASSEX wc;
 
+	if (!_baseWindow)return SG_OBJECT_NOT_FOUND;
 	Window *sub = new Window(width, height, title, mode);
 
 	memset(&wc, 0, sizeof(wc));
@@ -140,8 +142,8 @@ void sgKeyDown(int cAscii, int x, int y) {
 
 	_windowList[_currentWindow]->key->enqueue(cAscii & 0x7fff);
 
-	for (auto w : _windowList[_currentWindow]->widgets) {
-		w->keyPress(cAscii & 0x7fff);
+	for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+		_windowList[_currentWindow]->widgets[i]->keyPress(cAscii & 0x7fff);
 	}
 }
 void sgSpecialDown(int cAscii, int x, int y) {
@@ -235,8 +237,8 @@ void sgSpecialDown(int cAscii, int x, int y) {
 
 	_windowList[_currentWindow]->key->enqueue(cAscii & 0x7fff);
 
-	for (auto w : _windowList[_currentWindow]->widgets) {
-		w->keyPress(cAscii & 0x7fff);
+	for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+		_windowList[_currentWindow]->widgets[i]->keyPress(cAscii & 0x7fff);
 	}
 }
 void sgKeyUp(int cAscii, int x, int y) {
@@ -246,8 +248,8 @@ void sgKeyUp(int cAscii, int x, int y) {
 
 	_windowList[_currentWindow]->key->enqueue(cAscii | 0x8000);
 
-	for (auto w : _windowList[_currentWindow]->widgets) {
-		w->keyPress(cAscii | 0x8000);
+	for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+		_windowList[_currentWindow]->widgets[i]->keyPress(cAscii | 0x8000);
 	}
 }
 void sgSpecialUp(int cAscii, int x, int y) {
@@ -341,8 +343,8 @@ void sgSpecialUp(int cAscii, int x, int y) {
 
 	_windowList[_currentWindow]->key->enqueue(cAscii | 0x8000);
 
-	for (auto w : _windowList[_currentWindow]->widgets) {
-		w->keyPress(cAscii | 0x8000);
+	for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+		_windowList[_currentWindow]->widgets[i]->keyPress(cAscii | 0x8000);
 	}
 }
 void sgMouse(int x, int y) {
@@ -357,8 +359,8 @@ void sgMouse(int x, int y) {
 			y * _windowList[_currentWindow]->getBufferSize().y / _windowList[_currentWindow]->getWindowSize().y;
 	}
 
-	for (auto w : _windowList[_currentWindow]->widgets) {
-		w->mouseMove(x, y);
+	for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+		_windowList[_currentWindow]->widgets[i]->mouseMove(x, y);
 	}
 }
 void sgDrag(int x, int y) {
@@ -373,8 +375,8 @@ void sgDrag(int x, int y) {
 			y * _windowList[_currentWindow]->getBufferSize().y / _windowList[_currentWindow]->getWindowSize().y;
 	}
 
-	for (auto w : _windowList[_currentWindow]->widgets) {
-		w->mouseMove(x, y);
+	for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+		_windowList[_currentWindow]->widgets[i]->mouseMove(x, y);
 	}
 }
 void sgClick(int button, int state, int x, int y) {
@@ -392,8 +394,8 @@ void sgClick(int button, int state, int x, int y) {
 		m.z = SG_BUTTON_DOWN | SG_LEFT_BUTTON;
 		_windowList[_currentWindow]->mouse->enqueue(m);
 
-		for (auto w : _windowList[_currentWindow]->widgets) {
-			w->mouseClick(x, y, SG_BUTTON_DOWN | SG_LEFT_BUTTON);
+		for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+			_windowList[_currentWindow]->widgets[i]->mouseClick(x, y, SG_BUTTON_DOWN | SG_LEFT_BUTTON);
 		}
 	}
 	if (button == SG_LEFT_BUTTON && state == SG_BUTTON_UP) {
@@ -409,8 +411,8 @@ void sgClick(int button, int state, int x, int y) {
 		m.z = SG_BUTTON_UP | SG_LEFT_BUTTON;
 		_windowList[_currentWindow]->mouse->enqueue(m);
 
-		for (auto w : _windowList[_currentWindow]->widgets) {
-			w->mouseClick(x, y, SG_BUTTON_UP | SG_LEFT_BUTTON);
+		for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+			_windowList[_currentWindow]->widgets[i]->mouseClick(x, y, SG_BUTTON_UP | SG_LEFT_BUTTON);
 		}
 	}
 	if (button == SG_RIGHT_BUTTON && state == SG_BUTTON_DOWN) {
@@ -428,8 +430,8 @@ void sgClick(int button, int state, int x, int y) {
 		m.z = SG_BUTTON_DOWN | SG_RIGHT_BUTTON;
 		_windowList[_currentWindow]->mouse->enqueue(m);
 
-		for (auto w : _windowList[_currentWindow]->widgets) {
-			w->mouseClick(x, y, SG_BUTTON_DOWN | SG_RIGHT_BUTTON);
+		for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+			_windowList[_currentWindow]->widgets[i]->mouseClick(x, y, SG_BUTTON_DOWN | SG_RIGHT_BUTTON);
 		}
 	}
 	if (button == SG_RIGHT_BUTTON && state == SG_BUTTON_UP) {
@@ -445,8 +447,8 @@ void sgClick(int button, int state, int x, int y) {
 		m.z = SG_BUTTON_UP | SG_RIGHT_BUTTON;
 		_windowList[_currentWindow]->mouse->enqueue(m);
 
-		for (auto w : _windowList[_currentWindow]->widgets) {
-			w->mouseClick(x, y, SG_BUTTON_UP | SG_RIGHT_BUTTON);
+		for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+			_windowList[_currentWindow]->widgets[i]->mouseClick(x, y, SG_BUTTON_UP | SG_RIGHT_BUTTON);
 		}
 	}
 	if (button == SG_MIDDLE_BUTTON && state == SG_BUTTON_DOWN) {
@@ -462,8 +464,8 @@ void sgClick(int button, int state, int x, int y) {
 		m.z = SG_BUTTON_DOWN | SG_MIDDLE_BUTTON;
 		_windowList[_currentWindow]->mouse->enqueue(m);
 
-		for (auto w : _windowList[_currentWindow]->widgets) {
-			w->mouseClick(x, y, SG_BUTTON_DOWN | SG_MIDDLE_BUTTON);
+		for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+			_windowList[_currentWindow]->widgets[i]->mouseClick(x, y, SG_BUTTON_DOWN | SG_MIDDLE_BUTTON);
 		}
 	}
 	if (button == SG_MIDDLE_BUTTON && state == SG_BUTTON_UP) {
@@ -479,8 +481,8 @@ void sgClick(int button, int state, int x, int y) {
 		m.z = SG_BUTTON_UP | SG_MIDDLE_BUTTON;
 		_windowList[_currentWindow]->mouse->enqueue(m);
 
-		for (auto w : _windowList[_currentWindow]->widgets) {
-			w->mouseClick(x, y, SG_BUTTON_UP | SG_MIDDLE_BUTTON);
+		for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+			_windowList[_currentWindow]->widgets[i]->mouseClick(x, y, SG_BUTTON_UP | SG_MIDDLE_BUTTON);
 		}
 	}
 }
@@ -499,8 +501,8 @@ void sgWheel(int dir) {
 	m.z = dir > 0 ? SG_MIDDLE_BUTTON_UP : SG_MIDDLE_BUTTON_DOWN;
 	_windowList[_currentWindow]->mouse->enqueue(m);
 
-	for (auto w : _windowList[_currentWindow]->widgets) {
-		w->mouseClick(x, y, m.z);
+	for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+		_windowList[_currentWindow]->widgets[i]->mouseClick(x, y, m.z);
 	}
 }
 void sgIdle(HWND hwnd) {
@@ -745,6 +747,15 @@ int selectSave(char name[], char start[], char format[], char def[], int idx) {
 		free(strFilename);
 		return SG_OBJECT_NOT_FOUND;
 	}
+}
+int makePath(const char path[]) {
+	if (!PathFileExists(_widen(path))) {
+		_wmkdir(_widen(path));
+	}
+	return SG_NO_ERORR;
+}
+int fileExist(const char path[]) {
+	return PathFileExists(_widen(path));
 }
 int selectDir(char name[], char start[]) {
 	SGWINSTR szBuffer = (SGWINSTR)malloc(MAX_PATH);
@@ -1866,7 +1877,8 @@ void easyWidget(int type, const char *name, int x, int y, int width, int height,
 	tmp.size.x = width;
 	tmp.size.y = height;
 
-	tmp.content = (char *)malloc(strlen((char *)content) + 1);
+	tmp.content = (char *)malloc(strlen((char *)content) < SG_MIN_WIDGET_CONTENT ?
+		SG_MIN_WIDGET_CONTENT : (strlen((char *)content) + 1));
 	strcpy((char *)tmp.content, content);
 	if (click)tmp.click = click;
 
@@ -1936,6 +1948,11 @@ int deleteWidget(const char *name) {
 		if (!wnd)continue;
 		for (auto &w : wnd->widgets) {
 			if (w->name == name) {
+				w->cease();
+				if (_windowList[w->window]->backgroundRefresh)
+					_windowList[w->window]->backgroundRefresh(
+						w->pos.x, w->pos.y, w->pos.x + w->size.x, w->pos.y + w->size.y);
+				delete w;
 				w = wnd->widgets.back();
 				wnd->widgets.pop_back();
 				break;

@@ -737,6 +737,10 @@ public:
 		prepareText(GetSystemMetrics(SM_CXFULLSCREEN) / 8 * 8 + 8);
 	}
 	~Window() {
+		for (auto w : widgets) {
+			deleteWidget(w->name.data());
+		}
+
 		free(buffer->data);
 		free(buffer);
 		if (sglMode == TEXT_MAP) {
@@ -753,10 +757,6 @@ public:
 		delete key;
 		delete mouse;
 		delete panel;
-
-		for (auto w : widgets) {
-			deleteWidget(w->name.data());
-		}
 	}
 	HWND getHwnd() {
 		return hwnd;

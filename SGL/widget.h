@@ -215,8 +215,10 @@ public:
 		this->press = this->obj->press = w.press;
 	}
 	~Widget() {
+		free(content);
 		free(obj);
 		free(tf.name);
+		free(bgImg.data);
 	}
 	widget *getObj() { return obj; }
 	void show() {
@@ -239,7 +241,7 @@ public:
 
 	virtual void draw(int id) {
 		switch (style) {
-		case SG_DESIGN:
+		case SG_DESIGN: {
 			if (bgImg.data == NULL) {
 				if (status&WIDGET_PRESSED)
 					setColor(pressColor.r, pressColor.g, pressColor.b);
@@ -265,10 +267,25 @@ public:
 			setColor(tf.color.r, tf.color.g, tf.color.b);
 			setFontSize(tf.size);
 			setFontName(_shorten(tf.name));
-			putString((char *)content,
-				pos.x + size.x / 2 - stringWidth((char *)content, _scharAt((char *)content, -1)) / 2,
-				pos.y + size.y / 2 - SG_CHAR_HEIGHT / 2 - 3);
+			int line = 1;
+			char *linestr = (char *)content;
+			for (int i = 0; i < strlen((char *)content); i++) {
+				if (((char *)content)[i] == '\n') {
+					((char *)content)[i] = '\0';
+					line++;
+				}
+			}
+			for (int i = 0; i < line; i++) {
+				int strWidth = stringWidth(linestr, _scharAt(linestr, -1));
+				putString(linestr,
+					pos.x + size.x / 2 - (strWidth >= size.x ? size.x : strWidth) / 2,
+					pos.y + size.y / 2 - (tf.size * line) / 2 + tf.size * i);
+				linestr += strlen(linestr) + 1;
+				linestr[-1] = '\n';
+			}
+			linestr[-1] = '\0';
 			break;
+		}
 		case WIN_XP:
 			break;
 		case WIN_10:
@@ -1248,8 +1265,10 @@ public:
 				}
 			}
 		}
-		move(0, value - previous);
-		previous = value;
+		if (value >= 0 && value < extra) {
+			move(0, value - previous);
+			previous = value;
+		}
 	}
 	virtual void mouseClick(int x, int y, int button) {
 		if (button == (SG_BUTTON_UP | SG_LEFT_BUTTON) &&
@@ -1380,8 +1399,10 @@ public:
 				}
 			}
 		}
-		move(x, y);
-		previous = value;
+		if (value >= 0 && value < extra) {
+			move(x, y);
+			previous = value;
+		}
 	}
 	virtual void mouseClick(int x, int y, int button) {
 		if (button == (SG_BUTTON_UP | SG_LEFT_BUTTON) &&
@@ -1429,6 +1450,10 @@ public:
 				valid = 0;
 			}
 		}
+	}
+
+	virtual void update() {
+		previous = value;
 	}
 };
 

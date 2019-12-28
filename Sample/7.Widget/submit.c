@@ -11,5 +11,5 @@ void sgSetup() {
 	easyWidget(SG_DIALOG, "dialog", 100, 100, 400, 100, "dialog", NULL);
 }
 void sgLoop() {
-	
+
 }
