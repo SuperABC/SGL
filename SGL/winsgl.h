@@ -334,9 +334,9 @@ typedef struct _w{
 	RGB bgColor, passColor, pressColor, fgColor;
 	bitMap bgImg;
 
-	void(*click)();
-	void(*move)(int x, int y);
-	void(*press)(int key);
+	void(*click)(_w *obj);
+	void(*move)(_w *obj, int x, int y);
+	void(*press)(_w *obj, int key);
 }widget;
 
 
@@ -404,6 +404,9 @@ extern "C" {
 	/* Create a new window with SGL canvas. The first three parameters are
 	* same as initWindow, while setup and loop are functions similar to sgSetup
 	* and sgLoop. */
+
+	SGvoid windowFinish(vect finish);
+	/* When the current window is closed, the function finish will be called. */
 
 	SGvoid closeWindow(int id);
 	/* Close the sub window with the id given by createWindow. */
@@ -985,7 +988,7 @@ extern "C" {
 	* the system. After this function, all callbacks are activated.*/
 
 	SGvoid easyWidget(int type, const char *name,
-		int x, int y, int width, int height, const char *content, void(*click)());
+		int x, int y, int width, int height, const char *content, void(*click)(widget *obj));
 	/* Create and register a widget fastly. */
 
 	widget *getWidgetByName(const char *name);

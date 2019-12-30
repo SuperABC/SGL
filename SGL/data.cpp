@@ -128,8 +128,15 @@ int subObjectCont(struct JSON *obj, char *name, const char *json, int i) {
 			else setIntContent(content, label, atoi(cont));
 			while (json[i] != '}' && json[i++] != ',');
 		}
-		else if (json[i] == 't' || json[i] == 'f') {
-
+		else if (json[i] == 't') {
+			i += 4;
+			setBoolContent(content, label, true);
+			while (json[i] != '}' && json[i++] != ',');
+		}
+		else if(json[i] == 'f') {
+			i += 5;
+			setBoolContent(content, label, false);
+			while (json[i] != '}' && json[i++] != ',');
 		}
 		else if (json[i] == '{') {
 			i = subObjectCont(content, label, json, i);
@@ -189,8 +196,15 @@ int subArrayCont(struct JSON *obj, char *name, const char *json, int i) {
 			else setIntElement(content, INT_MAX, atoi(cont));
 			while (json[i] != ']' && json[i++] != ',');
 		}
-		else if (json[i] == 't' || json[i] == 'f') {
-
+		else if (json[i] == 't') {
+			i += 4;
+			setBoolElement(content, INT_MAX, true);
+			while (json[i] != ']' && json[i++] != ',');
+		}
+		else if (json[i] == 'f') {
+			i += 5;
+			setBoolElement(content, INT_MAX, false);
+			while (json[i] != ']' && json[i++] != ',');
 		}
 		else if (json[i] == '{') {
 			i = subObjectElement(content, INT_MAX, json, i);
@@ -262,8 +276,15 @@ int subObjectElement(struct JSON *obj, int idx, const char *json, int i) {
 			else setIntContent(element, label, atoi(cont));
 			while (json[i] != '}' && json[i++] != ',');
 		}
-		else if (json[i] == 't' || json[i] == 'f') {
-
+		else if (json[i] == 't') {
+			i += 4;
+			setBoolContent(element, label, true);
+			while (json[i] != '}' && json[i++] != ',');
+		}
+		else if (json[i] == 'f') {
+			i += 5;
+			setBoolContent(element, label, false);
+			while (json[i] != '}' && json[i++] != ',');
 		}
 		else if (json[i] == '{') {
 			i = subObjectCont(element, label, json, i);
@@ -323,8 +344,15 @@ int subArrayElement(struct JSON *obj, int idx, const char *json, int i) {
 			else setIntElement(element, INT_MAX, atoi(cont));
 			while (json[i] != ']' && json[i++] != ',');
 		}
-		else if (json[i] == 't' || json[i] == 'f') {
-
+		else if (json[i] == 't') {
+			i += 4;
+			setBoolElement(element, INT_MAX, true);
+			while (json[i] != ']' && json[i++] != ',');
+		}
+		else if (json[i] == 'f') {
+			i += 5;
+			setBoolElement(element, INT_MAX, false);
+			while (json[i] != ']' && json[i++] != ',');
 		}
 		else if (json[i] == '{') {
 			i = subObjectElement(element, INT_MAX, json, i);

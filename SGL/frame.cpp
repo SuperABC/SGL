@@ -95,11 +95,15 @@ int createWindow(int width, int height, const char *title, int mode, vect setup,
 	_startSubWindow(tmp);
 	return _windowList.size() - 1;
 }
+void windowFinish(vect finish) {
+	_windowList[_currentWindow]->finish = finish;
+}
 void closeWindow(int id) {
 	if (id < 0 || id >= (int)_windowList.size())return;
 
 	PostMessage(_windowList[id]->getHwnd(), WM_CLOSE, 0, 0);
 	//UnregisterClass(_widen((string("SubClass") + std::to_string(id)).data()), NULL);
+	if (_windowList[id]->finish)_windowList[id]->finish();
 	delete _windowList[id];
 	_windowList[id] = NULL;
 }
@@ -1687,13 +1691,13 @@ int deletePanelItem(int id) {
 * SGL provide several types of widgets to use.
 */
 
-void _clickDefault() {
+void _clickDefault(widget *obj) {
 
 }
-void _moveDefault(int x, int y) {
+void _moveDefault(widget *obj, int x, int y) {
 
 }
-void _pressDefault(int k) {
+void _pressDefault(widget *obj, int k) {
 
 }
 Widget *_getByName(const char *name) {
@@ -1870,7 +1874,7 @@ void registerWidget(widget obj) {
 		break;
 	}
 }
-void easyWidget(int type, const char *name, int x, int y, int width, int height, const char *content, void(*click)()) {
+void easyWidget(int type, const char *name, int x, int y, int width, int height, const char *content, void(*click)(widget *obj)) {
 	widget tmp = newWidget((enum _control)type, name);
 	tmp.pos.x = x;
 	tmp.pos.y = y;
@@ -1896,6 +1900,12 @@ SGvoid refreshWidget(const char *name) {
 	tmp->value = tmp->obj->value;
 	tmp->extra = tmp->obj->extra;
 	tmp->bgImg = tmp->obj->bgImg;
+
+	tmp->tf.color = tmp->obj->tf.color;
+	tmp->bgColor = tmp->obj->bgColor;
+	tmp->fgColor = tmp->obj->fgColor;
+	tmp->passColor = tmp->obj->passColor;
+	tmp->pressColor = tmp->obj->pressColor;
 
 	tmp->click = tmp->obj->click;
 	tmp->move = tmp->obj->move;

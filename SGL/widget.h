@@ -119,9 +119,9 @@ public:
 	RGB bgColor, passColor, pressColor, fgColor;
 	bitMap bgImg;
 
-	void(*click)();
-	void(*move)(int x, int y);
-	void(*press)(int key);
+	void(*click)(widget *obj);
+	void(*move)(widget *obj, int x, int y);
+	void(*press)(widget *obj, int key);
 
 	widget *obj;
 
@@ -166,7 +166,7 @@ public:
 
 		if (this->status & WIDGET_PASS && this->status & WIDGET_SELECTED &&
 			button == (SG_BUTTON_UP | SG_LEFT_BUTTON))
-			click();
+			click(obj);
 
 	}
 	virtual void keyPress(int key) {
@@ -269,7 +269,8 @@ public:
 			setFontName(_shorten(tf.name));
 			int line = 1;
 			char *linestr = (char *)content;
-			for (int i = 0; i < strlen((char *)content); i++) {
+			int total = strlen((char *)content);
+			for (int i = 0; i < total; i++) {
 				if (((char *)content)[i] == '\n') {
 					((char *)content)[i] = '\0';
 					line++;
@@ -967,7 +968,7 @@ public:
 		}
 		if (status & WIDGET_PASS && status & WIDGET_SELECTED &&
 			button == (SG_BUTTON_UP | SG_LEFT_BUTTON))
-			click();
+			click(obj);
 
 	}
 };
@@ -1265,8 +1266,8 @@ public:
 				}
 			}
 		}
-		if (value >= 0 && value < extra) {
-			move(0, value - previous);
+		if (value >= 0 && value < extra && value != previous) {
+			move(obj, 0, value - previous);
 			previous = value;
 		}
 	}
@@ -1399,8 +1400,8 @@ public:
 				}
 			}
 		}
-		if (value >= 0 && value < extra) {
-			move(x, y);
+		if (value >= 0 && value < extra && value != previous) {
+			move(obj, value - previous, 0);
 			previous = value;
 		}
 	}

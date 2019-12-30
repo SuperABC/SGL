@@ -676,7 +676,7 @@ public:
 	void(*resize)(int w, int h) = NULL;
 	int sglCircle = 0, sglCircleCx, sglCircleCy, sglCircleR;
 
-	vect loop;
+	vect loop, finish = NULL;
 	int inLoop = 0;
 
 	Key *key = new Key();

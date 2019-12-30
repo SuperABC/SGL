@@ -94,6 +94,8 @@ vec3i generateDefault(int id, vec2i index, vec2i size) {
 	return Vec3i(radiance.x * 255, radiance.y * 255, radiance.z * 255);
 }
 
+extern int period;
+
 class Graph {
 
 //Members for both scan line and ray tracing.
@@ -336,7 +338,8 @@ private:
 			InsertNetListToAet(slNet[y - ymin], aet);
 			aet.sort(EdgeXiComparator);
 			if(y >= top && y < bottom)
-				FillAetPeriodScanLine(points, outs, dataLength, aet, y);
+				if(period)FillAetPeriodScanLine(points, outs, dataLength, aet, y);
+				else FillAetScanLine(points, outs, dataLength, aet, y);
 			RemoveNonActiveEdgeFromAet(aet, y);
 			for_each(aet.begin(), aet.end(), UpdateAetEdgeInfo);
 		}
