@@ -1088,6 +1088,18 @@ extern "C" {
 	/* If there is an item in json array with the given index, then reset its
 	* value. Or else, add this item. */
 
+	/*
+	* SG encryption interfaces
+	* These functions are used to encrypt and decrypt.
+	*/
+
+	void DESEncrypt(char *plain, char *key, char *cipher);
+	void DESDecrypt(char *cipher, char *key, char *plain);
+	void AESEncrypt(char *plain, char *key, char *cipher);
+	void AESDecrypt(char *cipher, char *key, char *plain);
+	void RSAEncrypt(char *plain, char *key, char *cipher);
+	void RSADecrypt(char *cipher, char *key, char *plain);
+
 
 	/*
 	* SG main function

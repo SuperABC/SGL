@@ -176,7 +176,6 @@ Model m;
 
 Matrix<float> transform(4, 4);
 vec3f light;
-int period = 1;
 int vs(int id, float *datas[], int step[], int dataNum, vec3f position[], float *outs[]) {
 	Matrix<float> trans(4, 1);
 	for (int i = 0; i < 3; i++) {
@@ -276,10 +275,5 @@ void sgLoop() {
 		transform = Matrix<float>(4, 4);
 		transform = Matrix<float>::view(eye.pos, eye.pos + eye.dir, eye.up) * transform;
 		transform = Matrix<float>::perspect(90, 1.f, 1.f, 1000.f) * transform;
-	}
-
-	if (biosKey(1)) {
-		int key = biosKey(0);
-		if (key == ' ')period = 1 - period;
 	}
 }
