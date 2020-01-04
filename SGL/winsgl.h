@@ -17,9 +17,14 @@
 #define SGL_H
 
 
+//SGL standard macros.
+
 #define _SGL_V500
 #define _CRT_SECURE_NO_WARNINGS
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
+
+
+//SGL libraries.
 
 #ifdef _DEBUG
 #define SG_LIB(name) name "d.lib"
@@ -32,6 +37,7 @@
 #pragma comment(lib, "winmm.lib")
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "shlwapi.lib")
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -334,9 +340,9 @@ typedef struct _w{
 	RGB bgColor, passColor, pressColor, fgColor;
 	bitMap bgImg;
 
-	void(*click)(_w *obj);
-	void(*move)(_w *obj, int x, int y);
-	void(*press)(_w *obj, int key);
+	void(*click)(struct _w *obj);
+	void(*move)(struct _w *obj, int x, int y);
+	void(*press)(struct _w *obj, int key);
 }widget;
 
 
@@ -1093,12 +1099,15 @@ extern "C" {
 	* These functions are used to encrypt and decrypt.
 	*/
 
-	void DESEncrypt(char *plain, char *key, char *cipher);
-	void DESDecrypt(char *cipher, char *key, char *plain);
-	void AESEncrypt(char *plain, char *key, char *cipher);
-	void AESDecrypt(char *cipher, char *key, char *plain);
-	void RSAEncrypt(char *plain, char *key, char *cipher);
-	void RSADecrypt(char *cipher, char *key, char *plain);
+	int DESEncrypt(const char *plain, int len, const char *key, char *cipher);
+	int DESDecrypt(const char *cipher, int len, const char *key, char *plain);
+	/* DES key length 8. */
+	void AESEncrypt(const char *plain, int len, const char *key, char *cipher);
+	void AESDecrypt(const char *cipher, int len, const char *key, char *plain);
+	/* DES key length 16. */
+	void RSAProduceKey(unsigned int p, unsigned int q, unsigned int *e, unsigned int *d, unsigned int *n);
+	void RSAEncrypt(unsigned int plain, int key, int N, unsigned int *cipher);
+	void RSADecrypt(unsigned int cipher, int key, int N, unsigned int *plain);
 
 
 	/*

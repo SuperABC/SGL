@@ -2,7 +2,10 @@
 
 #include "winsgl.h"
 #include "inner.h"
+#include "util.h"
+#include <exception>
 
+using std::exception;
 
 /*
 * SG data interfaces
@@ -380,129 +383,140 @@ struct JSON *readJson(const char *json) {
 
 	struct JSON *res;
 
-	while (json[i] != '{' && json[i] != '[')i++;
+	try {
 
-	if (json[i] == '{') {
-		res = createJson();
+		while (json[i] != '{' && json[i] != '[')i++;
 
-		i++;
-		while (json[i] == '\n' || json[i] == ' ' || json[i] == '\t')i++;
+		if (json[i] == '{') {
+			res = createJson();
 
-		while (json[i] != '}') {
-			while (json[i++] != '\"');
-
-			j = 0;
-			while (json[i] != '\"') {
-				name[j++] = json[i++];
-			}
-			name[j] = '\0';
 			i++;
+			while (json[i] == '\n' || json[i] == ' ' || json[i] == '\t')i++;
 
-			while (json[i++] != ':');
-
-			if (json[i] == '\"') {
-				i++;
+			while (json[i] != '}') {
+				while (json[i++] != '\"');
 
 				j = 0;
 				while (json[i] != '\"') {
-					cont[j++] = json[i++];
+					name[j++] = json[i++];
 				}
-				cont[j] = '\0';
+				name[j] = '\0';
+				i++;
 
-				setStringContent(res, name, cont);
-				while (json[i] != '}' && json[i++] != ',');
-			}
-			else if (json[i] == '\'') {
+				while (json[i++] != ':');
 
-			}
-			else if (json[i] >= '0' && json[i] <= '9' || json[i] == '-') {
-				point = 0;
-				j = 0;
-				cont[j++] = json[i++];
-				while (json[i] >= '0' && json[i] <= '9' || json[i] == '.') {
-					if (json[i] == '.') {
-						if (point)break;
-						else point = 1;
+				if (json[i] == '\"') {
+					i++;
+
+					j = 0;
+					while (json[i] != '\"') {
+						cont[j++] = json[i++];
 					}
-					cont[j++] = json[i++];
+					cont[j] = '\0';
+
+					setStringContent(res, name, cont);
+					while (json[i] != '}' && json[i++] != ',');
 				}
-				cont[j] = '\0';
-				if (point)setFloatContent(res, name, (float)atof(cont));
-				else setIntContent(res, name, atoi(cont));
-				while (json[i] != '}' && json[i++] != ',');
-			}
-			else if (json[i] == 't' || json[i] == 'f') {
+				else if (json[i] == '\'') {
 
-			}
-			else if (json[i] == '{') {
-				i = subObjectCont(res, name, json, i);
+				}
+				else if (json[i] >= '0' && json[i] <= '9' || json[i] == '-') {
+					point = 0;
+					j = 0;
+					cont[j++] = json[i++];
+					while (json[i] >= '0' && json[i] <= '9' || json[i] == '.') {
+						if (json[i] == '.') {
+							if (point)break;
+							else point = 1;
+						}
+						cont[j++] = json[i++];
+					}
+					cont[j] = '\0';
+					if (point)setFloatContent(res, name, (float)atof(cont));
+					else setIntContent(res, name, atoi(cont));
+					while (json[i] != '}' && json[i++] != ',');
+				}
+				else if (json[i] == 't' || json[i] == 'f') {
 
-				while (json[i] != '}' && json[i++] != ',');
-			}
-			else if (json[i] == '[') {
-				i = subArrayCont(res, name, json, i);
+				}
+				else if (json[i] == '{') {
+					i = subObjectCont(res, name, json, i);
 
-				while (json[i] != '}' && json[i++] != ',');
-			}
+					while (json[i] != '}' && json[i++] != ',');
+				}
+				else if (json[i] == '[') {
+					i = subArrayCont(res, name, json, i);
 
+					while (json[i] != '}' && json[i++] != ',');
+				}
+
+				while (json[i] == '\n' || json[i] == ' ' || json[i] == '\t')i++;
+			}
+		}
+		else if (json[i] == '[') {
+			res = createJsonArray();
+
+			i++;
 			while (json[i] == '\n' || json[i] == ' ' || json[i] == '\t')i++;
+
+			while (json[i] != ']') {
+
+				if (json[i] == '\"') {
+					i++;
+
+					j = 0;
+					while (json[i] != '\"') {
+						cont[j++] = json[i++];
+					}
+					cont[j] = '\0';
+
+					setStringContent(res, name, cont);
+					while (json[i] != ']' && json[i++] != ',');
+				}
+				else if (json[i] == '\'') {
+
+				}
+				else if (json[i] >= '0' && json[i] <= '9' || json[i] == '-') {
+					point = 0;
+					j = 0;
+					cont[j++] = json[i++];
+					while (json[i] >= '0' && json[i] <= '9' || json[i] == '.') {
+						if (json[i] == '.') {
+							if (point)break;
+							else point = 1;
+						}
+						cont[j++] = json[i++];
+					}
+					cont[j] = '\0';
+					if (point)setFloatContent(res, name, (float)atof(cont));
+					else setIntContent(res, name, atoi(cont));
+					while (json[i] != ']' && json[i++] != ',');
+				}
+				else if (json[i] == 't' || json[i] == 'f') {
+
+				}
+				else if (json[i] == '{') {
+					i = subObjectElement(res, INT_MAX, json, i);
+
+					while (json[i] != ']' && json[i++] != ',');
+				}
+				else if (json[i] == '[') {
+					i = subArrayElement(res, INT_MAX, json, i);
+
+					while (json[i] != ']' && json[i++] != ',');
+				}
+
+				while (json[i] == '\n' || json[i] == ' ' || json[i] == '\t')i++;
+			}
 		}
 	}
-	else if (json[i] == '[') {
-		res = createJsonArray();
-
-		i++;
-		while (json[i] == '\n' || json[i] == ' ' || json[i] == '\t')i++;
-
-		while (json[i] != ']') {
-
-			if (json[i] == '\"') {
-				i++;
-
-				j = 0;
-				while (json[i] != '\"') {
-					cont[j++] = json[i++];
-				}
-				cont[j] = '\0';
-
-				setStringContent(res, name, cont);
-				while (json[i] != ']' && json[i++] != ',');
-			}
-			else if (json[i] == '\'') {
-
-			}
-			else if (json[i] >= '0' && json[i] <= '9' || json[i] == '-') {
-				point = 0;
-				j = 0;
-				cont[j++] = json[i++];
-				while (json[i] >= '0' && json[i] <= '9' || json[i] == '.') {
-					if (json[i] == '.') {
-						if (point)break;
-						else point = 1;
-					}
-					cont[j++] = json[i++];
-				}
-				cont[j] = '\0';
-				if (point)setFloatContent(res, name, (float)atof(cont));
-				else setIntContent(res, name, atoi(cont));
-				while (json[i] != ']' && json[i++] != ',');
-			}
-			else if (json[i] == 't' || json[i] == 'f') {
-
-			}
-			else if (json[i] == '{') {
-				i = subObjectElement(res, INT_MAX, json, i);
-
-				while (json[i] != ']' && json[i++] != ',');
-			}
-			else if (json[i] == '[') {
-				i = subArrayElement(res, INT_MAX, json, i);
-
-				while (json[i] != ']' && json[i++] != ',');
-			}
-
-			while (json[i] == '\n' || json[i] == ' ' || json[i] == '\t')i++;
-		}
+	catch (const char *str) {
+		SGL_ASSERT(false, str);
+		return NULL;
+	}
+	catch (exception e) {
+		SGL_ASSERT(false, e.what());
+		return NULL;
 	}
 
 	return res;

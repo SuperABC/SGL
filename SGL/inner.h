@@ -24,6 +24,7 @@
 
 //Inner macros.
 
+#define SGL_ASSERT(exp, text) {if(!!(exp));else{MessageBox(NULL, _widen(text), _widen("SGL_ASSERT"), NULL);}}
 #define TIMER_DELTA_HANDLE 1
 #define WM_TRAY (WM_USER + 1)
 

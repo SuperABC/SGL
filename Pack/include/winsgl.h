@@ -334,9 +334,9 @@ typedef struct _w{
 	RGB bgColor, passColor, pressColor, fgColor;
 	bitMap bgImg;
 
-	void(*click)(_w *obj);
-	void(*move)(_w *obj, int x, int y);
-	void(*press)(_w *obj, int key);
+	void(*click)(struct _w *obj);
+	void(*move)(struct _w *obj, int x, int y);
+	void(*press)(struct _w *obj, int key);
 }widget;
 
 
@@ -1087,6 +1087,21 @@ extern "C" {
 	void setArrayElement(struct JSON *json, int idx, struct JSON *j);
 	/* If there is an item in json array with the given index, then reset its
 	* value. Or else, add this item. */
+
+	/*
+	* SG encryption interfaces
+	* These functions are used to encrypt and decrypt.
+	*/
+
+	int DESEncrypt(const char *plain, int len, const char *key, char *cipher);
+	int DESDecrypt(const char *cipher, int len, const char *key, char *plain);
+	/* DES key length 8. */
+	void AESEncrypt(const char *plain, int len, const char *key, char *cipher);
+	void AESDecrypt(const char *cipher, int len, const char *key, char *plain);
+	/* DES key length 16. */
+	void ProduceKey(unsigned int p, unsigned int q, unsigned int *e, unsigned int *d, unsigned int *n);
+	void RSAEncrypt(unsigned int plain, int key, int N, unsigned int *cipher);
+	void RSADecrypt(unsigned int cipher, int key, int N, unsigned int *plain);
 
 
 	/*

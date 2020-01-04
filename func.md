@@ -1,3 +1,14 @@
+## SGL Functions
+
+### Todo
+
+1. JSON error
+2. Widget detail
+3. Combined
+4. Image format
+
+### Finished
+
 1. Window
    1. init
    2. create
@@ -5,7 +16,7 @@
    4. resize
    5. caption
    6. (icon)
-   7. (reshape)
+   7. (Polar)
 2. System
    1. debugf
    2. delay
@@ -50,5 +61,11 @@
 8. Graph
    1. scan line
    2. ray tracing
-9. 
+9. Crypto
+   1. DES
+   2. AES
+   3. RSA
+10. Data
+   1. Json
+   2. (SQL)
 

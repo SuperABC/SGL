@@ -1902,6 +1902,8 @@ SGvoid refreshWidget(const char *name) {
 	tmp->bgImg = tmp->obj->bgImg;
 
 	tmp->tf.color = tmp->obj->tf.color;
+	tmp->tf.size = tmp->obj->tf.size;
+	tmp->tf.coeff = tmp->obj->tf.coeff;
 	tmp->bgColor = tmp->obj->bgColor;
 	tmp->fgColor = tmp->obj->fgColor;
 	tmp->passColor = tmp->obj->passColor;

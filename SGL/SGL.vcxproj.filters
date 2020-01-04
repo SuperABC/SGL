@@ -53,5 +53,8 @@
     <ClCompile Include="geometry.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="encryption.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

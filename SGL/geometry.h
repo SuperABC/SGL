@@ -17,12 +17,12 @@
 #define SGL_GEOMETRY
 
 
-//geometry const macros
+//geometry const macros.
 
 #define PI 3.1415926535897932
 
 
-//geometry render macros
+//geometry render macros.
 
 #define SCAN_LINE 0
 #define RAY_TRACER 1
@@ -56,6 +56,7 @@ vec3i Vec3i(int x, int y, int z);
 vec3f Vec3f(float x, float y, float z);
 vec4i Vec4i(int x, int y, int z, int w);
 vec4f Vec4f(float x, float y, float z, float w);
+
 
 #ifdef __cplusplus
 
@@ -203,7 +204,8 @@ public:
 		return ret;
 	}
 	inline Matrix &operator*=(const Matrix &m) {
-		return *this;
+		*this = *this * m;
+		return *this
 	}
 
 	template<class Ttx, class Tty, class Ttz>

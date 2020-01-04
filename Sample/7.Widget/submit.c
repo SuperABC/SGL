@@ -1,6 +1,6 @@
 #include "winsgl.h"
 
-void callback() {
+void callback(widget *obj) {
 	showWidget("dialog");
 }
 void sgSetup() {

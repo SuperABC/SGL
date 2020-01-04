@@ -1353,7 +1353,7 @@ public:
 		for (i = 0; i < x; i++) {
 			if (str[i] == '\t')tab++;
 		}
-		tmp = (char *)malloc(_wcharAt(str, x) + 3 * tab + 1);
+		tmp = (char *)malloc(_wPos2sPos(str, x) + 3 * tab + 1);
 		memset(tmp, 0, x + 3 * tab + 1);
 		int wl = x;
 		for (i = 0, j = 0; i < x; i++) {
@@ -1425,7 +1425,6 @@ public:
 
 		int len, i;
 		unsigned int tab = 0;
-		char *tmp;
 
 		len = _mixLen(str) - start > constraint / 5 ? constraint / 5 : _mixLen(str) - start;
 		if (len <= 0)return 0;
@@ -1435,7 +1434,7 @@ public:
 			len--;
 			GetTextExtentPoint32(text.memDC, _widen(str) + start, len, &text.strRect);
 		}
-		len = _wcharAt(str, len);
+		len = _wPos2sPos(str, len);
 		if (len <= 1)len = 1;
 
 		i = 0;
@@ -1443,11 +1442,11 @@ public:
 			if (i >= len)break;
 		len = i;
 
-		tmp = (char *)malloc(len + 1);
+		char *tmp = (char *)malloc(len + 1);
 		memcpy(tmp, str, len);
 		tmp[len] = 0;
 
-		putString(_stringConvert(tmp), x, y);
+		putString(tmp, x, y);
 		free(tmp);
 
 		return len;

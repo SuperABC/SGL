@@ -30,7 +30,7 @@
 
 using std::string;
 
-int _wcharAt(const char *src, int pos) {
+int _wPos2sPos(const char *src, int pos) {
 	int ret = 0;
 	while (pos-- > 0) {
 		if (src[ret] == 0)return ret;
@@ -39,7 +39,7 @@ int _wcharAt(const char *src, int pos) {
 	}
 	return ret;
 }
-int _scharAt(const char *src, int pos) {
+int _sPos2wPos(const char *src, int pos) {
 	int ret = 0, i = 0;
 	if (pos >= 0) {
 		while (i < pos) {
@@ -61,7 +61,7 @@ int _scharAt(const char *src, int pos) {
 int _mixLen(const char *str) {
 	return MultiByteToWideChar(CP_ACP, 0, str, -1, NULL, 0) - 1;
 }
-const char *_stringConvert(const char *str) {
+char *_stringConvert(const char *str) {
 	int i, j, len = 0;
 	char *ret;
 
@@ -277,7 +277,7 @@ public:
 				}
 			}
 			for (int i = 0; i < line; i++) {
-				int strWidth = stringWidth(linestr, _scharAt(linestr, -1));
+				int strWidth = stringWidth(linestr, _sPos2wPos(linestr, -1));
 				putString(linestr,
 					pos.x + size.x / 2 - (strWidth >= size.x ? size.x : strWidth) / 2,
 					pos.y + size.y / 2 - (tf.size * line) / 2 + tf.size * i);
@@ -447,10 +447,10 @@ public:
 
 		if (key >= 0x80)return;
 
-		int lenW = _wcharAt((char *)content, len);
+		int lenW = _wPos2sPos((char *)content, len);
 		if (key == SG_BACKS && value != 0) {
 			value--;
-			if (((char *)content)[i = _wcharAt((char *)content, value)] >= 0x80) {
+			if (((char *)content)[i = _wPos2sPos((char *)content, value)] >= 0x80) {
 				for (; i < lenW; i++) {
 					((char *)content)[i] = ((char *)content)[i + 2];
 				}
@@ -463,14 +463,14 @@ public:
 		}
 		if (key >= 0x20) {
 			if (value == len) {
-				((char *)content)[_wcharAt((char *)content, value) + 1] = '\0';
+				((char *)content)[_wPos2sPos((char *)content, value) + 1] = '\0';
 			}
 			else {
-				for (i = lenW + 1; i > _wcharAt((char *)content, value); i--) {
+				for (i = lenW + 1; i > _wPos2sPos((char *)content, value); i--) {
 					((char *)content)[i] = ((char *)content)[i - 1];
 				}
 			}
-			((char *)content)[_wcharAt((char *)content, value++)] = key;
+			((char *)content)[_wPos2sPos((char *)content, value++)] = key;
 		}
 
 	}
@@ -485,7 +485,7 @@ public:
 		int row, total, tmp;
 
 		switch (style) {
-		case SG_DESIGN:
+		case SG_DESIGN: {
 			if (bgImg.data == NULL) {
 				setColor(bgColor.r, bgColor.g, bgColor.b);
 				putQuad(pos.x, pos.y,
@@ -522,7 +522,8 @@ public:
 			setColor(tf.color.r, tf.color.g, tf.color.b);
 			setFontSize(tf.size);
 			setFontName(_shorten(tf.name));
-			while (tmp = putStringConstraint((char *)content + total,
+			char *conv = _stringConvert((char *)content);
+			while (tmp = putStringConstraint(conv + total,
 				pos.x + SG_CHAR_WIDTH,
 				pos.y + (row + 1) * tf.size + SG_CHAR_HEIGHT / 2, 0,
 				size.x - 2 * SG_CHAR_WIDTH)) {
@@ -530,7 +531,9 @@ public:
 				row++;
 				if ((row + 2) * tf.size > size.y)break;
 			}
+			free(conv);
 			break;
+		}
 		case WIN_XP:
 			break;
 		case WIN_10:
@@ -589,7 +592,7 @@ public:
 		int start, row, total, tmp;
 
 		switch (style) {
-		case SG_DESIGN:
+		case SG_DESIGN: {
 			if (bgImg.data == NULL) {
 				setColor(bgColor.r, bgColor.g, bgColor.b);
 				putQuad(pos.x, pos.y, pos.x + size.x, pos.y + size.y, SOLID_FILL);
@@ -607,7 +610,8 @@ public:
 			setColor(tf.color.r, tf.color.g, tf.color.b);
 			setFontSize(tf.size);
 			setFontName(_shorten(tf.name));
-			while (tmp = putStringConstraint((char *)content + total,
+			char *conv = _stringConvert((char *)content);
+			while (tmp = putStringConstraint(conv + total,
 				pos.x + SG_CHAR_WIDTH,
 				row * tf.size + (size.y > 2 * SG_CHAR_HEIGHT ?
 					pos.y + SG_CHAR_HEIGHT / 2 :
@@ -617,7 +621,9 @@ public:
 				row++;
 				if ((row + 2) * tf.size > size.y)break;
 			}
+			free(conv);
 			break;
+		}
 		case WIN_XP:
 			break;
 		case WIN_10:
@@ -1070,7 +1076,7 @@ public:
 
 		valid = 0;
 		switch (style) {
-		case SG_DESIGN:
+		case SG_DESIGN:{
 			if (bgImg.data == NULL) {
 				setColor(bgColor.r, bgColor.g, bgColor.b);
 				putQuad(pos.x, pos.y,
@@ -1107,7 +1113,8 @@ public:
 			setColor(tf.color.r, tf.color.g, tf.color.b);
 			setFontSize(tf.size);
 			setFontName(_shorten(tf.name));
-			while (tmp = putStringConstraint((char *)content + total,
+			char *conv = _stringConvert((char *)content);
+			while (tmp = putStringConstraint(conv + total,
 				pos.x + SG_CHAR_WIDTH,
 				pos.y + (row + 1) * tf.size + 8, 0,
 				size.x - 2 * SG_CHAR_WIDTH)) {
@@ -1115,6 +1122,7 @@ public:
 				row++;
 				if ((row + 4) * tf.size > size.y)break;
 			}
+			free(conv);
 
 			setColor(223, 223, 223);
 			putQuad(pos.x + 2 * SG_CHAR_WIDTH,
@@ -1135,6 +1143,7 @@ public:
 				pos.y + size.y - SG_CHAR_HEIGHT - 1,
 				EMPTY_FILL);
 			break;
+		}
 		case WIN_XP:
 			break;
 		case WIN_10:
