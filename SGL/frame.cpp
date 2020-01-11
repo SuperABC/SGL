@@ -1988,6 +1988,12 @@ int moveWidget(const char *name, int xDelta, int yDelta) {
 	}
 	else return SG_OBJECT_NOT_FOUND;
 }
+void setWidgetTop(const char *name) {
+	_windowList[_currentWindow]->setWidgetTop(name);
+}
+void setWidgetBottom(const char *name) {
+	_windowList[_currentWindow]->setWidgetBottom(name);
+}
 void widgetCover(int window, int id, int left, int top, int right, int bottom) {
 	_windowList[window]->widgetCover(id, left, top, right, bottom);
 }

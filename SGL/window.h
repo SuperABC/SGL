@@ -1351,10 +1351,14 @@ public:
 		if (x < 0)return 0;
 
 		for (i = 0; i < x; i++) {
+			if (str[i] == '\0') {
+				x = i;
+				break;
+			}
 			if (str[i] == '\t')tab++;
 		}
 		tmp = (char *)malloc(_wPos2sPos(str, x) + 3 * tab + 1);
-		memset(tmp, 0, x + 3 * tab + 1);
+		memset(tmp, 0, _wPos2sPos(str, x) + 3 * tab + 1);
 		int wl = x;
 		for (i = 0, j = 0; i < x; i++) {
 			if (str[i] == '\t') {
@@ -1369,7 +1373,6 @@ public:
 				tmp[j++] = str[i];
 			}
 		}
-		x += 3 * tab;
 
 		GetTextExtentPoint32(text.memDC, _widen(tmp), wl, &ret);
 		free(tmp);
@@ -1426,7 +1429,7 @@ public:
 		int len, i;
 		unsigned int tab = 0;
 
-		len = _mixLen(str) - start > constraint / 5 ? constraint / 5 : _mixLen(str) - start;
+		len = _strlen(_widen(str)) - start > constraint / 4 ? constraint / 4 : _strlen(_widen(str)) - start;
 		if (len <= 0)return 0;
 
 		GetTextExtentPoint32(text.memDC, _widen(str) + start, len, &text.strRect);
@@ -1434,8 +1437,9 @@ public:
 			len--;
 			GetTextExtentPoint32(text.memDC, _widen(str) + start, len, &text.strRect);
 		}
-		len = _wPos2sPos(str, len);
 		if (len <= 1)len = 1;
+		start = _wPos2sPos(str, start);
+		len = _wPos2sPos(str + start, len);
 
 		i = 0;
 		while (str[i++] != '\n')
@@ -1443,7 +1447,7 @@ public:
 		len = i;
 
 		char *tmp = (char *)malloc(len + 1);
-		memcpy(tmp, str, len);
+		memcpy(tmp, str+start, len);
 		tmp[len] = 0;
 
 		putString(tmp, x, y);
@@ -1949,6 +1953,28 @@ public:
 			w->draw(i);
 			drawingWidget = -1;
 		}
+	}
+	void setWidgetTop(const char *name) {
+		int pos;
+		for (pos = 0; pos < widgets.size(); pos++) {
+			if (widgets[pos]->name == name)break;
+		}
+		Widget *tmp = widgets[pos];
+		for (int i = pos; i < widgets.size() - 1; i++) {
+			widgets[i] = widgets[i + 1];
+		}
+		widgets.emplace_back(tmp);
+	}
+	void setWidgetBottom(const char *name) {
+		int pos;
+		for (pos = 0; pos < widgets.size(); pos++) {
+			if (widgets[pos]->name == name)break;
+		}
+		Widget *tmp = widgets[pos];
+		for (int i = 0; i < pos - 1; i++) {
+			widgets[i + 1] = widgets[i];
+		}
+		widgets[0] = tmp;
 	}
 	void widgetCover(int id, int left, int top, int right, int bottom) {
 		for (int i = id + 1; i < widgets.size(); i++) {

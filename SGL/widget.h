@@ -58,9 +58,6 @@ int _sPos2wPos(const char *src, int pos) {
 	}
 	return ret;
 }
-int _mixLen(const char *str) {
-	return MultiByteToWideChar(CP_ACP, 0, str, -1, NULL, 0) - 1;
-}
 char *_stringConvert(const char *str) {
 	int i, j, len = 0;
 	char *ret;
@@ -305,6 +302,20 @@ class Input : public Widget {
 private:
 	int start = -1;
 	int end = -1;
+
+	bool drag = false;
+
+	void constraint() {
+		if (value < 0)value=0;
+		if (value > _strlen(_widen((char *)content)))value = _strlen(_widen((char *)content));
+		int width1 = stringWidth((char *)content, value);
+		int width2 = stringWidth((char *)content, extra);
+		while (width1 > width2 + size.x - 2 * SG_CHAR_WIDTH) {
+			extra++;
+			width2 = stringWidth((char *)content, extra);
+		}
+		if (value <= extra && value)extra = value - 1;
+	}
 public:
 	Input(widget w, int window) :Widget(w, window) {}
 
@@ -337,28 +348,15 @@ public:
 			setColor(tf.color.r, tf.color.g, tf.color.b);
 			setFontSize(tf.size);
 			setFontName(_shorten(tf.name));
-			if (extra >= _mixLen((char *)content)) {
-				value = _mixLen((char *)content);
-				extra = value - 1;
-				if (extra < 0)extra = 0;
-			}
-			if (value <= extra && value)extra = value - 1;
 			width1 = stringWidth((char *)content, value);
 			width2 = stringWidth((char *)content, extra);
-			if (width1 > width2 + size.x - 2 * SG_CHAR_WIDTH) {
-				do {
-					extra++;
-					width1 = stringWidth((char *)content, value);
-					width2 = stringWidth((char *)content, extra);
-				} while (width1 > width2 + size.x - 2 * SG_CHAR_WIDTH);
-			}
 			putStringConstraint((char *)content,
 				pos.x + SG_CHAR_WIDTH,
 				size.y > 2 * SG_CHAR_HEIGHT ?
 				pos.y + SG_CHAR_HEIGHT / 2 - 2 :
 				pos.y + size.y / 2 - SG_CHAR_HEIGHT / 2 - 2,
 				extra, size.x - 2 * SG_CHAR_WIDTH);
-			if ((status&WIDGET_SELECTED) && (clock() % 1000 > 500)) {
+			if ((status&WIDGET_SELECTED) && (clock() % 1000 > 400)) {
 				setColor(fgColor.r, fgColor.g, fgColor.b);
 				putLine(pos.x + SG_CHAR_WIDTH + width1 - width2,
 					size.y > 2 * SG_CHAR_HEIGHT ?
@@ -386,25 +384,57 @@ public:
 	}
 	virtual void mouseMove(int x, int y) {
 		__super::mouseMove(x, y);
-		if (inWidget(obj, x, y))setMouseIcon(IDC_IBEAM);
-		else setMouseIcon(IDC_ARROW);
+		if (inWidget(obj, x, y)) {
+			setMouseIcon(IDC_IBEAM);
+
+			if (drag) {
+				int i = 0, len, tmp;
+				len = _strlen(_widen((char *)content));
+				valid = 0;
+				if (((char *)content)[0] == '\0')value = 0;
+				else if (x >= pos.x + 2 && x < pos.x + size.x - 2) {
+					tmp = stringWidth((char *)content, extra);
+					value = extra;
+					x += tmp - pos.x;
+					do {
+						value++;
+						tmp = stringWidth((char *)content, value);
+					} while (tmp < x - 4 && value <= len);
+					value--;
+				}
+			}
+		}
+		else {
+			if (drag) {
+				if (x >= pos.x + size.x) {
+					value++;
+					constraint();
+				}
+				if (x < pos.x) {
+					value--;
+					constraint();
+				}
+			}
+			setMouseIcon(IDC_ARROW);
+		}
 	}
 	virtual void mouseClick(int x, int y, int button) {
 		int i = 0, len, tmp;
-		SGWINSTR _wd = NULL;
-		len = _mixLen((char *)content);
+		len = _strlen(_widen((char *)content));
 
 		if (button == (SG_BUTTON_UP | SG_LEFT_BUTTON) &&
 			(status & WIDGET_PRESSED)) {
 			status &= 0xFF ^ WIDGET_PRESSED;
 			valid = 0;
+			drag = false;
 		}
 		if (inWidget(obj, x, y)) {
-			if (inWidget(obj, x, y))setMouseIcon(IDC_IBEAM);
+			setMouseIcon(IDC_IBEAM);
 			if (button == (SG_BUTTON_DOWN | SG_LEFT_BUTTON)) {
 				status |= WIDGET_PRESSED;
 				status |= WIDGET_SELECTED;
-				valid = 0;
+				drag = true;
+				mouseMove(x, y);
 			}
 			if (button == (SG_BUTTON_UP | SG_LEFT_BUTTON)) {
 				status |= WIDGET_SELECTED;
@@ -412,14 +442,13 @@ public:
 				if (((char *)content)[0] == '\0')value = 0;
 				else if (x >= pos.x + 2 && x < pos.x + size.x - 2) {
 					tmp = stringWidth((char *)content, extra);
-					value = (x - pos.x) / 20 + extra;
+					value = extra;
 					x += tmp - pos.x;
 					do {
 						value++;
 						tmp = stringWidth((char *)content, value);
-					} while (tmp < x - 4);
+					} while (tmp < x - 4 && value <= len);
 					value--;
-					if (value >= len)value = len;
 				}
 			}
 		}
@@ -434,23 +463,26 @@ public:
 		}
 	}
 	virtual void keyPress(int key) {
-		if (status != WIDGET_SELECTED)return;
+		if (!(status & WIDGET_SELECTED))return;
 		int i, len;
 
-		if (key == SG_LEFT)
-			if (value)value--;
-		if (key == SG_RIGHT)
-			if (value < _mixLen((char *)content))
-				value++;
+		if (key == SG_LEFT) {
+			value--;
+			constraint();
+		}
+		if (key == SG_RIGHT) {
+			value++;
+			constraint();
+		}
 
-		len = _mixLen((char *)content);
+		len = _strlen(_widen((char *)content));
 
 		if (key >= 0x80)return;
 
 		int lenW = _wPos2sPos((char *)content, len);
 		if (key == SG_BACKS && value != 0) {
 			value--;
-			if (((char *)content)[i = _wPos2sPos((char *)content, value)] >= 0x80) {
+			if (((unsigned char *)content)[i = _wPos2sPos((char *)content, value)] >= 0x80) {
 				for (; i < lenW; i++) {
 					((char *)content)[i] = ((char *)content)[i + 2];
 				}
@@ -472,7 +504,7 @@ public:
 			}
 			((char *)content)[_wPos2sPos((char *)content, value++)] = key;
 		}
-
+		constraint();
 	}
 };
 class Dialog : public Widget {

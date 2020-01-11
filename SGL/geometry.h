@@ -205,7 +205,7 @@ public:
 	}
 	inline Matrix &operator*=(const Matrix &m) {
 		*this = *this * m;
-		return *this
+		return *this;
 	}
 
 	template<class Ttx, class Tty, class Ttz>
