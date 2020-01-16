@@ -136,18 +136,48 @@ void setIcon(const char *ico) {
 * Directly send IO message to system.
 */
 
-void sgKeyDown(int cAscii, int x, int y) {
-	int ctrl, shift;
+int _utf16GBK(int in_utf16) {
+	int out_gbk;
+	
+	WCHAR in_buffer[2] = { 0 };
+	unsigned char out_buffer[3] = { 0 };
+	((char *)in_buffer)[1] = in_utf16 / 0x100;
+	((char *)in_buffer)[0] = in_utf16 % 0x100;
 
-	ctrl = cAscii & SG_CTRLBIT;
-	shift = cAscii & SG_SHIFTBIT;
-	cAscii &= 0xff;
-	if (cAscii >= 0x80 || cAscii < 0x20)return;
+	char* old_locale = _strdup(setlocale(LC_CTYPE, NULL));
+	setlocale(LC_CTYPE, setlocale(LC_ALL, ""));
 
-	_windowList[_currentWindow]->key->enqueue(cAscii & 0x7fff);
+	wcstombs((char *)out_buffer, in_buffer, 2);
+	out_gbk = out_buffer[0] * 0x100 + out_buffer[1];
 
-	for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
-		_windowList[_currentWindow]->widgets[i]->keyPress(cAscii & 0x7fff);
+	setlocale(LC_CTYPE, old_locale);
+	return out_gbk;
+}
+
+void sgKeyDown(int cAscii, int x, int y, int utf16) {
+	if (utf16) {
+		int gbk = _utf16GBK(cAscii);
+		if (gbk == 0)return;
+
+		_windowList[_currentWindow]->key->enqueue((gbk / 0x100) & 0x7fff);
+		_windowList[_currentWindow]->key->enqueue((gbk % 0x100) & 0x7fff);
+
+		for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+			_windowList[_currentWindow]->widgets[i]->keyPress(gbk, true);
+		}
+	}
+	else {
+		/*int ctrl, shift;
+		ctrl = cAscii & SG_CTRLBIT;
+		shift = cAscii & SG_SHIFTBIT;*/
+		cAscii &= 0xff;
+		if (cAscii >= 0x80 || cAscii < 0x20)return;
+
+		_windowList[_currentWindow]->key->enqueue(cAscii & 0x7fff);
+
+		for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+			_windowList[_currentWindow]->widgets[i]->keyPress(cAscii & 0x7fff);
+		}
 	}
 }
 void sgSpecialDown(int cAscii, int x, int y) {
@@ -246,9 +276,8 @@ void sgSpecialDown(int cAscii, int x, int y) {
 	}
 }
 void sgKeyUp(int cAscii, int x, int y) {
-	if (cAscii >= 0x100 || cAscii < 0x20)return;
-	if (cAscii >= 0x21 && cAscii <= 0x2F)return;
-	if (cAscii >= 0x70 && cAscii <= 0x7B)return;
+	cAscii &= 0xff;
+	if (cAscii >= 0x80 || cAscii < 0x20)return;
 
 	_windowList[_currentWindow]->key->enqueue(cAscii | 0x8000);
 
@@ -1709,6 +1738,32 @@ Widget *_getByName(const char *name) {
 	}
 	return NULL;
 }
+Widget *_getSub(Widget *root, const char *name) {
+	Widget *iter = root->child;
+	while (iter) {
+		if (iter->type != SG_COMBINED) {
+			if (iter->name != name) {
+				iter = iter->next;
+				continue;
+			}
+			else return iter;
+		}
+		else {
+			Widget *tmp;
+			if (tmp = _getSub(iter, name)) {
+				return tmp;
+			}
+			else {
+				iter = iter->next;
+				continue;
+			}
+		}
+	}
+	return NULL;
+}
+Widget *_deleteSub(Widget *root, const char *name) {
+
+}
 
 void setBackgroundRefresh(void(*refresh)(int left, int top, int right, int bottom)) {
 	_windowList[_currentWindow]->setBgRefresh(refresh);
@@ -1788,10 +1843,6 @@ widget newWidget(enum _control type, const char *name) {
 		ret.bgColor.r = ret.bgColor.g = ret.bgColor.b = 191;
 		ret.fgColor.r = ret.fgColor.g = ret.fgColor.b = 0;
 		break;
-	case SG_OPTION:
-		ret.bgColor.r = ret.bgColor.g = ret.bgColor.b = 255;
-		ret.value = -1;
-		break;
 	case SG_DRAG:
 		break;
 	case SG_SCROLLVERT:
@@ -1829,6 +1880,8 @@ widget newWidget(enum _control type, const char *name) {
 		ret.size.x = getWidth(SG_CANVAS);
 
 		ret.extra = 100;
+		break;
+	case SG_COMBINED:
 		break;
 	}
 
@@ -1872,9 +1925,13 @@ void registerWidget(widget obj) {
 	case SG_SCROLLHORIZ:
 		_windowList[_currentWindow]->widgets.push_back(new ScrollHoriz(obj, _currentWindow));
 		break;
+
+	case SG_COMBINED:
+		_windowList[_currentWindow]->widgets.push_back(new CombinedWidget(obj, _currentWindow));
+		break;
 	}
 }
-void easyWidget(int type, const char *name, int x, int y, int width, int height, const char *content, void(*click)(widget *obj)) {
+widget easyWidget(int type, const char *name, int x, int y, int width, int height, const char *content, void(*click)(widget *obj)) {
 	widget tmp = newWidget((enum _control)type, name);
 	tmp.pos.x = x;
 	tmp.pos.y = y;
@@ -1886,7 +1943,29 @@ void easyWidget(int type, const char *name, int x, int y, int width, int height,
 	strcpy((char *)tmp.content, content);
 	if (click)tmp.click = click;
 
-	return registerWidget(tmp);
+	return tmp;
+}
+widget easyCombinedWidget(const char *name, int x, int y, int width, int height, int num, ...) {
+	widget parent = newWidget(SG_COMBINED, name);
+	parent.pos.x = x;
+	parent.pos.y = y;
+	parent.size.x = width;
+	parent.size.y = height;
+
+	widget *iter;
+	va_list ap;
+
+	va_start(ap, num);
+	iter = &parent;
+	iter->child = new widget(va_arg(ap, widget));
+	iter = iter->child;
+	while (--num) {
+		iter->next = new widget(va_arg(ap, widget));
+		iter = iter->next;
+	}
+	va_end(ap);
+
+	return parent;
 }
 widget *getWidgetByName(const char *name) {
 	return _getByName(name)->obj;
@@ -1972,6 +2051,16 @@ int deleteWidget(const char *name) {
 		}
 	}
 	return NULL;
+}
+widget *getSubWidget(const char *parent, const char *sub) {
+	Widget *root = _getByName(parent);
+	Widget *tmp = _getSub(root, sub);
+	if (tmp)return tmp->obj;
+	else return NULL;
+}
+void deleteSubWidget(const char *parent, const char *name) {
+	Widget *root = _getByName(parent);
+	delete _deleteSub(root, name);
 }
 int moveWidget(const char *name, int xDelta, int yDelta) {
 	Widget *tmp = _getByName(name);
@@ -2485,9 +2574,14 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 	case WM_CHAR:
 		if (_windowSem <= 0)break;
 		_startSubWindow(0);
-		sgKeyDown((int)wParam |
-			((GetKeyState(VK_CONTROL) & 0x8000) >> 1) |
-			((GetKeyState(VK_SHIFT) & 0x8000) >> 2), 0, 0);
+		if (wParam >= 0x100) {
+			sgKeyDown((int)wParam, 0, 0, true);
+		}
+		else {
+			sgKeyDown((int)wParam |
+				((GetKeyState(VK_CONTROL) & 0x8000) >> 1) |
+				((GetKeyState(VK_SHIFT) & 0x8000) >> 2), 0, 0, false);
+		}
 		_endSubWindow();
 		break;
 
@@ -2661,9 +2755,14 @@ LRESULT CALLBACK SubWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
 	case WM_CHAR:
 		if (_windowSem <= 0)break;
 		_startSubWindow(index);
-		sgKeyDown((int)wParam |
-			((GetKeyState(VK_CONTROL) & 0x8000) >> 1) |
-			((GetKeyState(VK_SHIFT) & 0x8000) >> 2), 0, 0);
+		if (wParam >= 0x100) {
+			sgKeyDown((int)wParam, 0, 0, true);
+		}
+		else {
+			sgKeyDown((int)wParam |
+				((GetKeyState(VK_CONTROL) & 0x8000) >> 1) |
+				((GetKeyState(VK_SHIFT) & 0x8000) >> 2), 0, 0, false);
+		}
 		_endSubWindow();
 		break;
 

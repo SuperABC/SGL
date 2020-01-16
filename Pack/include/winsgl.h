@@ -17,9 +17,14 @@
 #define SGL_H
 
 
+//SGL standard macros.
+
 #define _SGL_V500
 #define _CRT_SECURE_NO_WARNINGS
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
+
+
+//SGL libraries.
 
 #ifdef _DEBUG
 #define SG_LIB(name) name "d.lib"
@@ -32,6 +37,7 @@
 #pragma comment(lib, "winmm.lib")
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "shlwapi.lib")
+
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -316,7 +322,7 @@ typedef struct {
 	SGWINSTR name;
 	int coeff;
 }font;
-typedef struct _w{
+typedef struct _w {
 	enum _control type;
 
 	vec2i pos;
@@ -745,26 +751,23 @@ extern "C" {
 		float(*intersect)(int id, void *points, vec3f point, vec3f dir, vec3f *norm),
 		void(*hit)(int id, float dist, void *prd, vec3f norm), void(*shadow)(int id, void *prd));
 	/* An object means a sequence of triangles and their material which contains
-	 * intersect function, hit function and shadow function. Parameter id is the graph
-	 * id, data is the triangle vertices sequence, vertices is the num of triangles. */
+	* intersect function, hit function and shadow function. Parameter id is the graph
+	* id, data is the triangle vertices sequence, vertices is the num of triangles. */
 
 	SGvoid rtTrace(int id, int obj, vec3f light, vec3f dir, int type, float tmin, float tmax, void *prd);
-	/* This is the main tracing function. Use the light with starting point light and 
-	 * the direction dir to trace the obj that has been pushed with the given obj id.
-	 * Parameter id is the graph id, prd is the struct pointer that carries the ray
-	 * data for accumulating. */
+	/* This is the main tracing function. Use the light with starting point light and
+	* the direction dir to trace the obj that has been pushed with the given obj id.
+	* Parameter id is the graph id, prd is the struct pointer that carries the ray
+	* data for accumulating. */
 
 	SGvoid rtGenerate(int id, vec3i(*generate)(int id, vec2i index, vec2i size));
 	/* Set the generate function. It is the first function executed when calling
-	 * refresh. the index and size is the position of the drawing pixel and the whole
-	 * screen. */
+	* refresh. the index and size is the position of the drawing pixel and the whole
+	* screen. */
 
 	SGvoid rtMiss(int id, void(*miss)(int id, void *prd));
 	/* Set the miss function. That is, when rtTrace function did not hit any objects,
-	 the miss function will be called. */
-
-	SGvoid laterDraw(vectInput func, void *param);
-	/* The func will be called later in the main thread. */
+	the miss function will be called. */
 
 
 	/*
@@ -979,24 +982,24 @@ extern "C" {
 	widget newWidget(enum _control type, const char *name);
 	/* Returns a widget with default parameter. */
 
-	widget newCombinedWidget(int num, const char *name, ...);
-	/* Create a combined widget. Pass the sub widget number and
-	* then those sub widget pointers.*/
-
 	SGvoid registerWidget(widget obj);
 	/* After setting all the parameters, give back the widget to
 	* the system. After this function, all callbacks are activated.*/
 
-	SGvoid easyWidget(int type, const char *name,
+	widget easyWidget(int type, const char *name,
 		int x, int y, int width, int height, const char *content, void(*click)(widget *obj));
 	/* Create and register a widget fastly. */
+
+	widget easyCombinedWidget(const char *name, int x, int y, int width, int height, int num, ...);
+	/* Create a combined widget. Pass the sub widget number and
+	* then those sub widget pointers.*/
 
 	widget *getWidgetByName(const char *name);
 	/* Get the widget structure by the given name. */
 
 	SGvoid refreshWidget(const char *name);
 	/* After modifing the structure returned by getWidgetByName, apply the
-	 * modification. */
+	* modification. */
 
 	SGint inWidget(widget *obj, int x, int y);
 	/* Judge if coordinate (x, y) is in widget obj. */
@@ -1099,7 +1102,7 @@ extern "C" {
 	void AESEncrypt(const char *plain, int len, const char *key, char *cipher);
 	void AESDecrypt(const char *cipher, int len, const char *key, char *plain);
 	/* DES key length 16. */
-	void ProduceKey(unsigned int p, unsigned int q, unsigned int *e, unsigned int *d, unsigned int *n);
+	void RSAProduceKey(unsigned int p, unsigned int q, unsigned int *e, unsigned int *d, unsigned int *n);
 	void RSAEncrypt(unsigned int plain, int key, int N, unsigned int *cipher);
 	void RSADecrypt(unsigned int cipher, int key, int N, unsigned int *plain);
 

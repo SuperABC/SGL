@@ -166,51 +166,11 @@ public:
 			click(obj);
 
 	}
-	virtual void keyPress(int key) {
+	virtual void keyPress(int key, bool utf16 = false) {
 		if (status != WIDGET_SELECTED)return;
 	}
 
-	Widget(widget w, int window) {
-		this->window = window;
-		this->obj = (widget *)malloc(sizeof(widget));
-		this->type = this->obj->type = w.type;
-
-		this->pos = this->obj->pos = w.pos;
-		this->size = this->obj->size = w.size;
-
-		this->style = this->obj->style = w.style;
-		this->status = FALSE;
-		this->visible = TRUE;
-		this->priority = WIDGET_FRONT;
-		this->valid = 0;
-
-		this->value = this->obj->value = w.value;
-		this->extra = this->obj->extra = w.extra;
-
-		this->name = this->obj->name = w.name;
-		this->tf.color = this->obj->tf.color = w.tf.color;
-		this->tf.name = (LPWSTR)malloc((_strlen(w.tf.name) + 1) * sizeof(wchar_t));
-		_strcpy(this->tf.name, w.tf.name);
-		this->obj->tf.name = w.tf.name;
-		this->tf.size = this->obj->tf.size = w.tf.size;
-		this->tf.coeff = this->obj->tf.coeff = w.tf.coeff;
-		this->content = this->obj->content = w.content;
-
-		this->next = ((w.next == NULL) ? NULL : new Widget(*w.next, window));
-		this->child = ((w.child == NULL) ? NULL : new Widget(*w.child, window));
-		if (this->next)this->obj->next = this->next->getObj();
-		if (this->child)this->obj->child = this->child->getObj();
-
-		this->bgColor = this->obj->bgColor = w.bgColor;
-		this->passColor = this->obj->passColor = w.passColor;
-		this->pressColor = this->obj->pressColor = w.pressColor;
-		this->fgColor = this->obj->fgColor = w.fgColor;
-		this->bgImg = this->obj->bgImg = w.bgImg;
-
-		this->click = this->obj->click = w.click;
-		this->move = this->obj->move = w.move;
-		this->press = this->obj->press = w.press;
-	}
+	Widget(widget w, int window);
 	~Widget() {
 		free(content);
 		free(obj);
@@ -455,56 +415,71 @@ public:
 		else {
 			setMouseIcon(IDC_ARROW);
 			if (button == (SG_BUTTON_DOWN | SG_LEFT_BUTTON) &&
-				(button & WIDGET_SELECTED)) {
-				button &= 0xFF ^ WIDGET_SELECTED;
-				button &= 0xFF ^ WIDGET_SELECTED;
+				(status & WIDGET_SELECTED)) {
+				status &= 0xFF ^ WIDGET_SELECTED;
+				status &= 0xFF ^ WIDGET_SELECTED;
 				valid = 0;
 			}
 		}
 	}
-	virtual void keyPress(int key) {
+	virtual void keyPress(int key, bool utf16 = false) {
 		if (!(status & WIDGET_SELECTED))return;
-		int i, len;
 
-		if (key == SG_LEFT) {
-			value--;
-			constraint();
-		}
-		if (key == SG_RIGHT) {
-			value++;
-			constraint();
-		}
-
-		len = _strlen(_widen((char *)content));
-
-		if (key >= 0x80)return;
-
-		int lenW = _wPos2sPos((char *)content, len);
-		if (key == SG_BACKS && value != 0) {
-			value--;
-			if (((unsigned char *)content)[i = _wPos2sPos((char *)content, value)] >= 0x80) {
-				for (; i < lenW; i++) {
-					((char *)content)[i] = ((char *)content)[i + 2];
-				}
-			}
-			else {
-				for (; i < lenW; i++) {
-					((char *)content)[i] = ((char *)content)[i + 1];
-				}
-			}
-		}
-		if (key >= 0x20) {
+		if (utf16) {
+			int len = _strlen(_widen((char *)content));
+			int lenW = _wPos2sPos((char *)content, len), i;
 			if (value == len) {
-				((char *)content)[_wPos2sPos((char *)content, value) + 1] = '\0';
+				((char *)content)[_wPos2sPos((char *)content, value) + 2] = '\0';
 			}
 			else {
-				for (i = lenW + 1; i > _wPos2sPos((char *)content, value); i--) {
-					((char *)content)[i] = ((char *)content)[i - 1];
+				for (i = lenW + 2; i > _wPos2sPos((char *)content, value); i--) {
+					((char *)content)[i] = ((char *)content)[i - 2];
 				}
 			}
-			((char *)content)[_wPos2sPos((char *)content, value++)] = key;
+			((char *)content)[_wPos2sPos((char *)content, value)] = key / 0x100;
+			((char *)content)[_wPos2sPos((char *)content, value) + 1] = key % 0x100;
+			value++;
 		}
-		constraint();
+		else {
+			if (key == SG_LEFT) {
+				value--;
+				constraint();
+			}
+			if (key == SG_RIGHT) {
+				value++;
+				constraint();
+			}
+
+			if (key >= 0x80)return;
+
+			int len = _strlen(_widen((char *)content));
+			int lenW = _wPos2sPos((char *)content, len), i;
+			if (key == SG_BACKS && value != 0) {
+				value--;
+				if (((unsigned char *)content)[i = _wPos2sPos((char *)content, value)] >= 0x80) {
+					for (; i < lenW; i++) {
+						((char *)content)[i] = ((char *)content)[i + 2];
+					}
+				}
+				else {
+					for (; i < lenW; i++) {
+						((char *)content)[i] = ((char *)content)[i + 1];
+					}
+				}
+			}
+			if (key >= 0x20) {
+				if (value == len) {
+					((char *)content)[_wPos2sPos((char *)content, value) + 1] = '\0';
+				}
+				else {
+					for (i = lenW + 1; i > _wPos2sPos((char *)content, value); i--) {
+						((char *)content)[i] = ((char *)content)[i - 1];
+					}
+				}
+				((char *)content)[_wPos2sPos((char *)content, value++)] = key;
+			}
+			constraint();
+		}
 	}
 };
 class Dialog : public Widget {
@@ -1499,5 +1474,200 @@ public:
 	}
 };
 
+class CombinedWidget : public Widget {
+public:
+	CombinedWidget(widget w, int window) : Widget(w, window) {
+		if (w.child == NULL) {
+			this->child = NULL;
+			this->obj->child = NULL;
+		}
+		else {
+			widget *iter = w.child;
+			while (iter) {
+				iter->pos.x += w.pos.x;
+				iter->pos.y += w.pos.y;
+				iter = iter->next;
+			}
+			switch (w.child->type) {
+			case SG_BUTTON:
+				this->child = new Button(*w.child, window);
+				break;
+			case SG_INPUT:
+				this->child = new Input(*w.child, window);
+				break;
+			case SG_DIALOG:
+				this->child = new Dialog(*w.child, window);
+				break;
+			case SG_OUTPUT:
+				this->child = new Output(*w.child, window);
+				break;
+			case SG_LIST:
+				this->child = new List(*w.child, window);
+				break;
+			case SG_LABEL:
+				this->child = new Label(*w.child, window);
+				break;
+			case SG_PIC:
+				this->child = new Pic(*w.child, window);
+				break;
+			case SG_CHECK:
+				this->child = new Check(*w.child, window);
+				break;
+			case SG_PROCESS:
+				this->child = new Process(*w.child, window);
+				break;
+			case SG_DRAG:
+				this->child = new Drag(*w.child, window);
+				break;
+			case SG_SCROLLVERT:
+				this->child = new ScrollVert(*w.child, window);
+				break;
+			case SG_SCROLLHORIZ:
+				this->child = new ScrollHoriz(*w.child, window);
+				break;
+			case SG_COMBINED:
+				this->child = new CombinedWidget(*w.child, window);
+				break;
+			default:
+				break;
+			}
+			this->obj->child = this->child->getObj();
+			delete w.child;
+		}
+	}
+
+	virtual void draw(int id) {
+		Widget *iter = child;
+		while (iter) {
+			if (!iter->visible || iter->valid) {
+				iter = iter->next;
+				continue;
+			}
+			iter->valid = 1;
+
+			iter->draw(id);
+			if (!iter->valid)valid = 0;
+			iter = iter->next;
+		}
+	}
+	virtual void mouseMove(int x, int y) {
+		__super::mouseMove(x, y);
+		Widget *iter = child;
+		while (iter) {
+			iter->mouseMove(x, y);
+			iter = iter->next;
+		}
+	}
+	virtual void mouseClick(int x, int y, int button) {
+		__super::mouseClick(x, y, button);
+		Widget *iter = child;
+		while (iter) {
+			iter->mouseClick(x, y, button);
+			iter = iter->next;
+		}
+	}
+	virtual void keyPress(int key, bool utf16 = false) {
+		__super::keyPress(key, utf16);
+		Widget *iter = child;
+		while (iter) {
+			iter->keyPress(key, utf16);
+			iter = iter->next;
+		}
+	}
+};
+
+Widget::Widget(widget w, int window) {
+	this->window = window;
+	this->obj = (widget *)malloc(sizeof(widget));
+	this->type = this->obj->type = w.type;
+
+	this->pos = this->obj->pos = w.pos;
+	this->size = this->obj->size = w.size;
+
+	this->style = this->obj->style = w.style;
+	this->status = FALSE;
+	this->visible = TRUE;
+	this->priority = WIDGET_FRONT;
+	this->valid = 0;
+
+	this->value = this->obj->value = w.value;
+	this->extra = this->obj->extra = w.extra;
+
+	this->name = this->obj->name = w.name;
+	this->tf.color = this->obj->tf.color = w.tf.color;
+	this->tf.name = (LPWSTR)malloc((_strlen(w.tf.name) + 1) * sizeof(wchar_t));
+	_strcpy(this->tf.name, w.tf.name);
+	this->obj->tf.name = w.tf.name;
+	this->tf.size = this->obj->tf.size = w.tf.size;
+	this->tf.coeff = this->obj->tf.coeff = w.tf.coeff;
+	this->content = this->obj->content = w.content;
+
+	this->child = NULL;
+	this->obj->child = NULL;
+	this->next = NULL;
+	this->obj->next = NULL;
+
+	this->bgColor = this->obj->bgColor = w.bgColor;
+	this->passColor = this->obj->passColor = w.passColor;
+	this->pressColor = this->obj->pressColor = w.pressColor;
+	this->fgColor = this->obj->fgColor = w.fgColor;
+	this->bgImg = this->obj->bgImg = w.bgImg;
+
+	this->click = this->obj->click = w.click;
+	this->move = this->obj->move = w.move;
+	this->press = this->obj->press = w.press;
+
+	if (w.next == NULL) {
+		this->next = NULL;
+		this->obj->next = NULL;
+	}
+	else {
+		switch (w.next->type) {
+		case SG_BUTTON:
+			this->next = new Button(*w.next, window);
+			break;
+		case SG_INPUT:
+			this->next = new Input(*w.next, window);
+			break;
+		case SG_DIALOG:
+			this->next = new Dialog(*w.next, window);
+			break;
+		case SG_OUTPUT:
+			this->next = new Output(*w.next, window);
+			break;
+		case SG_LIST:
+			this->next = new List(*w.next, window);
+			break;
+		case SG_LABEL:
+			this->next = new Label(*w.next, window);
+			break;
+		case SG_PIC:
+			this->next = new Pic(*w.next, window);
+			break;
+		case SG_CHECK:
+			this->next = new Check(*w.next, window);
+			break;
+		case SG_PROCESS:
+			this->next = new Process(*w.next, window);
+			break;
+		case SG_DRAG:
+			this->next = new Drag(*w.next, window);
+			break;
+		case SG_SCROLLVERT:
+			this->next = new ScrollVert(*w.next, window);
+			break;
+		case SG_SCROLLHORIZ:
+			this->next = new ScrollHoriz(*w.next, window);
+			break;
+		case SG_COMBINED:
+			this->next = new CombinedWidget(*w.next, window);
+			break;
+		default:
+			break;
+		}
+		this->obj->next = this->next->getObj();
+		delete w.next;
+	}
+}
 
 #endif

@@ -213,7 +213,6 @@ enum _control { //Types of widget.
 	SG_PIC,
 	SG_CHECK,
 	SG_PROCESS,
-	SG_OPTION,
 	SG_DRAG,
 	SG_SCROLLVERT,
 	SG_SCROLLHORIZ,
@@ -769,9 +768,6 @@ extern "C" {
 	/* Set the miss function. That is, when rtTrace function did not hit any objects,
 	 the miss function will be called. */
 
-	SGvoid laterDraw(vectInput func, void *param);
-	/* The func will be called later in the main thread. */
-
 
 	/*
 	* SG writing interfaces
@@ -985,17 +981,17 @@ extern "C" {
 	widget newWidget(enum _control type, const char *name);
 	/* Returns a widget with default parameter. */
 
-	widget newCombinedWidget(int num, const char *name, ...);
-	/* Create a combined widget. Pass the sub widget number and
-	* then those sub widget pointers.*/
-
 	SGvoid registerWidget(widget obj);
 	/* After setting all the parameters, give back the widget to
 	* the system. After this function, all callbacks are activated.*/
 
-	SGvoid easyWidget(int type, const char *name,
+	widget easyWidget(int type, const char *name,
 		int x, int y, int width, int height, const char *content, void(*click)(widget *obj));
 	/* Create and register a widget fastly. */
+
+	widget easyCombinedWidget(const char *name, int x, int y, int width, int height, int num, ...);
+	/* Create a combined widget. Pass the sub widget number and
+	* then those sub widget pointers.*/
 
 	widget *getWidgetByName(const char *name);
 	/* Get the widget structure by the given name. */
@@ -1019,7 +1015,7 @@ extern "C" {
 	SGint deleteWidget(const char *name);
 	/* Delete the widget with the given name. */
 
-	int getSubWidget(const char *parent, const char *sub);
+	widget *getSubWidget(const char *parent, const char *sub);
 	/* Returns the sub widget with the given name in parent's childs. */
 
 	SGvoid insertSubWidget(const char *parent, int sub, int index);

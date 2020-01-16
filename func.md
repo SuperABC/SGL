@@ -2,10 +2,8 @@
 
 ### Todo
 
-1. JSON error
-2. Widget detail
-3. Combined
-4. Image format
+1. Combined
+2. Image format
 
 ### Finished
 
@@ -39,6 +37,7 @@
 4. Bios
    1. key
    2. mouse
+   3. (mci)
 5. Console
    1. char
    2. text
@@ -58,6 +57,8 @@
    9. drag
    10. process
    11. scroll
+   12. (switch)
+   13. combined
 8. Graph
    1. scan line
    2. ray tracing
@@ -66,6 +67,6 @@
    2. AES
    3. RSA
 10. Data
-   1. Json
-   2. (SQL)
+  1. Json
+  2. (SQL)
 
