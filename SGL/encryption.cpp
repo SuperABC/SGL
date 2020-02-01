@@ -733,7 +733,7 @@ int RSABianaryTransform(int num, int bin_num[]) {
 }
 unsigned int RSAModExo(unsigned int a, int b, int n) {
 	int c = 0, bin_num[1000];
-	long long d = 1;
+	int d = 1;
 	int k = RSABianaryTransform(b, bin_num) - 1;
 
 	for (int i = k; i >= 0; i--) {

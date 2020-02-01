@@ -111,4 +111,6 @@ void _endSubWindow();
 void _sgInit();
 void _sgSubInit(vect setup);
 
+void widgetCover(int window, int id, int left, int top, int right, int bottom);
+
 #endif

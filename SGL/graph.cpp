@@ -75,9 +75,9 @@ vec3i fsDefault(int id, int x, int y, float *data) {
 	norm.x = data[6];
 	norm.y = data[7];
 	norm.z = data[8];
-	color.x = data[3] * 255;
-	color.y = data[4] * 255;
-	color.z = data[5] * 255;
+	color.x = (int)(data[3] * 255);
+	color.y = (int)(data[4] * 255);
+	color.z = (int)(data[5] * 255);
 	return color;
 }
 vec3i generateDefault(int id, vec2i index, vec2i size) {
@@ -91,7 +91,7 @@ vec3i generateDefault(int id, vec2i index, vec2i size) {
 	vec3f dir = pixel.x * U + pixel.y * V + W;
 	vec3f radiance = Vec3f(0, 0, 0);
 	rtTrace(id, 0, eye, dir, LIGHT_RAY, .001f, INFINITY, &radiance);
-	return Vec3i(radiance.x * 255, radiance.y * 255, radiance.z * 255);
+	return Vec3i((int)(radiance.x * 255), (int)(radiance.y * 255), (int)(radiance.z * 255));
 }
 
 class Graph {

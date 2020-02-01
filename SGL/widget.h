@@ -107,6 +107,7 @@ public:
 	int style, status, visible, priority, valid;
 	
 	string name;
+	string path;
 	void *content;
 	int value, extra;
 
@@ -170,7 +171,7 @@ public:
 		if (status != WIDGET_SELECTED)return;
 	}
 
-	Widget(widget w, int window);
+	Widget(widget w, int window, string p = "");
 	~Widget() {
 		free(content);
 		free(obj);
@@ -194,7 +195,7 @@ public:
 
 class Button : public Widget {
 public:
-	Button(widget w, int window) :Widget(w, window) {}
+	Button(widget w, int window, string p = "") :Widget(w, window, p) {}
 
 	virtual void draw(int id) {
 		switch (style) {
@@ -277,7 +278,7 @@ private:
 		if (value <= extra && value)extra = value - 1;
 	}
 public:
-	Input(widget w, int window) :Widget(w, window) {}
+	Input(widget w, int window, string p = "") :Widget(w, window, p) {}
 
 	virtual void draw(int id) {
 		valid = 0;
@@ -484,7 +485,7 @@ public:
 };
 class Dialog : public Widget {
 public:
-	Dialog(widget w, int window) :Widget(w, window) {
+	Dialog(widget w, int window, string p = "") :Widget(w, window, p) {
 		visible = false;
 	}
 
@@ -575,7 +576,7 @@ public:
 			if (button == (SG_BUTTON_UP | SG_LEFT_BUTTON)) {
 				if (x >= pos.x + size.x - 2 * (SG_CHAR_WIDTH + 1) && x < pos.x + size.x - 2 &&
 					y >= pos.y + 2 && y < pos.y + SG_CHAR_HEIGHT + 2) {
-					ceaseWidget(name.data());
+					ceaseWidget(((path == ""?"" : path  + '/') + name).data());
 					return;
 				}
 				status |= WIDGET_SELECTED;
@@ -593,7 +594,7 @@ public:
 };
 class Output : public Widget {
 public:
-	Output(widget w, int window) :Widget(w, window) {}
+	Output(widget w, int window, string p = "") :Widget(w, window, p) {}
 
 	virtual void draw(int id) {
 		int start, row, total, tmp;
@@ -647,7 +648,7 @@ public:
 };
 class List : public Widget {
 public:
-	List(widget w, int window) :Widget(w, window) {
+	List(widget w, int window, string p = "") :Widget(w, window, p) {
 		int length = strlen((char *)w.content);
 		for (int i = 0; i < length; i++) {
 			if (((char *)w.content)[i] == '\n')
@@ -844,7 +845,7 @@ public:
 		}
 	}
 	virtual void keyPress(int key) {
-		if (status & WIDGET_SELECTED == 0)return;
+		if ((status & WIDGET_SELECTED) == 0)return;
 
 		if (key == SG_UP) {
 			if (value) {
@@ -874,7 +875,7 @@ public:
 };
 class Label :public Widget {
 public:
-	Label(widget w, int window) :Widget(w, window) {}
+	Label(widget w, int window, string p = "") :Widget(w, window, p) {}
 
 	virtual void draw(int id) {
 		switch (style) {
@@ -902,7 +903,7 @@ public:
 };
 class Pic :public Widget {
 public:
-	Pic(widget w, int window) :Widget(w, window) {
+	Pic(widget w, int window, string p = "") :Widget(w, window, p) {
 		obj->bgImg = bgImg = loadBmp((char *)w.content);
 	}
 
@@ -913,7 +914,7 @@ public:
 };
 class Check :public Widget {
 public:
-	Check(widget w, int window) :Widget(w, window) {}
+	Check(widget w, int window, string p = "") :Widget(w, window, p) {}
 
 	virtual void draw(int id) {
 		switch (style) {
@@ -987,7 +988,7 @@ public:
 };
 class Drag :public Widget {
 public:
-	Drag(widget w, int window) :Widget(w, window) {}
+	Drag(widget w, int window, string p = "") :Widget(w, window, p) {}
 
 	virtual void draw(int id) {
 		useBackgroundRefresh(
@@ -1074,7 +1075,7 @@ public:
 };
 class Process : public Widget {
 public:
-	Process(widget w, int window) :Widget(w, window) {
+	Process(widget w, int window, string p = "") :Widget(w, window, p) {
 		visible = false;
 	}
 
@@ -1210,7 +1211,7 @@ private:
 	int previous = 0;
 
 public:
-	ScrollVert(widget w, int window) :Widget(w, window) {}
+	ScrollVert(widget w, int window, string p = "") :Widget(w, window, p) {}
 
 	virtual void draw(int id) {
 		double barHeight;
@@ -1344,7 +1345,7 @@ private:
 	int previous = 0;
 
 public:
-	ScrollHoriz(widget w, int window) :Widget(w, window) {}
+	ScrollHoriz(widget w, int window, string p = "") :Widget(w, window, p) {}
 
 	virtual void draw(int id) {
 		double barWidth;
@@ -1476,7 +1477,7 @@ public:
 
 class CombinedWidget : public Widget {
 public:
-	CombinedWidget(widget w, int window) : Widget(w, window) {
+	CombinedWidget(widget w, int window, string p = "") : Widget(w, window, p) {
 		if (w.child == NULL) {
 			this->child = NULL;
 			this->obj->child = NULL;
@@ -1490,43 +1491,43 @@ public:
 			}
 			switch (w.child->type) {
 			case SG_BUTTON:
-				this->child = new Button(*w.child, window);
+				this->child = new Button(*w.child, window, (path == "" ? "" : path + '/') + name);
 				break;
 			case SG_INPUT:
-				this->child = new Input(*w.child, window);
+				this->child = new Input(*w.child, window, (path == "" ? "" : path + '/') + name);
 				break;
 			case SG_DIALOG:
-				this->child = new Dialog(*w.child, window);
+				this->child = new Dialog(*w.child, window, (path == "" ? "" : path + '/') + name);
 				break;
 			case SG_OUTPUT:
-				this->child = new Output(*w.child, window);
+				this->child = new Output(*w.child, window, (path == "" ? "" : path + '/') + name);
 				break;
 			case SG_LIST:
-				this->child = new List(*w.child, window);
+				this->child = new List(*w.child, window, (path == "" ? "" : path + '/') + name);
 				break;
 			case SG_LABEL:
-				this->child = new Label(*w.child, window);
+				this->child = new Label(*w.child, window, (path == "" ? "" : path + '/') + name);
 				break;
 			case SG_PIC:
-				this->child = new Pic(*w.child, window);
+				this->child = new Pic(*w.child, window, (path == "" ? "" : path + '/') + name);
 				break;
 			case SG_CHECK:
-				this->child = new Check(*w.child, window);
+				this->child = new Check(*w.child, window, (path == "" ? "" : path + '/') + name);
 				break;
 			case SG_PROCESS:
-				this->child = new Process(*w.child, window);
+				this->child = new Process(*w.child, window, (path == "" ? "" : path + '/') + name);
 				break;
 			case SG_DRAG:
-				this->child = new Drag(*w.child, window);
+				this->child = new Drag(*w.child, window, (path == "" ? "" : path + '/') + name);
 				break;
 			case SG_SCROLLVERT:
-				this->child = new ScrollVert(*w.child, window);
+				this->child = new ScrollVert(*w.child, window, (path == "" ? "" : path + '/') + name);
 				break;
 			case SG_SCROLLHORIZ:
-				this->child = new ScrollHoriz(*w.child, window);
+				this->child = new ScrollHoriz(*w.child, window, (path == "" ? "" : path + '/') + name);
 				break;
 			case SG_COMBINED:
-				this->child = new CombinedWidget(*w.child, window);
+				this->child = new CombinedWidget(*w.child, window, (path == "" ? "" : path + '/') + name);
 				break;
 			default:
 				break;
@@ -1574,9 +1575,23 @@ public:
 			iter = iter->next;
 		}
 	}
+
+	virtual void update() {
+		Widget *iter = child;
+		while (iter) {
+			if (!iter->visible || iter->valid) {
+				iter = iter->next;
+				continue;
+			}
+			iter->valid = 1;
+
+			iter->update();
+			iter = iter->next;
+		}
+	}
 };
 
-Widget::Widget(widget w, int window) {
+Widget::Widget(widget w, int window, string p) {
 	this->window = window;
 	this->obj = (widget *)malloc(sizeof(widget));
 	this->type = this->obj->type = w.type;
@@ -1594,6 +1609,7 @@ Widget::Widget(widget w, int window) {
 	this->extra = this->obj->extra = w.extra;
 
 	this->name = this->obj->name = w.name;
+	this->path = p;
 	this->tf.color = this->obj->tf.color = w.tf.color;
 	this->tf.name = (LPWSTR)malloc((_strlen(w.tf.name) + 1) * sizeof(wchar_t));
 	_strcpy(this->tf.name, w.tf.name);
@@ -1624,43 +1640,43 @@ Widget::Widget(widget w, int window) {
 	else {
 		switch (w.next->type) {
 		case SG_BUTTON:
-			this->next = new Button(*w.next, window);
+			this->next = new Button(*w.next, window, path);
 			break;
 		case SG_INPUT:
-			this->next = new Input(*w.next, window);
+			this->next = new Input(*w.next, window, path);
 			break;
 		case SG_DIALOG:
-			this->next = new Dialog(*w.next, window);
+			this->next = new Dialog(*w.next, window, path);
 			break;
 		case SG_OUTPUT:
-			this->next = new Output(*w.next, window);
+			this->next = new Output(*w.next, window, path);
 			break;
 		case SG_LIST:
-			this->next = new List(*w.next, window);
+			this->next = new List(*w.next, window, path);
 			break;
 		case SG_LABEL:
-			this->next = new Label(*w.next, window);
+			this->next = new Label(*w.next, window, path);
 			break;
 		case SG_PIC:
-			this->next = new Pic(*w.next, window);
+			this->next = new Pic(*w.next, window, path);
 			break;
 		case SG_CHECK:
-			this->next = new Check(*w.next, window);
+			this->next = new Check(*w.next, window, path);
 			break;
 		case SG_PROCESS:
-			this->next = new Process(*w.next, window);
+			this->next = new Process(*w.next, window, path);
 			break;
 		case SG_DRAG:
-			this->next = new Drag(*w.next, window);
+			this->next = new Drag(*w.next, window, path);
 			break;
 		case SG_SCROLLVERT:
-			this->next = new ScrollVert(*w.next, window);
+			this->next = new ScrollVert(*w.next, window, path);
 			break;
 		case SG_SCROLLHORIZ:
-			this->next = new ScrollHoriz(*w.next, window);
+			this->next = new ScrollHoriz(*w.next, window, path);
 			break;
 		case SG_COMBINED:
-			this->next = new CombinedWidget(*w.next, window);
+			this->next = new CombinedWidget(*w.next, window, path);
 			break;
 		default:
 			break;

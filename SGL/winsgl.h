@@ -39,6 +39,8 @@
 #pragma comment(lib, "shlwapi.lib")
 
 
+//SGL includes.
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -399,35 +401,66 @@ extern "C" {
 	* can be used both in graphic and console mode, too.
 	*/
 
+	/**
+	* Used in sgSetup, to set the parameters of the graphic window.
+	* @Param width and height is the window size.
+	* @Param title is the string displayed in caption bar.
+	* @Param mode can be assigned either BIT_MAP or TEXT_MAP.
+	*/
 	SGvoid initWindow(int width, int height, const char *title, int mode);
-	/* Used in sgSetup(), to set the parameters of the graphic window.*/
 
-	SGvoid initPolarWindow(int cx, int cy, int r);
-	/* Use circle window. The centre is (cx, cy) and the radius is r. */
+	/**
+	* Used in sgSetup, to set the parameters of the circular graphic window.
+	* @Param cx and cy is the centre of the window.
+	* @Param rx and ry is the x radius and y radius of the window.
+	*/
+	SGvoid initPolarWindow(int cx, int cy, int rx, int ry);
 
+	/**
+	* Create a new window with SGL canvas.
+	* @Param width and height is the window size.
+	* @Param title is the string displayed in caption bar.
+	* @Param mode can be assigned either BIT_MAP or TEXT_MAP.
+	* @Param setup and loop is the logic of the window created.
+	* @Return returns the id of the window created.
+	*/
 	SGint createWindow(int width, int height, const char *title, int mode, vect setup, vect loop);
-	/* Create a new window with SGL canvas. The first three parameters are
-	* same as initWindow, while setup and loop are functions similar to sgSetup
-	* and sgLoop. */
 
+	/**
+	* Used in setup or loop function to define what to do when
+	* current window closed.
+	* @Param finish is the function to be called when window closed.
+	*/
 	SGvoid windowFinish(vect finish);
-	/* When the current window is closed, the function finish will be called. */
 
-	SGvoid closeWindow(int id);
-	/* Close the sub window with the id given by createWindow. */
-
+	/**
+	* Used in setup or loop function to define what to do when
+	* current window size changed.
+	* @Param func will be executed when the size of the window changed.
+	*/
 	SGvoid resizeFuntion(void(*func)(int x, int y));
-	/* The parameter function will be executed when the size of the window
-	*changed. */
 
+	/**
+	* Close the sub window.
+	* @Param id determined which window should be closed.
+	*/
+	SGvoid closeWindow(int id);
+
+	/**
+	* Rename the caption of the window.
+	* @Param name is the new caption name to be displayed.
+	*/
 	SGvoid renameCaption(const char *name);
-	/* Set the caption of the window to the given name. */
 
+	/**
+	* Hide the caption bar.
+	*/
 	SGvoid hideCaption();
-	/* Hide the caption bar at the top. */
 
+	/**
+	* Show the caption bar.
+	*/
 	SGvoid showCaption();
-	/* Show the caption bar at the top. */
 
 
 	/*
@@ -436,154 +469,282 @@ extern "C" {
 	* console mode.
 	*/
 
+	/**
+	* Get the width of one object.
+	* @Param obj can be SG_WINDOW (the current window) or
+	* SG_CANVAS(The screen of the computer).
+	* @Return returns the width.
+	*/
 	SGint getWidth(int obj);
-	/* Returns the width of the obj. The parameter obj can be SG_WINDOW
-	* (the current window) or SG_CANVAS(The screen of the computer). */
 
+	/**
+	* Get the height of one object.
+	* @Param obj can be SG_WINDOW (the current window) or
+	* SG_CANVAS(The screen of the computer).
+	* @Return returns the height.
+	*/
 	SGint getHeight(int obj);
-	/* Returns the height of the obj. The parameter obj can be SG_WINDOW
-	* (the current window) or SG_CANVAS(The screen of the computer). */
 
+	/**
+	* Get the size of one object.
+	* @Param obj can be SG_WINDOW (the current window) or
+	* SG_CANVAS(The screen of the computer).
+	* @Return returns the size.
+	*/
 	vec2i getSize(int obj);
-	/* Returns the size of the obj. The parameter obj can be SG_WINDOW
-	* (the current window) or SG_CANVAS(The screen of the computer). */
 
+	/**
+	* Print the message with format to the output window when debugging.
+	* @Param format is the output format.
+	* @Param ... is the value for the format.
+	*/
 	SGvoid debugf(const char *format, ...);
-	/* Print the message with format to the output window when debugging. */
 
+	/**
+	* Wait for t millisecond. During the time the window won't refresh.
+	* @Param t is the time period.
+	*/
 	SGvoid delay(int t);
-	/* Wait for t millisecond. During the time the window won't refresh. */
 
+	/**
+	* Used with delayEnd. To set the least time waiting between begin
+	* and end. This pair of function is usually used to control the time
+	* of some loops.
+	*/
 	SGvoid delayBegin();
-	/* Used with delayEnd. To set the least time waiting between begin
-	* and end. This pair of function is usually used to cotrol the time
-	* of some loops. */
 
+	/**
+	* Used with delayBegin. To set the least time waiting between begin
+	* and end. This pair of function is usually used to cotrol the time
+	* of some loops.
+	* @Param t is the time period.
+	* @Return return 1 if delayed, or else return 0.
+	*/
 	SGint delayEnd(int t);
-	/* Used with delayBegin. To set the least time waiting between begin
-	* and end. This pair of function is usually used to cotrol the time
-	* of some loops. */
 
+	/**
+	* Get a random number.
+	* @Param n is the random range.
+	* @Return a random integer between 0 and n - 1.
+	*/
 	SGint random(int n);
-	/* Returns a random integer between 0 and n - 1. */
 
+	/**
+	* Use Win API Graphic mode to choose one file. 
+	* @Param name name is used to receive the selected file name with its path.
+	* @Param start is the path to begin with so set it to NULL as default.
+	* @Param format is the probable file format and each format is seperated
+	* with \0, and it's set to NULL as default as well.
+	* @Param idx is the default format index which is usually set to 1.
+	*/
 	SGint selectFile(char name[], char start[], char format[], int idx);
-	/* Use Win API Graphic mode to choose one file. Parameter name
-	* is used to receive the selected file name with its path, and start
-	* is the path to begin with so set it to NULL as default. Parameter
-	* format is the probable file format and each format is seperated
-	* with \0, and it's set to NULL as default as well. The idx is the
-	* default format index which is usually set to 1. */
 
+	/**
+	* Use Win API Graphic mode to let user input the file name that they
+	* want to save.
+	* @Param name name is used to receive the selected file name with its path.
+	* @Param start is the path to begin with so set it to NULL as default.
+	* @Param format is the probable file format and each format is seperated
+	* with \0, and it's set to NULL as default as well.
+	* @Param def is the default format to append if no format is input. 
+	* @Param idx is the default format index which is usually set to 1.
+	*/
 	SGint selectSave(char name[], char start[], char format[], char def[], int idx);
-	/* Use Win API Graphic mode to let user input the file name that
-	* they want to save. Parameter name is used to receive the input
-	* file name with its path, and start is the path to begin with so set
-	* it to NULL as default. Parameter format is the probable file
-	* format and each format is seperated with \0, and it's set to NULL
-	* as default as well. Parameter def is the default format to append
-	* if no format is input. The idx is the default format index which is
-	* usually set to 1. */
 
+	/**
+	* Use Win API Graphic mode to choose one directory.
+	* @Param name name is used to receive the selected file name with its path.
+	* @Param start is the path to begin with so set it to NULL as default.
+	*/
 	SGint selectDir(char name[], char start[]);
-	/* Use Win API Graphic mode to choose one directory. Parameter
-	* name is used to receive the selected directory name with its
-	* path, and start is the path to begin with so set it to NULL as
-	* default. */
 
+	/**
+	* If the given folder does not exist, then create it.
+	* @Param path is the path to find and create.
+	*/
 	SGint makePath(const char path[]);
-	/* If the given folder does not exist, then create it. */
 
+	/**
+	* Check if one file exists.
+	* @Param path is the path of file.
+	* @Return returns 1 if the given file exists, or else return 0.
+	*/
 	SGint fileExist(const char path[]);
-	/* If the given file exists, return 1. Or else return 0. */
 
+	/**
+	* Initialize the media(mp3) device.
+	*/
 	SGvoid initMci();
-	/* Initialize the media(mp3) device. */
 
+	/**
+	* Load the mp3 file to memory,
+	* @Param filename is the mp3 file name.
+	* @Return the identifier of this mci.
+	*/
 	SGint loadMciSrc(const char *filename);
-	/* Load the file in format mp3 to memory, the return value is its identifier.
-	* Then operate the music using this identifier.*/
 
+	/**
+	* Start playing music.
+	* @Param id is the music identifier.
+	*/
 	SGint playMci(int id);
-	/* Start playing the music with the given id. */
 
+	/**
+	* Stop playing music.
+	* @Param id is the music identifier.
+	*/
 	SGint stopMci(int id);
-	/* Stop playing the music with the given id, then roll back to its start. */
 
+	/**
+	* Pause playing music.
+	* @Param id is the music identifier.
+	*/
 	SGint pauseMci(int id);
-	/* Pause the music with the given id. */
 
+	/**
+	* Resume playing music.
+	* @Param id is the music identifier.
+	*/
 	SGint resumeMci(int id);
-	/* Resume playing the music with the given id at the pause point.*/
 
+	/**
+	* Create a thread.
+	* @Param func will be executed when new thread created.
+	* @Param param will be passed to func when new thread created.
+	*/
 	SGvoid createThread(thread func, void *param);
-	/* Create a thread with function func which means that the new thread
-	* will start running with func. */
 
+	/**
+	* Copy the given text into windows clipboard so that it can be pasted
+	* to other programs.
+	* @Param src is the source passed to window clipboard.
+	*/
 	SGint copyText(const char *src);
-	/* Copy the given text into windows clipboard so that it can be pasted
-	* to other programs. */
 
+	/**
+	* Copy the given text into windows clipboard so that it can be pasted
+	* to other programs.
+	* @Return string from clipboard and it need to be free by the programmer.
+	*/
 	SGstring pasteText();
-	/* Return the text in clipboard. The return string need to be free by
-	* the programmer. */
 
+	/**
+	* Set up a server(either local and remote).
+	* @Param port is the port number. For diy communication, port should
+	* be greater than 1023 and less than 65536.
+	* @Return the socket of the server.
+	*/
 	SOCKET createServer(int port);
-	/* Set up a server(both local and remote), for diy communication, port should
-	* be greater than 1023 and less than 65536. The return value is the socket
-	* of the server. */
 
+	/**
+	* Set up a client and connect to server(localhost is "127.0.0.1").
+	* @Param port is the port number. the port should be equal to the one
+	* set by server. 
+	* @Return the socket of the client.
+	*/
 	SOCKET createClient(const char *server, int port);
-	/* Set up a client and connect to server(localhost is "127.0.0.1), the port
-	* should be equal to the one set by server. The return value is the socket
-	* of the client. */
 
+	/**
+	* Used by a server to accept one request, one acceptOne should answer
+	* one createClient.
+	* @Param server is the listening server.
+	* @Return the socket of the connection.
+	*/
 	SOCKET acceptOne(SOCKET server);
-	/* Used by a server to accept one request, one acceptOne should answer
-	* one createClient. The return value is the socket of the connection. */
 
+	/**
+	* Used to send a string via one connection.
+	* @Param s stands for the socket of the given connection.
+	* @Param buffer is the sending data.
+	*/
 	SGint socketSend(SOCKET s, const char *buffer);
-	/* Used to send a string via one connection, socket s stands for the socket
-	* of the given connection. */
 
+	/**
+	* Used to receive a string via one connection.
+	* @Param s stands for the socket of the given connection.
+	* @Param buffer reveives the data.
+	* @Param len is the max buffer size. If more content is sending,
+	* the rest will wait.
+	* @Return the status of the revceiving. If the connection is stopped,
+	* the return value is SG_CONNECTION_FAILED.
+	*/
 	SGint socketReceive(SOCKET s, char *buffer, int len);
-	/* Used to receive a string via one connection, socket s stands for the
-	* socket of the given connection. Parameter len is the max length to receive,
-	* if more content is sending, the rest will wait. If the connection is stopped,
-	* the return value is SG_CONNECTION_FAILED. */
 
+	/**
+	* When one the connection is cut, we should close the socket of this
+	* connection.
+	* @Param s is the socket to close.
+	*/
 	SGvoid closeSocket(SOCKET s);
-	/* When one the connection is cut, we should close the socket of this
-	* connection. */
 
+	/**
+	* Set the running-time icon for the window. The icon will appear
+	* at top_left in the caption bar and in the tray.
+	* @Param ico can be either recource path or pre-defined variables.
+	*/
 	SGvoid setIcon(const char *ico);
-	/* Set the running-time icon for the window. The icon will appear
-	* at top_left in the caption bar and in the tray. */
 
+	/**
+	* Copy picture to a new area of memory.
+	* @Param src is the copy source.
+	* @Return point to the new area.
+	*/
 	bitMap *copyPic(bitMap *src);
-	/* Copy picture from src to dst. */
 
+	/**
+	* Copy picture to a new area of memory and change it to grayscale picture.
+	* @Param src is the handle source.
+	* @Return point to the handle result.
+	*/
 	bitMap *grayPic(bitMap *src);
-	/* Change source picture to grayscale picture. */
 
+	/**
+	* Copy picture to a new area of memory and change it to binary picture.
+	* @Param src is the handle source.
+	* @Param threshold controls the handle result.
+	* @Return point to the handle result.
+	*/
 	bitMap *binaryPic(bitMap *src, int threshold);
-	/* Change source picture to binary picture. */
 
+	/**
+	* Copy picture to a new area of memory and zoom.
+	* @Param src is the handle source.
+	* @Param rate is the zoom rate.
+	* @Return point to the handle result.
+	*/
 	bitMap *zoomPic(bitMap *src, float rate);
-	/* Zoom in (rate < 1) or zoom out (rate > 1). */
 
-	bitMap *rotatePic(bitMap *src, bitMap *mask, float angle);
-	/* Rotate the source picture and output the mask. */
+	/**
+	* Copy picture to a new area of memory and rotate.
+	* @Param src is the handle source.
+	* @Param angle is the rotate rate.
+	* @Return point to the handle result.
+	*/
+	bitMap *rotatePic(bitMap *src, float angle);
 
+	/**
+	* Copy picture to a new area of memory and filter.
+	* @Param src is the handle source.
+	* @Param mode can be set to MEAN_FILTER or LAPLACIAN_FILTER
+	* or BILATERAL_FILTER.
+	* @Return point to the handle result.
+	*/
 	bitMap *filterPic(bitMap *src, int mode);
-	/* Use different kinds of filter to enhance the quality of the given
-	* source picture. */
 
+	/**
+	* Copy picture to a new area of memory and change its luminance.
+	* @Param src is the handle source.
+	* @Param delta is the luminance delta.
+	* @Return point to the handle result.
+	*/
 	bitMap *luminantPic(bitMap *src, int delta);
-	/* Change the luminance of the source picture. */
 
+	/**
+	* Copy picture to a new area of memory and change its contrast.
+	* @Param src is the handle source.
+	* @Return point to the handle result.
+	*/
 	bitMap *contrastPic(bitMap *src);
-	/* Change the contrast of the source picture. */
 
 
 	/*
@@ -592,181 +753,361 @@ extern "C" {
 	* The image after drawing will be shown after the loop function.
 	*/
 
+	/**
+	* Set the current rgb color.
+	* @Param rgb defines the current color.
+	*/
 	SGvoid setColor(int r, int g, int b);
-	/* Set the current rgb color. */
 
+	/**
+	* Set the font size.
+	* @Param height defines the current font size.
+	*/
 	SGvoid setFontSize(int height);
-	/* Set the current font size.*/
 
+	/**
+	* Set the font name.
+	* @Param name defines the current font name.
+	*/
 	SGvoid setFontName(const char *name);
-	/* Set the current font name.*/
 
+	/**
+	* Set the font style.
+	* @Param coeff defines the current font style.
+	*/
 	SGvoid setFontStyle(int coeff);
-	/* Set the current font style.*/
 
+	/**
+	* Set the blend alpha.
+	* @Param alpha defines the current blend alpha.
+	*/
 	SGvoid setAlpha(float alpha);
-	/* Set the alpha value when mixing images. */
 
+	/**
+	* Get the alpha value.
+	* @Return the current alpha value.
+	*/
 	SGfloat getAlpha();
-	/* Get the alpha value. */
 
+	/**
+	* Fill the whole screen with current color.
+	*/
 	SGvoid clearScreen();
-	/* Fill the whole screen with current color. */
 
+	/**
+	* Set the pixel with current color.
+	* @Param x and y is the target position of the pixel.
+	*/
 	SGint putPixel(int x, int y);
-	/* Set the pixel of coordinate (x, y) of current color. */
 
+	/**
+	* Get the rgb color of a pixel.
+	* @Param x and y is the target position of the pixel.
+	*/
 	RGB getPixel(int x, int y);
-	/* Returns the rgb color of coordinate (x, y). */
 
+	/**
+	* Draw a line.
+	* @Param x1 and y1 is the start point of the line.
+	* @Param x2 and y2 is the end point of the line.
+	* @Param mode can be choosed in the enum list.
+	*/
 	SGvoid putLine(int x1, int y1, int x2, int y2, int mode);
-	/* Draw a line from (x1, y1) to (x2, y2) of currrent color with
-	* the given mode showed in enum list. */
 
+	/* Draw a rectangle.
+	* @Param x1 and y1 is one vertex of the quad.
+	* @Param x2 and y2 is the opposite vertex of the quad.
+	* @Param mode can be choosed in the enum list.
+	*/
 	SGint putQuad(int x1, int y1, int x2, int y2, int mode);
-	/* Draw a rectangle from (x1, y1) to (x2, y2) of currrent color
-	* with the given mode showed in enum list. */
 
+	/**
+	* Draw a triangle.
+	* @Param x1 and y1 is the first vertex of the triangle.
+	* @Param x2 and y2 is the second vertex of the triangle.
+	* @Param x3 and y3 is the third vertex of the triangle.
+	* @Param mode can be choosed in the enum list.
+	*/
 	SGvoid putTriangle(int x1, int y1, int x2, int y2, int x3, int y3, int mode);
-	/* Draw a triangle from of the given three point of currrent
-	* color with the given mode showed in enum list. */
 
+	/**
+	* Draw a circle.
+	* @Param x and y is the centre of the circle.
+	* @Param r is the radius of the circle.
+	* @Param mode can be choosed in the enum list.
+	*/
 	SGvoid putCircle(int xc, int yc, int r, int mode);
-	/* Draw a circle with centre (xc, yc) and radius r of currrent
-	* color with the given mode showed in enum list. */
 
+	/**
+	* Draw an ellipse.
+	* @Param xc and yc is the centre of the ellipse.
+	* @Param a and b is the x-radius and y-radius of the ellipse.
+	* @Param mode can be choosed in the enum list.
+	*/
 	SGvoid putEllipse(int xc, int yc, int a, int b, int mode);
-	/* Draw a circle with centre (xc, yc) and axis a and b of currrent
-	* color with the given mode showed in enum list. */
 
+	/**
+	* Load bmp to a bitMap struct other than showing it on screen.
+	* @Param filename is the name of picture file with .bmp format.
+	* @Return the memory pointer of the picture.
+	*/
 	bitMap loadBmp(const char *filename);
-	/* Load bmp to a bitMap struct other than showing it on screen. */
 
+	/**
+	* Put a bmp picture on the screen.
+	* @Param x and y is the top-left corner of the picture.
+	* @Param bmp is the memory pointer of the picture.
+	*/
 	void putBitmap(int x, int y, bitMap bmp);
-	/* Put a bmp picture on the screen with top-left corner (x, y). */
 
+	/**
+	* Put a bmp picture on the screen.
+	* @Param x and y is the top-left corner of the picture.
+	* @Param filename is the name of picture file with .bmp format.
+	*/
 	SGint drawBmp(int x, int y, const char *filename);
-	/* Put a bmp picture on the screen with top-left corner (x, y). */
 
+	/**
+	* Draw one character ch on the screen.
+	* @Param ch is the ascii of the character.
+	* @Param x and y is the top-left corner of the character.
+	*/
 	SGvoid putChar(char ch, int x, int y);
-	/* Draw one character ch on the screen of position (x, y). */
 
+	/**
+	* Draw one number ch on the screen.
+	* @Param n is the number value.
+	* @Param x and y is the position of the number.
+	* @Param lr is the orientation of the number. If lr is 'l' then (x, y) represent
+	* the left-top corner, or else 'r' then (x, y) represent the right-top corner.
+	*/
 	SGvoid putNumber(int n, int x, int y, char lr);
-	/* Draw number n on the screen of position (x, y). The parameter
-	* lr can be 'l', which means that (x, y) is the top-left corner of the
-	* number, or 'r', which means the bottom-right corner. Details are
-	* in instruction pdf. */
 
+	/**
+	* Draw one string on the screen. If there is '\n' in the string, it will
+	* be shown in more than one line. The line gap is the current font size.
+	* @Param str is the string content.
+	* @Param x and y is the top-left corner of the string.
+	*/
 	SGint putString(const char *str, int x, int y);
-	/* Draw one string str on the screen of position (x, y). */
 
+	/**
+	* Draw one string on the screen with max x-length.
+	* @Param str is the string content.
+	* @Param x and y is the top-left corner of the string.
+	* @Param start is the index of first character to be shown .
+	* @Param constraint is the x pixel length of the constraint .
+	*/
 	SGint putStringConstraint(const char *str, int x, int y, int start, int constraint);
-	/* Draw one string str on the screen of position (x, y) with maximum
-	* length constraint. */
 
+	/**
+	* Get the width on x axis of the given string in current font.
+	* @Param str is the input string.
+	* @Param x in the index of the end character.
+	* @Return the pixels on x-axis.
+	*/
 	SGint stringWidth(const char *str, int x);
-	/* Get the width on x axis of the given string in current font. */
 
+	/**
+	* Build the string with format controling.
+	* @Param str is the format string.
+	* @Param ... are the values.
+	* @Return the built string.
+	*/
 	char *stringFormat(const char *str, ...);
-	/* Build the string with format controling. */
 
+	/**
+	* Copy the pixel messages of the given area to parameter bitmap.
+	* @Param left and top is the top-left of the quad area.
+	* @Param right and bottom is the right-botom of the quad area.
+	* @Param bitmap is the memory area to save the image. Note that bitmap->data
+	* need not to be allocated.
+	*/
 	SGint getImage(int left, int top, int right, int bottom, bitMap *bitmap);
-	/* Copy the pixel messages of the given area to parameter bitmap. */
 
+	/**
+	* Paste the pixel messages.
+	* @Param left and top is the left-top vertex of the quad area.
+	* @Param bitmap point to the image memory.
+	* @Param op can be choosed in the enum list.
+	*/
 	SGvoid putImage(int left, int top, bitMap *bitmap, int op);
-	/* Paste the pixel messages of the given area to (left, top) with mode op. */
 
+	/**
+	* Paste the pixel messages with transparent mask.
+	* @Param left and top is the left-top vertex of the quad area.
+	* @Param bitmap point to the mask memory. For each pixel, 0 means origin
+	* color and 255 means bitmap color.
+	* @Param bitmap point to the image memory.
+	*/
 	SGint maskImage(int left, int top, bitMap *mask, bitMap *bitmap);
-	/* The new pixel */
 
+	/**
+	* Draw the graph of function vect with border limitation.
+	* @Param x1 and x2 are x boarders.
+	* @Param y1 and y2 are y boarders.
+	* @Param vect is the function to be shown.
+	*/
 	SGvoid funcMap(int x1, int x2, int y1, int y2, float(*vect)(float x));
-	/* Draw the graph of function vect with border limitation. */
 
+	/**
+	* Fill an area.
+	* @Param x and y are the starting point.
+	* @Param c is the stopping color which means the area boarder
+	* is with this color.
+	*/
 	SGvoid floodFill(int x, int y, RGB c);
-	/* Fill from coordinate (x, y) recursively with current color until
-	* meeting the given color c. */
 
+	/**
+	* Show the fps on the screen for testing.
+	*/
 	SGint showFps();
-	/* Show the fps on the screen for testing. */
 
+	/**
+	* Use the region with given parameters to draw 3D graph.
+	* @Param left and top is the top-left of the quad area.
+	* @Param right and bottom is the right-botom of the quad area.
+	* @Return value is the canvas id.
+	*/
 	SGint setGraphRegion(int left, int top, int right, int bottom);
-	/* Use the region with given parameters to draw 3D graph, the
-	* return value is the canvas id.*/
 
+	/**
+	* Delete the graph region.
+	* @Param id is the canvas id.
+	*/
 	SGint deleteGraphRegion(int id);
-	/* Delete the graph region with given id. */
 
+	/**
+	* Clear the graph region with black color.
+	* @Param id is the canvas id.
+	*/
 	SGvoid clearGraphBuffer(int id);
-	/* Clear the graph region with black color. */
 
+	/**
+	* Pass a variable from user coding environment to programmable pipeline coding
+	* environment.
+	* @Param id is the graph id.
+	* @Param name is the unique name of this variable.
+	* @Param var is the value pointer. The canvas will read this pointer each time it
+	* is used so just change the content rather than recall this function with another
+	* pointer when you want to change this variable.
+	*/
 	SGvoid setPipelineVariable(int id, const char *name, void *var);
-	/* Pass a variable from user coding environment to programmable pipeline coding
-	* environment. Parameter id is the graph id and pos is the variable index. Parameter
-	* name is the unique name of this variable. The last parament is the value pointer
-	* that need to be set. It's designed to be a pointer so that this set variable
-	* function needn't be called frequently. */
 
+	/**
+	* Get the variable from programmable pipeline coding environment to user coding
+	* environment.
+	* @Param id is the graph id.
+	* @Param name is the unique name of this variable.
+	*/
 	SGvoid *getPipelineVariable(int id, const char *name);
-	/* Get the variable with given graph id and variable name. */
 
+	/**
+	* When finish sending data strips and uniform variables, draw the
+	* whole graph region.
+	* @Param id is the canvas id.
+	* @Param elementNum is the triangles num to be shown.
+	*/
 	SGvoid refreshGraph(int id, int elementNum);
-	/* When finish sending data strips and uniform variables, draw the
-	* whole graph region. The num is the element num.*/
 
+	/**
+	* When finish sending objects, draw the whole graph region using
+	* the tracer defined.
+	* @Param id is the canvas id.
+	*/
 	SGvoid refreshTracer(int id);
-	/* When finish sending objects, draw the whole graph region using
-	* the tracer defined.*/
 
+	/**
+	* Give one data strip to vertex shader.
+	* @Param id is the canvas id.
+	* @Param data is the data strip pointer.
+	* @Param step is the data num for one element.
+	*/
 	SGint pushDataArray(int id, float *data, int step);
-	/* Give one data strip to vertex shader with given graph id. */
 
-	SGvoid vertexShader(int id, int(*vs)(int id, float *datas[], int step[], int dataNum,
-		vec3f position[], float *outs[]));
-	/* The first part of the programmable pipeline. The times that this function
+	/**
+	* The first part of the programmable pipeline. The times that this function
 	* will be executed is equal to the elementNum given in refreshGraph. Every
 	* time this function is executed, it calculate the map of an element's vertex
-	* from the given data to screen position. Parameter id is the graph id, datas
-	* and steps is an array of array which contains the datas and steps given in
-	* pushDataArray, dataNum is the number of data strips. It can be refered
-	* that datas size is (dataNum, elementNum * step * vertexNum). Parameter
-	* position and outs is the output of vertex shader. position is an array with
-	* length vertexNum of an element, it saves the map result. outs is an array
-	* of array that pass data from vertex shader to fragment shader. The size
-	* of outs is (vertexNum, return value) which means the data length for one
-	* vertex need to be returned. */
+	* from the given data to screen position.
+	* @Param id is the graph id.
+	* @Param datas for function pointer vs is an array of array which contains
+	* the data strips.
+	* @Param step for function pointer vs is an array which contains the steps for
+	* each data strip.
+	* @Param dataNum for function pointer vs is the number of data strips. It can
+	* be refered that datas size is (dataNum, elementNum * step * vertexNum).
+	* @Param position for function pointer vs is the output of vertex shader which
+	* saves the map result.
+	* @Param outs for function pointer vs is another output of vertex shader which
+	* pass data from vertex shader to fragment shader. The size of outs is
+	* (vertexNum, return value) which means the data length for one vertex need
+	* to be returned.
+	*/
+	SGvoid vertexShader(int id, int(*vs)(int id, float *datas[], int step[], int dataNum,
+		vec3f position[], float *outs[]));
 
+	/**
+	* The second part of the programmable pipeline. The times that this function
+	* will be executed is the number of pixels that need to be drawn.
+	* @Param x and y is the screen coordinate when calling this function.
+	* @Param data comes from the ous in vertex shader, and it has been interpolated
+	* using temporary position and vertex positions.The return value of fragment shader
+	* is the color that need to be drawn in (x, y).
+	*/
 	SGvoid fragmentShader(int id, vec3i(*fs)(int id, int x, int y, float *data));
-	/* The second part of the programmable pipeline. The times that this function
-	* will be executed is the number of pixels that need to be drawn. The parameter
-	* x and y is the screen coordinate when calling this function. The parameter
-	* data comes from the ous in vertex shader, and it has been interpolated using
-	* temporary position and vertex positions. The return value of fragment shader
-	* is the color that need to be drawn in (x, y). */
 
+	/**
+	* Randomly select one direction from the hemisphere.
+	* @Param normal is the hemisphere normal.
+	*/
 	vec3f randHemi(vec3f normal);
-	/* Randomly select one direction from the hemisphere using the given normal. */
 
+	/**
+	* An object means a sequence of triangles and their material which contains
+	* intersect function, hit function and shadow function.
+	* @Param id is the graph id.
+	* @Param data is the triangle vertices sequence.
+	* @Param length is the num of elements. 
+	* @Param vertices is the vertex num of one element. 
+	* @Param intersect is called to judge if current ray intersect with one element.
+	* @Param hit is called to calculate the color to be shown.
+	* @Param shadow is called to judge if current hit point is in shadow.
+	* @Return returns the object id.
+	*/
 	SGint pushObject(int id, float *data, int length, int vertices,
 		float(*intersect)(int id, void *points, vec3f point, vec3f dir, vec3f *norm),
 		void(*hit)(int id, float dist, void *prd, vec3f norm), void(*shadow)(int id, void *prd));
-	/* An object means a sequence of triangles and their material which contains
-	 * intersect function, hit function and shadow function. Parameter id is the graph
-	 * id, data is the triangle vertices sequence, vertices is the num of triangles. */
 
+	/**
+	* This is the main tracing function. Use the light with starting point light and
+	* the direction dir to trace the obj that has been pushed with the given obj id.
+	* @Param id is the graph id.
+	* @Param lighe and dir are the starting point and direction of the light ray.
+	* @Param type is the ray type.
+	* @Param tmin and tmax is the nearest and fareset distance of intersecting point.
+	* @Param prd is the struct pointer that carries the ray data for accumulating.
+	*/
 	SGvoid rtTrace(int id, int obj, vec3f light, vec3f dir, int type, float tmin, float tmax, void *prd);
-	/* This is the main tracing function. Use the light with starting point light and 
-	 * the direction dir to trace the obj that has been pushed with the given obj id.
-	 * Parameter id is the graph id, prd is the struct pointer that carries the ray
-	 * data for accumulating. */
 
+	/**
+	* Set the generate function. It is the first function executed when calling
+	* refresh.
+	* @Param id is the graph id.
+	* @Param id of function pointer generate is the graph id.
+	* @Param index of function pointer generate is the position of the drawing pixel.
+	* @Param size of function pointer generate is the size of the whole screen.
+	*/
 	SGvoid rtGenerate(int id, vec3i(*generate)(int id, vec2i index, vec2i size));
-	/* Set the generate function. It is the first function executed when calling
-	 * refresh. the index and size is the position of the drawing pixel and the whole
-	 * screen. */
 
+	/**
+	* Set the miss function. That is, when rtTrace function did not hit any objects,
+	* the miss function will be called.
+	* @Param id is the graph id.
+	* @Param id of function pointer generate is the graph id.
+	* @Param prd is the struct pointer that carries the ray data for accumulating.
+	*/
 	SGvoid rtMiss(int id, void(*miss)(int id, void *prd));
-	/* Set the miss function. That is, when rtTrace function did not hit any objects,
-	 the miss function will be called. */
 
 
 	/*
@@ -775,35 +1116,76 @@ extern "C" {
 	* are similar to those in BIT_MAP mode.
 	*/
 
+	/**
+	* Set background color and foreground color.
+	* @Param bgc is the background color.
+	* @Param fgc is the foreground color.
+	*/
 	SGvoid setBfc(int bgc, int fgc);
-	/* Set background color and foreground color. */
 
+	/**
+	* Fill the whole screen to the current background color.
+	*/
 	SGvoid clearText();
-	/* Fill the whole screen to the current background color. */
 
-	SGvoid setCharColor(char color, int x, int y);
-	/* Set the background and foreground color of coordinate (x, y). */
+	/**
+	* Set the background and foreground color of one charactor.
+	* @Param color is the background and foreground color to be set.
+	* @Param x and y is the character position.
+	*/
+	SGvoid setCharColor(short color, int x, int y);
 
+	/**
+	* Set the background color of one charactor.
+	* @Param color is the background color to be set.
+	* @Param x and y is the character position.
+	*/
 	SGvoid setCharBgc(char color, int x, int y);
-	/* Set the background color of coordinate (x, y). */
 
+	/**
+	* Set the foreground color of one charactor.
+	* @Param color is the foreground color to be set.
+	* @Param x and y is the character position.
+	*/
 	SGvoid setCharFgc(char color, int x, int y);
-	/* Set the foreground color of coordinate (x, y). */
 
+	/**
+	* Returns the character and color.
+	* @Param x and y is the character position.
+	* @Return value combined with character and color. The low 8 bit is
+	* character and the high 8 bit is color.
+	*/
 	SGint getShort(int x, int y);
-	/* Returns the character and color of coordinate (x, y). */
 
+	/**
+	* Put down one character with current color.
+	* @Param c is the character.
+	* @Param x and y is the character position.
+	*/
 	SGvoid writeChar(char c, int x, int y);
-	/* Put down one character c with current color at (x, y). */
 
+	/**
+	* Put down one string with current color.
+	* @Param s is the string.
+	* @Param x and y is the character position.
+	*/
 	SGvoid writeString(const char *s, int x, int y);
-	/* Put down one string s with current color at (x, y). */
 
+	/**
+	* Copy the text messages of the given area to parameter text.
+	* @Param left and top is the top-left of the quad area.
+	* @Param right and bottom is the right-botom of the quad area.
+	* @Param test is the memory area to save the text. Note that text->data
+	* need not to be allocated.
+	*/
 	SGint getText(int left, int top, int right, int bottom, textMap *text);
-	/* Copy the text messages of the given area to parameter text. */
 
+	/**
+	* Paste the text messages.
+	* @Param left and top is the left-top vertex of the quad area.
+	* @Param text point to the text memory.
+	*/
 	SGvoid putText(int left, int top, textMap *text);
-	/* Paste the text messages at (left, top). */
 
 
 	/*
@@ -812,157 +1194,294 @@ extern "C" {
 	* for advanced graphic programming and for SG Creater to use.
 	*/
 
+	/**
+	* Main function to deal with key event.
+	* @Param cmd can be 0 or 1.
+	* @Return if cmd is 1 then return value is whether there's waiting
+	* events, or else if cmd is 0 then return the earliest event key value.
+	*/
 	SGint biosKey(int cmd);
-	/* Main function to deal with key event. The parameter cmd can be
-	* 0 or 1. Details of the usage are in instruction pdf. */
 
+	/**
+	* Delete all key events before current time.
+	*/
 	SGvoid clearKeyBuffer();
-	/* Delete all key events before current time. */
 
+	/**
+	* Get the current position of the cursor.
+	* @Return value is a struct with mouse position.
+	*/
 	vec2i mousePos();
-	/* Returns the current position of the cursor. */
 
+	/**
+	* Get whether one of the three mouse button is push down.
+	* @Param b can be SG_LEFT_BUTTON or SG_RIGHT_BUTTON or
+	* SG_MIDDLE_BUTTON.
+	* @Return value is whether button b is down.
+	*/
 	SGint mouseStatus(int b);
-	/* Returns whether one of the three mouse button is push down.
-	* Parameter b can be SG_LEFT_BUTTON or SG_RIGHT_BUTTON or
-	* SG_MIDDLE_BUTTON. */
 
+	/**
+	* Main function to deal with mouse event.
+	* @Param cmd can be 0 or 1.
+	* @Return if cmd is 1 then the member m of return value is whether
+	* there's waiting events, or else if cmd is 0 then return the earliest
+	* event mouse contains x, y and which mouse button.
+	*/
 	vec3i biosMouse(int cmd);
-	/* Main function to deal with mouse event. The parameter cmd can be
-	* 0 or 1. Details of the usage are in instruction pdf. */
 
+	/**
+	* Delete all mouse events before current time.
+	*/
 	SGvoid clearMouseBuffer();
-	/* Delete all mouse events before current time. */
 
+	/**
+	* Enable right click and move the mouse to select one funtion.
+	*/
 	SGvoid enablePanel();
-	/* Enable right click and move the mouse to select one funtion. */
 
+	/**
+	* Disable right click and move the mouse to select one funtion.
+	*/
 	SGvoid disablePanel();
-	/* Disable right click and move the mouse to select one funtion. */
 
+	/**
+	* Add one function to the input panel.
+	* @Param name is used to shown when moving towards the correspondent
+	* direction.
+	* @Param function is called when right button is released.
+	* @Parameter shift and ctrl means if this function need to press these two key.
+	* @Return value is the id of this item.
+	*/
 	SGint addPanelItem(const char *name, vect function, int shift, int ctrl);
-	/* Add one function to the input panel, the name is used to shown when
-	* moving towards the correspondent direction, and when right button is
-	* released, the function will be executed. The parameter shift and ctrl
-	* means if this function need to press these two key. The return value
-	* is the id of this item.*/
 
+	/**
+	* Change the name and function of an input panel item.
+	* @Param id is the item id.
+	* @Param name is used to shown when moving towards the correspondent
+	* direction.
+	* @Param function is called when right button is released.
+	* @Return value is id or SG_OBJECT_NOT_FOUND
+	*/
 	SGint changePanelItem(int id, const char *name, vect function);
-	/* Change the name and function of an input panel item with the given id.
-	* The return value is id or SG_OBJECT_NOT_FOUND.*/
 
+	/**
+	* Delete one input panel item.
+	* @Param id is the item id.
+	*/
 	SGint deletePanelItem(int id);
-	/* delete one input panel item with the given id. The return value is
-	* the error if occured. */
 
+	/**
+	* Make the cursor visible.
+	*/
 	SGvoid showMouse();
-	/* Make the cursor visible. */
 
+	/**
+	* Make the cursor disvisible.
+	*/
 	SGvoid hideMouse();
-	/* Make the cursor disvisible. */
 
+	/*
+	* Set the cursor position.
+	* @Param x and y describe the position to be set.
+	*/
 	SGvoid setMousePos(int x, int y);
-	/* Set the cursor position. */
 
+	/**
+	* Set the icon of the cursor.
+	* @Param icon can be either preset enums or icon resource path.
+	*/
 	SGvoid setMouseIcon(SGWINSTR icon);
-	/* Set the icon of the cursor. */
 
+	/**
+	* Allow this program to use windows main menu.
+	* @Return value is the main menu id which will be used when add lists or
+	* items into main menu.
+	*/
 	SGint initMainMenu();
-	/* Allow this program to use windows main menu. The return value
-	* is the main menu id which will be used when add lists or items into
-	* main menu. */
 
+	/**
+	* Add a new list of name title into the menu.
+	* @Param title is the string to be shown.
+	* @Param id is the item id.
+	* @Return value is the new list id.
+	*/
 	SGint addMainMenuList(const char *title, int id);
-	/* Add a new list of name title into the menu with the given id. The
-	* return value is the new list id.*/
 
+	/**
+	* Add a new item of name title into the menu.
+	* @Param title is the string to be shown.
+	* @Param id is the item id.
+	* @Param func will be called when this item is clicked.
+	* @Return value is the new list id.
+	*/
 	SGint addMainMenuItem(const char *title, int id, void(*func)());
-	/* Add a new item of name title into the menu with the given id.
-	* The parameter func is the callback function which means that it
-	* will be called after the user click the item. */
 
+	/**
+	* Add a separate line in the list.
+	* @Param id is the item id.
+	*/
 	SGint addMainMenuSeparator(int id);
-	/* Add a separate line in the list with given id. */
 
+	/**
+	* Make the item or menu of id enabled. That is, it can be clicked.
+	* @Param id is the item id.
+	*/
 	SGint enableMainItem(int id);
-	/* Make the item or menu of id enabled. That is, it can be clicked. */
 
+	/**
+	* Make the item or menu of id disabled. That is, it can't be clicked.
+	* @Param id is the item id.
+	*/
 	SGint disableMainItem(int id);
-	/* Make the item or menu of id disabled. That is, it can't be clicked.*/
 
+	/**
+	* Make the item of id checked with a tick on the left.
+	* @Param id is the item id.
+	*/
 	SGvoid checkMainItem(int id);
-	/* Make the item of id checked with a tick on the left.*/
 
+	/**
+	* Make the item of id unchecked and clear the tick on the left.
+	* @Param id is the item id.
+	*/
 	SGvoid uncheckMainItem(int id);
-	/* Make the item of id unchecked and clear the tick on the left.*/
 
+	/**
+	* Add the application icon in the tray bar and enable the program
+	* to hide to tray.
+	*/
 	SGvoid addTray();
-	/* Add the application icon in the tray bar and enable the program
-	* to hide to tray. */
 
+	/**
+	* Hide the whidow, and it will be shown again after clicking the icon
+	* in the tray.
+	*/
 	SGvoid hideToTray();
-	/* Hide the whidow, and it will be shown again after clicking the icon
-	* in the tray.*/
 
+	/**
+	* Show the window again.
+	*/
 	SGvoid restoreFromTray();
-	/* Show the window again. */
 
+	/**
+	* Enable showing the menu when right click the icon in the tray. The
+	* return value is the tray menu id.
+	*/
 	SGint initTrayMenu();
-	/* Enable showing the menu when right click the icon in the tray. The
-	* return value is the tray menu id. */
 
+	/**
+	* Add a new list of name title into the tray menu.
+	* @Param title is the string to be shown.
+	* @Param id is the item id.
+	* @Return value is the new list id.
+	*/
 	SGint addTrayMenuList(const char *title, int id);
-	/* Add a list in the tray menu. Parameters are same to main menu.*/
 
+	/**
+	* Add a new item of name title into the tray menu.
+	* @Param title is the string to be shown.
+	* @Param id is the item id.
+	* @Param func will be called when this item is clicked.
+	* @Return value is the new list id.
+	*/
 	SGint addTrayMenuItem(const char *title, int id, void(*func)());
-	/* Add an item in the tray menu. Parameters are same to main menu.*/
 
+	/**
+	* Add a separate line in the list.
+	* @Param id is the item id.
+	*/
 	SGint addTrayMenuSeparator(int id);
-	/* Add a separator in the tray menu. Parameter is same to main menu.*/
 
+	/**
+	* Make the item or menu of id enabled. That is, it can be clicked.
+	* @Param id is the item id.
+	*/
 	SGint enableTrayItem(int id);
-	/* Make the item or menu of id enabled. That is, it can be clicked. */
 
+	/**
+	* Make the item or menu of id disabled. That is, it can't be clicked.
+	* @Param id is the item id.
+	*/
 	SGint disableTrayItem(int id);
-	/* Make the item or menu of id disabled. That is, it can't be clicked.*/
 
+	/**
+	* Make the item of id checked with a tick on the left.
+	* @Param id is the item id.
+	*/
 	SGvoid checkTrayItem(int id);
-	/* Make the item of id checked with a tick on the left.*/
 
+	/**
+	* Make the item of id unchecked and clear the tick on the left.
+	* @Param id is the item id.
+	*/
 	SGvoid uncheckTrayItem(int id);
-	/* Make the item of id unchecked and clear the tick on the left.*/
 
+	/*
+	* Init one popup menu, the return value is the menu id.
+	*/
 	SGint createPopupMenu();
-	/* Init one popup menu, the return value is the menu id. */
 
+	/**
+	* Add a new list of name title into the popup menu.
+	* @Param title is the string to be shown.
+	* @Param id is the item id.
+	* @Return value is the new list id.
+	*/
 	SGint addPopupMenuList(const char *title, int id);
-	/* Add a list in the popup menu. Parameters are same to main menu.*/
 
+	/**
+	* Add a new item of name title into the popup menu.
+	* @Param title is the string to be shown.
+	* @Param id is the item id.
+	* @Param func will be called when this item is clicked.
+	* @Return value is the new list id.
+	*/
 	SGint addPopupMenuItem(const char *title, int id, void(*func)());
-	/* Add an item in the popup menu. Parameters are same to main menu.*/
 
+	/**
+	* Add a separate line in the list.
+	* @Param id is the item id.
+	*/
 	SGint addPopupMenuSeparator(int id);
-	/* Add a separator in the popup menu. Parameter is same to main menu.*/
 
+	/**
+	* Make the item or menu of id enabled. That is, it can be clicked.
+	* @Param id is the item id.
+	*/
 	SGint enablePopupItem(int id);
-	/* Make the item or menu of id enabled. That is, it can be clicked. */
 
+	/**
+	* Make the item or menu of id disabled. That is, it can't be clicked.
+	* @Param id is the item id.
+	*/
 	SGint disablePopupItem(int id);
-	/* Make the item or menu of id disabled. That is, it can't be clicked.*/
 
+	/**
+	* Make the item of id checked with a tick on the left.
+	* @Param id is the item id.
+	*/
 	SGvoid checkPopupItem(int id);
-	/* Make the item of id checked with a tick on the left.*/
 
+	/**
+	* Make the item of id unchecked and clear the tick on the left.
+	* @Param id is the item id.
+	*/
 	SGvoid uncheckPopupItem(int id);
-	/* Make the item of id unchecked and clear the tick on the left.*/
 
+	/**
+	* The popup menu need to be finished by the programmer which means
+	* it is ready to show.
+	* @Param id is the item id.
+	*/
 	SGint finishPopupMenu(int id);
-	/* The popup menu need to be finished by the programmer which means
-	* it is ready to show. */
 
+	/**
+	* The popup menu with given parameter can be shown.
+	* @Param menu is the popup menu id.
+	* @Param x and y describe the top-left position of the popup menu.
+	*/
 	SGint showPopupMenu(int menu, int x, int y);
-	/* The popup menu with given parameter can be shown with top-left corner at (x, y)
-	* by calling this function. */
 
 
 	/*
@@ -970,106 +1489,237 @@ extern "C" {
 	* Use these functions to build and control widgets.
 	*/
 
-	SGvoid setBackgroundRefresh(void(*refresh)(int left, int top, int right, int bottom));
-	/* When widgets changes and the background need to be redrew,
+	/**
+	* When widgets changes and the background need to be redrew,
 	* the function refresh will be called. The parameter of refresh is
-	* the area that need to be redrew. */
+	* the area that need to be redrew.
+	* @Param refresh is the function to be called when refreshing.
+	*/
+	SGvoid setBackgroundRefresh(void(*refresh)(int left, int top, int right, int bottom));
 
+	/**
+	* Refresh the background of the given area using the function set
+	* by setBackgroundRefresh.
+	* @Param left, top, right and bottom define the quad area.
+	*/
 	SGvoid useBackgroundRefresh(int left, int top, int right, int bottom);
-	/* Refresh the background of the given area. */
 
+	/**
+	* Create a widget with default parameter.
+	* @Param type is the widget type.
+	* @Param name is the widget name.
+	* @Return struct is the mid-object of widget.
+	*/
 	widget newWidget(enum _control type, const char *name);
-	/* Returns a widget with default parameter. */
 
+	/**
+	* After setting all the parameters, give back the mid-object to
+	* the system. After this function, all callbacks are activated.
+	* @Param obj is the mid-object sending to the system.
+	*/
 	SGvoid registerWidget(widget obj);
-	/* After setting all the parameters, give back the widget to
-	* the system. After this function, all callbacks are activated.*/
 
+	/**
+	* Create and register a widget fastly.
+	* @Param type is the widget type.
+	* @Param name is the widget name.
+	* @Param x and y defines the top-left position of the widget.
+	* @Param width and height defines the widget size.
+	* @Param content is the string to be shown.
+	* @Param click will be called when widget is pressed.
+	* @Return struct is the mid-object of widget.
+	*/
 	widget easyWidget(int type, const char *name,
 		int x, int y, int width, int height, const char *content, void(*click)(widget *obj));
-	/* Create and register a widget fastly. */
 
+	/**
+	* Create a combined widget. Pass the sub widget number and
+	* then those sub widget pointers.
+	* @Param name is the widget name.
+	* @Param x and y defines the top-left position of the widget.
+	* @Param width and height defines the widget size.
+	* @Param num is the number of sub widgets.
+	* @Param ... are the sub widgets.
+	*/
 	widget easyCombinedWidget(const char *name, int x, int y, int width, int height, int num, ...);
-	/* Create a combined widget. Pass the sub widget number and
-	* then those sub widget pointers.*/
 
+	/**
+	* Get the widget structure by the given name.
+	* @Param name is the widget name.
+	* @Return the poiter of the widget's mid-object.
+	*/
 	widget *getWidgetByName(const char *name);
-	/* Get the widget structure by the given name. */
 
+	/**
+	* After modifing the structure returned by getWidgetByName, apply the
+	* modification.
+	* @Param name is the widget name.
+	*/
 	SGvoid refreshWidget(const char *name);
-	/* After modifing the structure returned by getWidgetByName, apply the
-	 * modification. */
 
+	/**
+	* Judge if coordinate (x, y) is in widget obj. 
+	* @Param obj is the mid-object of widget.
+	* @Param x and y is the position to be judged.
+	*/
 	SGint inWidget(widget *obj, int x, int y);
-	/* Judge if coordinate (x, y) is in widget obj. */
 
+	/**
+	* Judge if rectangle (left, top, right, bottom) is crossing widget obj.
+	* @Param obj is the mid-object of widget.
+	* @Param left, top, right and bottom are the quad to be judged.
+	*/
 	SGint crossWidget(widget *obj, int left, int top, int right, int bottom);
-	/* Judge if rectangle (left, top, right, bottom) is crossing widget obj. */
 
+	/**
+	* Make the widget of name visible.
+	* @Param name is the widget name.
+	*/
 	SGint showWidget(const char *name);
-	/* Make the widget of name visible. */
 
+	/**
+	* Make the widget of name disvisible.
+	* @Param name is the widget name.
+	*/
 	SGint ceaseWidget(const char *name);
-	/* Make the widget of name disvisible. */
 
+	/**
+	* Delete the widget with the given name.
+	* @Param name is the widget name.
+	*/
 	SGint deleteWidget(const char *name);
-	/* Delete the widget with the given name. */
 
+	/**
+	* Returns the sub widget with the given name in parent's childs.
+	* @Param parent is the parent widget name.
+	* @Param sub is the sub widget name.
+	*/
 	widget *getSubWidget(const char *parent, const char *sub);
-	/* Returns the sub widget with the given name in parent's childs. */
 
-	SGvoid insertSubWidget(const char *parent, int sub, int index);
-	/* Insert a child widget. The index decides the display order. */
+	/**
+	* Insert a child widget. The index decides the display order.
+	* @Param parent is the parent widget name.
+	* @Param sub is the sub widget.
+	* @Param index defines the insert position.
+	*/
+	SGvoid insertSubWidget(const char *parent, widget sub, int index);
 
+	/**
+	* Delete the child widget of the given name.
+	* @Param parent is the parent widget name.
+	* @Param sub is the sub widget name.
+	*/
 	SGvoid deleteSubWidget(const char *parent, const char *name);
-	/* Delete the child widget of the given name. */
 
-	int moveWidget(const char *name, int xDelta, int yDelta);
-	/* Move the widget to (x + xDelta, y + yDelta) with the given name. */
+	/**
+	* Move the widget to (x + xDelta, y + yDelta) with the given name.
+	* @Param name is the widget name.
+	* @Param xDelta and yDelta define the moving delta.
+	*/
+	SGint moveWidget(const char *name, int xDelta, int yDelta);
 
-	void setWidgetTop(const char *name);
-	/* Set the widget with the given name to the top which means no other
-	* widgets can conver it. */
+	/**
+	* Set the widget with the given name to the top which means no other
+	* widgets can conver it.
+	* @Param name is the widget name.
+	*/
+	SGvoid setWidgetTop(const char *name);
 
-	void setWidgetBottom(const char *name);
-	/* Set the widget with the given name to the bottom which means any
-	* widget can conver it. */
+	/**
+	* Set the widget with the given name to the bottom which means any
+	* widget can conver it.
+	* @Param name is the widget name.
+	*/
+	SGvoid setWidgetBottom(const char *name);
 
-	void widgetCover(int window, int id, int left, int top, int right, int bottom);
-	/* Redraw the widget covered by the widget */
+	/**
+	* Set the sub widget with the given name to the top in combined widget
+	* which means no other widgets can conver it.
+	* @Param parent is the combined widget name.
+	* @Param name is the sub widget name.
+	*/
+	SGvoid setSubWidgetTop(const char *parent, const char *name);
+
+	/**
+	* Set the sub widget with the given name to the bottom in combined widget
+	* which means any widget can conver it.
+	* @Param parent is the combined widget name.
+	* @Param name is the sub widget name.
+	*/
+	SGvoid setSubWidgetBottom(const char *parent, const char *name);
+
 
 	/*
 	* SG data interfaces
 	* These functions are used to deal with big data.
 	*/
 
+	/**
+	* Create an empty json object.
+	* @Return struct is an empty json object.
+	*/
 	struct JSON *createJson();
-	/* Create an empty json object. */
 
+	/**
+	* Create an empty json array.
+	* @Return struct is an empty json array.
+	*/
 	struct JSON *createJsonArray();
-	/* Create an empty json array.*/
 
+	/**
+	* Safely free the memory of the given structure.
+	* @Param json is the object or array to be free.
+	*/
 	void freeJson(struct JSON *json);
-	/* Safely free the memory of the given structure. */
 
+	/**
+	* Create a json object or array with the given string.
+	* @Param json is the json string.
+	* @Retrun struct is the correspondent json structure.
+	*/
 	struct JSON *readJson(const char *json);
-	/* Create a json object or array with the given string. */
 
+	/**
+	* Give the correspondent string with the given json.
+	* @Param json is the json structure.
+	* @Return string is the correspondent json string.
+	*/
 	char *writeJson(struct JSON *json);
-	/* Give the correspondent string with the given json. */
 
+	/**
+	* Get the item in a json object with the given name.
+	* @Param json is the json structure.
+	* @Param name is the content name.
+	* @Return struct is the item with the given name.
+	*/
 	struct JSON_Item *getContent(struct JSON *json, const char *name);
-	/* Get the item in a json object with the given name. */
 
+	/**
+	* Get the item in a json array with the given index.
+	* @Param json is the json structure.
+	* @Param idex is the element index.
+	* @Return struct is the item with the given index.
+	*/
 	struct JSON_Item *getElement(struct JSON *json, int idx);
-	/* Get the item in a json array with the given index. */
 
+	/**
+	* Delete the item in a json object with the given name.
+	* @Param json is the json structure.
+	* @Param name is the content name.
+	*/
 	void deleteContent(struct JSON *json, const char *name);
-	/* Delete the item in a json object with the given name. */
 
+	/**
+	* Delete the item in a json array with the given index.
+	* @Param json is the json structure.
+	* @Param idex is the element index.
+	*/
 	void deleteElement(struct JSON *json, int idx);
-	/* Delete the item in a json array with the given index. */
 
+	/**
+	* If there is an item in json object with the given name, then reset its
+	* value. Or else, add this item.
+	*/
 	void setIntContent(struct JSON *json, const char *name, SGint i);
 	void setFloatContent(struct JSON *json, const char *name, SGfloat f);
 	void setCharContent(struct JSON *json, const char *name, SGchar c);
@@ -1077,9 +1727,11 @@ extern "C" {
 	void setStringContent(struct JSON *json, const char *name, const char *s);
 	void setObjectContent(struct JSON *json, const char *name, struct JSON *j);
 	void setArrayContent(struct JSON *json, const char *name, struct JSON *j);
-	/* If there is an item in json object with the given name, then reset its
-	* value. Or else, add this item. */
 
+	/**
+	* If there is an item in json array with the given index, then reset its
+	* value. Or else, add this item.
+	*/
 	void setIntElement(struct JSON *json, int idx, SGint i);
 	void setFloatElement(struct JSON *json, int idx, SGfloat f);
 	void setCharElement(struct JSON *json, int idx, SGchar c);
@@ -1087,8 +1739,6 @@ extern "C" {
 	void setStringElement(struct JSON *json, int idx, const char *s);
 	void setObjectElement(struct JSON *json, int idx, struct JSON *j);
 	void setArrayElement(struct JSON *json, int idx, struct JSON *j);
-	/* If there is an item in json array with the given index, then reset its
-	* value. Or else, add this item. */
 
 	/*
 	* SG encryption interfaces
@@ -1111,11 +1761,15 @@ extern "C" {
 	* These two functions play the same role as main().
 	*/
 
+	/**
+	* For initializing.
+	*/
 	void sgSetup();
-	/* For initializing. */
 
+	/**
+	* For main loop.
+	*/
 	void sgLoop();
-	/* For main loop. */
 
 #define SGL_GRAPHICS_FRAME
 #define SGL_CONSOLE_FRAME \

@@ -694,7 +694,7 @@ void debugf(const char *format, ...) {
 			}
 			case 'f': {
 				float valfloat = va_arg(ap, float);
-				buffer += valfloat;
+				buffer += std::to_string(valfloat);
 				format++;
 				break;
 			}
@@ -1120,7 +1120,7 @@ bitMap *zoomPic(bitMap *src, float rate) {
 	}
 	return dst;
 }
-bitMap *rotatePic(bitMap *src, bitMap *mask, float angle) {
+bitMap *rotatePic(bitMap *src, float angle) {
 	return NULL;
 }
 bitMap *filterPic(bitMap *src, int mode) {
@@ -1321,7 +1321,7 @@ int _stringPrintf(const char *format, va_list ap, char *buffer) {
 			}
 			case 'f': {
 				float valfloat = va_arg(ap, float);
-				buf += valfloat;
+				buf += std::to_string(valfloat);
 				format++;
 				break;
 			}
@@ -1365,19 +1365,19 @@ int _stringLength(const char *format, va_list ap) {
 			}
 			case 'd': {
 				int valint = va_arg(ap, int);
-				len += log10(valint) + 1;
+				len += (int)log10(valint) + 1;
 				format++;
 				break;
 			}
 			case 'o': {
 				int valint = va_arg(ap, int);
-				len += log(valint) / log(8) + 1;
+				len += (int)(log(valint) / log(8)) + 1;
 				format++;
 				break;
 			}
 			case 'x': {
 				int valint = va_arg(ap, int);
-				len += log(valint) / log(16) + 1;
+				len += (int)(log(valint) / log(16)) + 1;
 				format++;
 				break;
 			}
@@ -1548,7 +1548,7 @@ void setBfc(int bgc, int fgc) {
 void clearText() {
 	return _windowList[_currentWindow]->clearText();
 }
-void setCharColor(char color, int x, int y) {
+void setCharColor(short color, int x, int y) {
 	return _windowList[_currentWindow]->setCharColor(color, x, y);
 }
 void setCharBgc(char color, int x, int y) {
@@ -1729,15 +1729,6 @@ void _moveDefault(widget *obj, int x, int y) {
 void _pressDefault(widget *obj, int k) {
 
 }
-Widget *_getByName(const char *name) {
-	for (auto wnd : _windowList) {
-		if (!wnd)continue;
-		for (auto w : wnd->widgets) {
-			if (w->name == name)return w;
-		}
-	}
-	return NULL;
-}
 Widget *_getSub(Widget *root, const char *name) {
 	Widget *iter = root->child;
 	while (iter) {
@@ -1761,8 +1752,92 @@ Widget *_getSub(Widget *root, const char *name) {
 	}
 	return NULL;
 }
-Widget *_deleteSub(Widget *root, const char *name) {
+Widget *_getByName(const char *name) {
+	string path(name);
 
+	Widget *parent = NULL;
+	while (true) {
+		int sp1 = path.find('/');
+		int sp2 = path.find('\\');
+		if (sp1 < 0 && sp2 < 0) {
+			if (parent == NULL) {
+				for (auto wnd : _windowList) {
+					if (!wnd)continue;
+					for (auto w : wnd->widgets) {
+						if (w->name == name)return w;
+					}
+				}
+			}
+			else {
+				return _getSub(parent, path.data());
+			}
+		}
+		else if (sp1 < 0) {
+			if (parent == NULL) {
+				int found = 0;
+				for (auto wnd : _windowList) {
+					if (found)break;
+					if (!wnd)continue;
+					for (auto w : wnd->widgets) {
+						if (w->name == path.substr(0, sp2)) {
+							parent = w;
+							found = 1;
+							break;
+						}
+					}
+				}
+			}
+			else {
+				parent = _getSub(parent, path.substr(0, sp2).data());
+			}
+			path = path.substr(sp2 + 1);
+		}
+		else if (sp2 < 0) {
+			if (parent == NULL) {
+				int found = 0;
+				for (auto wnd : _windowList) {
+					if (found)break;
+					if (!wnd)continue;
+					for (auto w : wnd->widgets) {
+						if (w->name == path.substr(0, sp1)) {
+							parent = w;
+							found = 1;
+							break;
+						}
+					}
+				}
+			}
+			else {
+				parent = _getSub(parent, path.substr(0, sp1).data());
+			}
+			path = path.substr(sp1 + 1);
+		}
+		else {
+			int sp = min(sp1, sp2);
+			if (parent == NULL) {
+				int found = 0;
+				for (auto wnd : _windowList) {
+					if (found)break;
+					if (!wnd)continue;
+					for (auto w : wnd->widgets) {
+						if (w->name == path.substr(0, sp)) {
+							parent = w;
+							found = 1;
+							break;
+						}
+					}
+				}
+			}
+			else {
+				parent = _getSub(parent, path.substr(0, sp).data());
+			}
+			path = path.substr(sp + 1);
+		}
+	}
+	return NULL;
+}
+Widget *_deleteSub(Widget *root, const char *name) {
+	return NULL;
 }
 
 void setBackgroundRefresh(void(*refresh)(int left, int top, int right, int bottom)) {
@@ -2058,6 +2133,72 @@ widget *getSubWidget(const char *parent, const char *sub) {
 	if (tmp)return tmp->obj;
 	else return NULL;
 }
+void insertSubWidget(const char *parent, widget sub, int index) {
+	Widget *root = _getByName(parent);
+	Widget *child = NULL;
+	switch (sub.type) {
+	case SG_BUTTON:
+		child = new Button(sub, _currentWindow);
+		break;
+	case SG_INPUT:
+		child = new Input(sub, _currentWindow);
+		break;
+	case SG_DIALOG:
+		child = new Dialog(sub, _currentWindow);
+		break;
+	case SG_OUTPUT:
+		child = new Output(sub, _currentWindow);
+		break;
+	case SG_LIST:
+		child = new List(sub, _currentWindow);
+		break;
+	case SG_LABEL:
+		child = new Label(sub, _currentWindow);
+		break;
+	case SG_PIC:
+		child = new Pic(sub, _currentWindow);
+		break;
+	case SG_CHECK:
+		child = new Check(sub, _currentWindow);
+		break;
+	case SG_PROCESS:
+		child = new Process(sub, _currentWindow);
+		break;
+	case SG_DRAG:
+		child = new Drag(sub, _currentWindow);
+		break;
+	case SG_SCROLLVERT:
+		child = new ScrollVert(sub, _currentWindow);
+		break;
+	case SG_SCROLLHORIZ:
+		child = new ScrollHoriz(sub, _currentWindow);
+		break;
+	case SG_COMBINED:
+		child = new CombinedWidget(sub, _currentWindow);
+		break;
+	default:
+		break;
+	}
+	if (index > 0) {
+		Widget *iter = root->child;
+		while (iter) {
+			index--;
+			if (index == 0) {
+				child->next = iter->next;
+				iter->next = child;
+				return;
+			}
+			if(iter->next)
+				iter = iter->next;
+			else {
+				iter->next = child;
+				return;
+			}
+		}
+	}
+	child->next = root->child;
+	root->child = child;
+}
 void deleteSubWidget(const char *parent, const char *name) {
 	Widget *root = _getByName(parent);
 	delete _deleteSub(root, name);
@@ -2082,6 +2223,12 @@ void setWidgetTop(const char *name) {
 }
 void setWidgetBottom(const char *name) {
 	_windowList[_currentWindow]->setWidgetBottom(name);
+}
+void setSubWidgetTop(const char *parent, const char *name) {
+
+}
+void setSubWidgetBottom(const char *parent, const char *name) {
+
 }
 void widgetCover(int window, int id, int left, int top, int right, int bottom) {
 	_windowList[window]->widgetCover(id, left, top, right, bottom);

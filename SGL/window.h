@@ -1717,7 +1717,7 @@ public:
 	void setBfc(int bgc, int fgc) {
 		bfc = (bgc << 4) | fgc;
 	}
-	void setCharColor(char color, int x, int y) {
+	void setCharColor(short color, int x, int y) {
 		int pos;
 
 		pos = y * changed->width + x;
@@ -1955,29 +1955,29 @@ public:
 		}
 	}
 	void setWidgetTop(const char *name) {
-		int pos;
+		unsigned int pos;
 		for (pos = 0; pos < widgets.size(); pos++) {
 			if (widgets[pos]->name == name)break;
 		}
 		Widget *tmp = widgets[pos];
-		for (int i = pos; i < widgets.size() - 1; i++) {
+		for (unsigned int i = pos; i < widgets.size() - 1; i++) {
 			widgets[i] = widgets[i + 1];
 		}
 		widgets.emplace_back(tmp);
 	}
 	void setWidgetBottom(const char *name) {
-		int pos;
+		unsigned int pos;
 		for (pos = 0; pos < widgets.size(); pos++) {
 			if (widgets[pos]->name == name)break;
 		}
 		Widget *tmp = widgets[pos];
-		for (int i = 0; i < pos - 1; i++) {
+		for (unsigned int i = 0; i < pos - 1; i++) {
 			widgets[i + 1] = widgets[i];
 		}
 		widgets[0] = tmp;
 	}
 	void widgetCover(int id, int left, int top, int right, int bottom) {
-		for (int i = id + 1; i < widgets.size(); i++) {
+		for (unsigned int i = id + 1; i < widgets.size(); i++) {
 			if (crossWidget(widgets[i]->getObj(), left, top, right, bottom)) {
 				int prev = drawingWidget;
 				drawingWidget = i;
