@@ -479,8 +479,8 @@ private:
 		tmp.data = text.bitBuf + text.bi.biWidth*(text.bi.biHeight - tmp.sizeY) * 3;
 		putImageRev(x, y, &tmp);
 	}
-	RGB bgc(short c) {
-		RGB ret = { 0, 0, 0 };
+	::rgb bgc(short c) {
+		::rgb ret = { 0, 0, 0 };
 
 		c >>= 12;
 		c &= 0x000F;
@@ -569,8 +569,8 @@ private:
 		}
 		return ret;
 	}
-	RGB fgc(short c) {
-		RGB ret = { 0, 0, 0 };
+	::rgb fgc(short c) {
+		::rgb ret = { 0, 0, 0 };
 
 		c >>= 8;
 		c &= 0x000F;
@@ -660,7 +660,7 @@ private:
 		return ret;
 	}
 	void textRenew(short c, int x, int y) {
-		RGB b, f;
+		::rgb b, f;
 
 		innerFunc = 1;
 		b = bgc(c), f = fgc(c);
@@ -916,8 +916,8 @@ public:
 		if (drawingWidget == -1)widgetCover(-1, x, y, x, y);
 		return SG_NO_ERORR;
 	}
-	RGB getPixel(int x, int y) {
-		RGB im, ret;
+	::rgb getPixel(int x, int y) {
+		::rgb im, ret;
 		int p;
 
 		if (sglMode != BIT_MAP && !innerFunc) {
@@ -1040,7 +1040,7 @@ public:
 		return SG_NO_ERORR;
 	}
 	void putTriangle(int x1, int y1, int x2, int y2, int x3, int y3, int mode) {
-		RGB c;
+		::rgb c;
 
 		if (sglMode != BIT_MAP && !innerFunc)return;
 		if (checkThread())return;
@@ -1665,7 +1665,7 @@ public:
 #undef XCHG
 
 	}
-	void floodFill(int x, int y, RGB c) {
+	void floodFill(int x, int y, ::rgb c) {
 		vec2i Q[SG_QSIZE];
 		vec2i tmp;
 		int front = -1, rear = 0, p;
@@ -1945,6 +1945,7 @@ public:
 			Widget *w = widgets[i];
 
 			if (!w || !w->visible || w->priority != fb)continue;
+			if (!crossWidget(w->obj, 0, 0, winWidth, winHeight))continue;
 
 			if (w->valid)continue;
 			w->valid = 1;

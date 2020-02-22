@@ -114,11 +114,12 @@ public:
 	font tf;
 	Widget *child, *next;
 
-	RGB bgColor, passColor, pressColor, fgColor;
+	rgb bgColor, passColor, pressColor, fgColor;
 	bitMap bgImg;
 
 	void(*click)(widget *obj);
 	void(*move)(widget *obj, int x, int y);
+	void(*drag)(widget *obj, int x, int y);
 	void(*press)(widget *obj, int key);
 
 	widget *obj;
@@ -130,6 +131,7 @@ public:
 		if (inWidget(obj, x, y)) {
 			status |= WIDGET_PASS;
 			valid = 0;
+			move(obj, x, y);
 		}
 		else {
 			if (status & WIDGET_PASS) {
@@ -172,7 +174,7 @@ public:
 	}
 
 	Widget(widget w, int window, string p = "");
-	~Widget() {
+	virtual ~Widget() {
 		free(content);
 		free(obj);
 		free(tf.name);
@@ -256,7 +258,9 @@ public:
 		case ANDROID:
 			break;
 		}
-		widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
+		if (id >= 0) {
+			widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
+		}
 	}
 };
 class Input : public Widget {
@@ -341,7 +345,9 @@ public:
 		case ANDROID:
 			break;
 		}
-		widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
+		if (id >= 0) {
+			widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
+		}
 	}
 	virtual void mouseMove(int x, int y) {
 		__super::mouseMove(x, y);
@@ -553,7 +559,9 @@ public:
 		case ANDROID:
 			break;
 		}
-		widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
+		if (id >= 0) {
+			widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
+		}
 	}
 	virtual void mouseClick(int x, int y, int button) {
 		if (button == (SG_BUTTON_UP | SG_LEFT_BUTTON) &&
@@ -643,7 +651,9 @@ public:
 		case ANDROID:
 			break;
 		}
-		widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
+		if (id >= 0) {
+			widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
+		}
 	}
 };
 class List : public Widget {
@@ -748,6 +758,9 @@ public:
 			break;
 		case ANDROID:
 			break;
+		}
+		if (id >= 0) {
+			widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
 		}
 	}
 	virtual void mouseMove(int x, int y) {
@@ -898,7 +911,9 @@ public:
 		case ANDROID:
 			break;
 		}
-		widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
+		if (id >= 0) {
+			widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
+		}
 	}
 };
 class Pic :public Widget {
@@ -909,7 +924,9 @@ public:
 
 	virtual void draw(int id) {
 		putBitmap(pos.x, pos.y, bgImg);
-		widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
+		if (id >= 0) {
+			widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
+		}
 	}
 };
 class Check :public Widget {
@@ -953,7 +970,9 @@ public:
 		case ANDROID:
 			break;
 		}
-		widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
+		if (id >= 0) {
+			widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
+		}
 	}
 	virtual void mouseClick(int x, int y, int button) {
 		if (button == (SG_BUTTON_UP | SG_LEFT_BUTTON) &&
@@ -1020,7 +1039,9 @@ public:
 		case ANDROID:
 			break;
 		}
-		widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
+		if (id >= 0) {
+			widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
+		}
 	}
 	virtual void mouseMove(int x, int y) {
 		if (status & WIDGET_PRESSED) {
@@ -1163,7 +1184,9 @@ public:
 		case ANDROID:
 			break;
 		}
-		widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
+		if (id >= 0) {
+			widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
+		}
 	}
 	virtual void mouseClick(int x, int y, int button) {
 		if (button == (SG_BUTTON_UP | SG_LEFT_BUTTON) &&
@@ -1248,7 +1271,9 @@ public:
 		case ANDROID:
 			break;
 		}
-		widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
+		if (id >= 0) {
+			widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
+		}
 	}
 	virtual void mouseMove(int x, int y) {
 		if (status & WIDGET_PRESSED) {
@@ -1284,7 +1309,7 @@ public:
 			}
 		}
 		if (value >= 0 && value < extra && value != previous) {
-			move(obj, 0, value - previous);
+			drag(obj, 0, value - previous);
 			previous = value;
 		}
 	}
@@ -1382,7 +1407,9 @@ public:
 		case ANDROID:
 			break;
 		}
-		widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
+		if (id >= 0) {
+			widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
+		}
 	}
 	virtual void mouseMove(int x, int y) {
 		if (status & WIDGET_PRESSED) {
@@ -1418,7 +1445,7 @@ public:
 			}
 		}
 		if (value >= 0 && value < extra && value != previous) {
-			move(obj, value - previous, 0);
+			drag(obj, value - previous, 0);
 			previous = value;
 		}
 	}
@@ -1536,25 +1563,36 @@ public:
 			delete w.child;
 		}
 	}
+	virtual ~CombinedWidget() {
+
+	}
 
 	virtual void draw(int id) {
 		Widget *iter = child;
 		while (iter) {
-			if (!iter->visible || iter->valid) {
+			if (!iter->visible || iter->valid ||
+				!crossWidget(iter->obj, pos.x, pos.y, pos.x + size.x, pos.y + size.y)) {
 				iter = iter->next;
 				continue;
 			}
 			iter->valid = 1;
 
-			iter->draw(id);
+			iter->draw(-1);
 			if (!iter->valid)valid = 0;
 			iter = iter->next;
+		}
+		if (id >= 0) {
+			widgetCover(window, id, pos.x, pos.y, pos.x + size.x, pos.y + size.y);
 		}
 	}
 	virtual void mouseMove(int x, int y) {
 		__super::mouseMove(x, y);
 		Widget *iter = child;
 		while (iter) {
+			if (!crossWidget(iter->obj, pos.x, pos.y, pos.x + size.x, pos.y + size.y)) {
+				iter = iter->next;
+				continue;
+			}
 			iter->mouseMove(x, y);
 			iter = iter->next;
 		}
@@ -1563,6 +1601,10 @@ public:
 		__super::mouseClick(x, y, button);
 		Widget *iter = child;
 		while (iter) {
+			if (!crossWidget(iter->obj, pos.x, pos.y, pos.x + size.x, pos.y + size.y)) {
+				iter = iter->next;
+				continue;
+			}
 			iter->mouseClick(x, y, button);
 			iter = iter->next;
 		}
@@ -1571,6 +1613,10 @@ public:
 		__super::keyPress(key, utf16);
 		Widget *iter = child;
 		while (iter) {
+			if (!crossWidget(iter->obj, pos.x, pos.y, pos.x + size.x, pos.y + size.y)) {
+				iter = iter->next;
+				continue;
+			}
 			iter->keyPress(key, utf16);
 			iter = iter->next;
 		}
@@ -1631,6 +1677,7 @@ Widget::Widget(widget w, int window, string p) {
 
 	this->click = this->obj->click = w.click;
 	this->move = this->obj->move = w.move;
+	this->drag = this->obj->drag = w.drag;
 	this->press = this->obj->press = w.press;
 
 	if (w.next == NULL) {

@@ -9,6 +9,9 @@
 
 #define TRIANGLE_VERTEX 3
 
+#define BVH_CAPACITY 16
+#define BVH_DEPTH 16
+
 
 using std::string;
 using std::pair;
@@ -384,9 +387,9 @@ private:
 	void(*miss)(int id, void *prd);
 
 	class Aabb {
-	private:
-		vec3f min, max;
 	public:
+		vec3f min, max;
+
 		Aabb(vector<vector<vec3f>> p) {
 			min = Vec3f(INFINITY, INFINITY, INFINITY);
 			max = Vec3f(-INFINITY, -INFINITY, -INFINITY);
@@ -401,7 +404,31 @@ private:
 				}
 			}
 		}
+		Aabb(vec3f min, vec3f max) {
+			this->min.x = min(min.x, max.x);
+			this->max.x = max(min.x, max.x);
+			this->min.y = min(min.y, max.y);
+			this->max.y = max(min.y, max.y);
+			this->min.z = min(min.z, max.z);
+			this->max.z = max(min.z, max.z);
+		}
 
+		vec3f middle() { return (min + max) / 2; }
+		vec3f vertex(int idx) {
+			switch (idx) {
+			case 0:return min;
+			case 1:return Vec3f(min.x, min.y, max.z);
+			case 2:return Vec3f(min.x, max.y, min.z);
+			case 3:return Vec3f(min.x, max.y, max.z);
+			case 4:return Vec3f(max.x, min.y, min.z);
+			case 5:return Vec3f(max.x, min.y, max.z);
+			case 6:return Vec3f(max.x, max.y, min.z);
+			case 7:return Vec3f(max.x, max.y, max.z);
+			case 8:return max;
+			default:break;
+			}
+			return middle();
+		}
 		bool intersect(vec3f o, vec3f d) {
 			float t;
 			vec3f hitPoint;
@@ -411,7 +438,7 @@ private:
 				else t = (max.x - o.x) / d.x;
 				if (t > 0.f) {
 					hitPoint = o + t * d;
-					if (min.y < hitPoint.y && hitPoint.y < max.y && min.z < hitPoint.z && hitPoint.z < max.z)return true;
+					if (min.y <= hitPoint.y && hitPoint.y <= max.y && min.z <= hitPoint.z && hitPoint.z <= max.z)return true;
 				}
 			}
 			if (d.y != 0.f) {
@@ -419,7 +446,7 @@ private:
 				else t = (max.y - o.y) / d.y;
 				if (t > 0.f) {
 					hitPoint = o + t * d;
-					if (min.z < hitPoint.z && hitPoint.z < max.z && min.x < hitPoint.x && hitPoint.x < max.x)return true;
+					if (min.z <= hitPoint.z && hitPoint.z <= max.z && min.x <= hitPoint.x && hitPoint.x <= max.x)return true;
 				}
 			}
 			if (d.z != 0.f) {
@@ -427,19 +454,259 @@ private:
 				else t = (max.z - o.z) / d.z;
 				if (t > 0.f) {
 					hitPoint = o + t * d;
-					if (min.x < hitPoint.x && hitPoint.x < max.x && min.y < hitPoint.y && hitPoint.y < max.y)return true;
+					if (min.x <= hitPoint.x && hitPoint.x <= max.x && min.y <= hitPoint.y && hitPoint.y <= max.y)return true;
 				}
 			}
 			return false;
+		}
+	};
+	class Bvh {
+	private:
+		long face_plane(vec3f p) {
+			long outcode;
+			p = (p - aabb.min) / (aabb.max - aabb.min);
+			p -= Vec3f(.5f, .5f, .5f);
+			outcode = 0;
+			if (p.x >  .5) outcode |= 0x01;
+			if (p.x < -.5) outcode |= 0x02;
+			if (p.y >  .5) outcode |= 0x04;
+			if (p.y < -.5) outcode |= 0x08;
+			if (p.z >  .5) outcode |= 0x10;
+			if (p.z < -.5) outcode |= 0x20;
+			return(outcode);
+		}
+		long bevel_2d(vec3f p) {
+			long outcode;
+			p = (p - aabb.min) / (aabb.max - aabb.min);
+			p -= Vec3f(.5f, .5f, .5f);
+			outcode = 0;
+			if (p.x + p.y > 1.0) outcode |= 0x001;
+			if (p.x - p.y > 1.0) outcode |= 0x002;
+			if (-p.x + p.y > 1.0) outcode |= 0x004;
+			if (-p.x - p.y > 1.0) outcode |= 0x008;
+			if (p.x + p.z > 1.0) outcode |= 0x010;
+			if (p.x - p.z > 1.0) outcode |= 0x020;
+			if (-p.x + p.z > 1.0) outcode |= 0x040;
+			if (-p.x - p.z > 1.0) outcode |= 0x080;
+			if (p.y + p.z > 1.0) outcode |= 0x100;
+			if (p.y - p.z > 1.0) outcode |= 0x200;
+			if (-p.y + p.z > 1.0) outcode |= 0x400;
+			if (-p.y - p.z > 1.0) outcode |= 0x800;
+			return(outcode);
+		}
+		long bevel_3d(vec3f p) {
+			long outcode;
+			p = (p - aabb.min) / (aabb.max - aabb.min);
+			p -= Vec3f(.5f, .5f, .5f);
+			outcode = 0;
+			if ((p.x + p.y + p.z) > 1.5) outcode |= 0x01;
+			if ((p.x + p.y - p.z) > 1.5) outcode |= 0x02;
+			if ((p.x - p.y + p.z) > 1.5) outcode |= 0x04;
+			if ((p.x - p.y - p.z) > 1.5) outcode |= 0x08;
+			if ((-p.x + p.y + p.z) > 1.5) outcode |= 0x10;
+			if ((-p.x + p.y - p.z) > 1.5) outcode |= 0x20;
+			if ((-p.x - p.y + p.z) > 1.5) outcode |= 0x40;
+			if ((-p.x - p.y - p.z) > 1.5) outcode |= 0x80;
+			return(outcode);
+		}
+		bool check_point(vec3f p1, vec3f p2, float alpha, long mask) {
+			vec3f plane_point;
+
+#define LERP( A, B, C) ((B)+(A)*((C)-(B)))
+			plane_point.x = LERP(alpha, p1.x, p2.x);
+			plane_point.y = LERP(alpha, p1.y, p2.y);
+			plane_point.z = LERP(alpha, p1.z, p2.z);
+#undef LERP
+
+			return(face_plane(plane_point) & mask);
+		}
+		bool check_line(vec3f p1, vec3f p2, long outcode_diff) {
+			p1 = (p1 - aabb.min) / (aabb.max - aabb.min);
+			p1 -= Vec3f(.5f, .5f, .5f);
+			p2 = (p2 - aabb.min) / (aabb.max - aabb.min);
+			p2 -= Vec3f(.5f, .5f, .5f);
+			if ((0x01 & outcode_diff) != 0)
+				if (check_point(p1, p2, (0.5f - p1.x) / (p2.x - p1.x), 0x3e)) return true;
+			if ((0x02 & outcode_diff) != 0)
+				if (check_point(p1, p2, (-0.5f - p1.x) / (p2.x - p1.x), 0x3d)) return true;
+			if ((0x04 & outcode_diff) != 0)
+				if (check_point(p1, p2, (0.5f - p1.y) / (p2.y - p1.y), 0x3b)) return true;
+			if ((0x08 & outcode_diff) != 0)
+				if (check_point(p1, p2, (-0.5f - p1.y) / (p2.y - p1.y), 0x37)) return true;
+			if ((0x10 & outcode_diff) != 0)
+				if (check_point(p1, p2, (0.5f - p1.z) / (p2.z - p1.z), 0x2f)) return true;
+			if ((0x20 & outcode_diff) != 0)
+				if (check_point(p1, p2, (-0.5f - p1.z) / (p2.z - p1.z), 0x1f)) return true;
+			return false;
+		}
+		bool point_triangle_intersection(vec3f p, vector<vec3f> t) {
+			long sign12, sign23, sign31;
+			vec3f vect12, vect23, vect31, vect1h, vect2h, vect3h;
+			vec3f cross12_1p, cross23_2p, cross31_3p;
+#define MIN3(a,b,c) ((((a)<(b))&&((a)<(c))) ? (a) : (((b)<(c)) ? (b) : (c)))
+#define MAX3(a,b,c) ((((a)>(b))&&((a)>(c))) ? (a) : (((b)>(c)) ? (b) : (c)))
+			if (p.x > MAX3(t[0].x, t[1].x, t[2].x)) return false;
+			if (p.y > MAX3(t[0].y, t[1].y, t[2].y)) return false;
+			if (p.z > MAX3(t[0].z, t[1].z, t[2].z)) return false;
+			if (p.x < MIN3(t[0].x, t[1].x, t[2].x)) return false;
+			if (p.y < MIN3(t[0].y, t[1].y, t[2].y)) return false;
+			if (p.z < MIN3(t[0].z, t[1].z, t[2].z)) return false;
+#undef MIN3
+#undef MAX3
+#define EPS 10e-5
+#define SIGN3( A ) \
+	  (((A).x < EPS) ? 4 : 0 | ((A).x > -EPS) ? 32 : 0 | \
+	   ((A).y < EPS) ? 2 : 0 | ((A).y > -EPS) ? 16 : 0 | \
+	   ((A).z < EPS) ? 1 : 0 | ((A).z > -EPS) ? 8 : 0)
+
+			vect12 = t[0] - t[1];
+			vect1h = t[0] - p;
+			cross12_1p = cross(vect12, vect1h);
+			sign12 = SIGN3(cross12_1p);
+
+			vect23 = t[1] - t[2];
+			vect2h = t[1] - p;
+			cross23_2p = cross(vect23, vect2h);
+			sign23 = SIGN3(cross23_2p);
+
+			vect31 = t[2] - t[0];
+			vect3h = t[2] - p;
+			cross31_3p = cross(vect31, vect3h);
+			sign31 = SIGN3(cross31_3p);
+
+#undef EPS
+#undef SIGN3
+
+			return (sign12 & sign23 & sign31) != 0;
+		}
+
+		vector<vector<vec3f>> inside(vector<vector<vec3f>> points) {
+			vector<vector<vec3f>> ret;
+			for (auto shape : points) {
+				long v1_test, v2_test, v3_test;
+				if ((v1_test = face_plane(shape[0])) == 0) {
+					ret.push_back(shape);
+					continue;
+				};
+				if ((v2_test = face_plane(shape[1])) == 0) {
+					ret.push_back(shape);
+					continue;
+				};
+				if ((v3_test = face_plane(shape[2])) == 0) {
+					ret.push_back(shape);
+					continue;
+				};
+
+				if ((v1_test & v2_test & v3_test) != 0)continue;
+
+				v1_test |= bevel_2d(shape[0]) << 8;
+				v2_test |= bevel_2d(shape[1]) << 8;
+				v3_test |= bevel_2d(shape[2]) << 8;
+				if ((v1_test & v2_test & v3_test) != 0)continue;
+
+				v1_test |= bevel_3d(shape[0]) << 24;
+				v2_test |= bevel_3d(shape[1]) << 24;
+				v3_test |= bevel_3d(shape[2]) << 24;
+				if ((v1_test & v2_test & v3_test) != 0)continue;
+
+				if ((v1_test & v2_test) == 0)
+					if (check_line(shape[0], shape[1], v1_test | v2_test)) {
+						ret.push_back(shape);
+						continue;
+					};
+				if ((v1_test & v3_test) == 0)
+					if (check_line(shape[0], shape[2], v1_test | v3_test)) {
+						ret.push_back(shape);
+						continue;
+					};
+				if ((v2_test & v3_test) == 0)
+					if (check_line(shape[1], shape[2], v2_test | v3_test)) {
+						ret.push_back(shape);
+						continue;
+					};
+
+				vec3f vect12, vect13, norm;
+				vect12 = shape[0] - shape[1];
+				vect13 = shape[0] - shape[2];
+				norm = cross(vect12, vect13);
+
+				float d, denom;
+				vec3f hitpp, hitpn, hitnp, hitnn;
+				d = norm.x * shape[0].x + norm.y * shape[0].y + norm.z * shape[0].z;
+				if (fabs(denom = (norm.x + norm.y + norm.z)) > 10e-5) {
+					hitpp.x = hitpp.y = hitpp.z = d / denom;
+					if (fabs(hitpp.x) <= 0.5)
+						if (point_triangle_intersection(hitpp, shape)) {
+							ret.push_back(shape);
+							continue;
+						};
+				}
+				if (fabs(denom = (norm.x + norm.y - norm.z)) > 10e-5) {
+					hitpn.z = -(hitpn.x = hitpn.y = d / denom);
+					if (fabs(hitpn.x) <= 0.5)
+						if (point_triangle_intersection(hitpn, shape)) {
+							ret.push_back(shape);
+							continue;
+						};
+				}
+				if (fabs(denom = (norm.x - norm.y + norm.z)) > 10e-5) {
+					hitnp.y = -(hitnp.x = hitnp.z = d / denom);
+					if (fabs(hitnp.x) <= 0.5)
+						if (point_triangle_intersection(hitnp, shape)) {
+							ret.push_back(shape);
+							continue;
+						};
+				}
+				if (fabs(denom = (norm.x - norm.y - norm.z)) > 10e-5) {
+					hitnn.y = hitnn.z = -(hitnn.x = d / denom);
+					if (fabs(hitnn.x) <= 0.5)
+						if (point_triangle_intersection(hitnn, shape)) {
+							ret.push_back(shape);
+							continue;
+						};
+				}
+			}
+			return ret;
+		}
+		void build(vector<vector<vec3f>> points, int depth) {
+			if (points.size() <= BVH_CAPACITY || depth > BVH_DEPTH)this->points = points;
+			else {
+				vec3f mid = aabb.middle();
+				for (int i = 0; i < 8; i++) {
+					childs.push_back(new Bvh(points, mid, aabb.vertex(i), depth+1));
+				}
+			}
+		}
+
+	public:
+		Aabb aabb;
+		vector<vector<vec3f>> points;
+		vector<Bvh*> childs;
+
+		Bvh(vector<vector<vec3f>> points) : aabb(points) {
+			build(points, 0);
+		}
+		Bvh(vector<vector<vec3f>> points, vec3f min, vec3f max, int depth) : aabb(min, max) {
+			build(inside(points), depth);
+		}
+
+		vector<vector<vec3f>> intersect(vec3f o, vec3f d) {
+			vector<vector<vec3f>> res;
+			if (!aabb.intersect(o, d))return res;
+			if (childs.size() == 0)return points;
+			for (auto c : childs) {
+				vector<vector<vec3f>> tmp = c->intersect(o, d);
+				res.insert(res.end(), tmp.begin(), tmp.end());
+			}
+			return res;
 		}
 	};
 	class Object {
 	private:
 		map<string, void *>vars;
 	public:
-		Aabb aabb;
+		Bvh *tree;
 
-		vector<vector<vec3f>> points;
 		float(*intersect)(int id, void *points, vec3f point, vec3f dir, vec3f *norm);
 		void(*hit)(int id, float dist, void *prd, vec3f norm);
 		void(*shadow)(int id, void *prd);
@@ -447,7 +714,9 @@ private:
 		Object(vector<vector<vec3f>> p,
 			float(*intersect)(int id, void *points, vec3f point, vec3f dir, vec3f *norm),
 			void(*hit)(int id, float dist, void *prd, vec3f norm), void(*shadow)(int id, void *prd)) :
-			points(p), intersect(intersect), hit(hit), shadow(shadow), aabb(p) {}
+			intersect(intersect), hit(hit), shadow(shadow) {
+			tree = new Bvh(p);
+		}
 	};
 	vector<Object *> objs;
 public:
@@ -468,8 +737,9 @@ public:
 			Object *tmp = NULL;
 			vec3f norm, niter;
 			for (auto &obj : objs) {
-				if (!obj->aabb.intersect(light, dir))continue;
-				if (float t = obj->intersect(id, &obj->points, light, dir, &niter)) {
+				vector<vector<vec3f>> res = obj->tree->intersect(light, dir);
+				if (res.size() == 0)continue;
+				if (float t = obj->intersect(id, &res, light, dir, &niter)) {
 					if (t < tmin || t > tmax)continue;
 					if (t < min) {
 						min = t;
@@ -483,8 +753,9 @@ public:
 		}
 		else if (type == SHADOW_RAY) {
 			for (auto &obj : objs) {
-				if (!obj->aabb.intersect(light, dir))continue;
-				if (float t = obj->intersect(id, &obj->points, light, dir, NULL)) {
+				vector<vector<vec3f>> res = obj->tree->intersect(light, dir);
+				if (res.size() == 0)continue;
+				if (float t = obj->intersect(id, &res, light, dir, NULL)) {
 					if (t <= tmin || t >= tmax)continue;
 					obj->shadow(id, prd);
 				}

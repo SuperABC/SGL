@@ -343,6 +343,33 @@ template<class vec> vec &operator/=(vec &v, const float s) {
 	if (VECN(vec) > 3)(&v.x)[3] /= s;
 	return v;
 }
+template<class vec> vec operator/(const vec v1, const vec v2) {
+	vec ret;
+	if((&v2.x)[0])(&ret.x)[0] = (&v1.x)[0] / (&v2.x)[0];
+	else (&ret.x)[0] = 0;
+	if ((&v2.x)[1])(&ret.x)[1] = (&v1.x)[1] / (&v2.x)[1];
+	else (&ret.x)[1] = 0;
+	if (VECN(vec) > 2)
+		if ((&v2.x)[2])(&ret.x)[2] = (&v1.x)[2] / (&v2.x)[2];
+		else (&ret.x)[2] = 0;
+	if (VECN(vec) > 3)
+		if ((&v2.x)[3])(&ret.x)[3] = (&v1.x)[3] / (&v2.x)[3];
+		else (&ret.x)[3] = 0;
+	return ret;
+}
+template<class vec> vec &operator/=(vec &v1, const vec v2) {
+	if ((&v2.x)[0])(&v1.x)[0] /= (&v2.x)[0];
+	else (&v1.x)[0] = 0;
+	if ((&v2.x)[1])(&v1.x)[1] /= (&v2.x)[1];
+	else (&v1.x)[1] = 0;
+	if (VECN(vec) > 2)
+		if ((&v2.x)[2])(&v1.x)[2] /= (&v2.x)[2];
+		else (&v1.x)[2] = 0;
+	if (VECN(vec) > 3)
+		if ((&v2.x)[3])(&v1.x)[3] /= (&v2.x)[3];
+		else (&v1.x)[3] = 0;
+	return v1;
+}
 template<class vec> bool operator<(const vec v1, const vec v2) {
 	if ((&v1.x)[0] > (&v2.x)[0])return false;
 	if ((&v1.x)[1] > (&v2.x)[1])return false;

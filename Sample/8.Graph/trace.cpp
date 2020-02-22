@@ -5,7 +5,7 @@ using namespace geo;
 using namespace std;
 
 int graphHandle;
-int WIDTH = 400, HEIGHT = 400;
+int WIDTH = 512, HEIGHT = 512;
 
 class Eye {
 public:
@@ -213,7 +213,7 @@ vec3i generate(int id, vec2i index, vec2i size) {
 		if (random(10) >= 8)break;
 		if (prd.done)break;
 	}
-	RGB tmp = getPixel(index.x, index.y);
+	rgb tmp = getPixel(index.x, index.y);
 	vec3f old = Vec3f(tmp.r / 255.f, tmp.g / 255.f, tmp.b / 255.f);
 	if (prd.result.x > 1.f)prd.result.x = 1.f;
 	if (prd.result.y > 1.f)prd.result.y = 1.f;
@@ -246,12 +246,15 @@ void hit(int id, float dist, void *prd, vec3f norm) {
 	else if (hitPoint.x > 39.999f)perraydata->attenuation *= Vec3f(0.6f, 1.f, 0.6f);
 	else perraydata->attenuation *= Vec3f(.8f, .8f, .8f);
 	perraydata->start = hitPoint;
-	if (random(10) >= 5) {
+	if (random(3) >= 2) {
 		if (dot(perraydata->dir, norm) > 0)perraydata->dir = randHemi(-1 * norm);
 		else perraydata->dir = randHemi(norm);
 	}
-	else {
+	else if (random(2) >= 1) {
 		perraydata->dir = dot(-1 * perraydata->dir, norm) * 2 * norm + perraydata->dir;
+	}
+	else {
+
 	}
 
 	perraydata->radiance = Vec3f(0.f, 0.f, 0.f);
@@ -300,6 +303,7 @@ void sgSetup() {
 	setPipelineVariable(graphHandle, "lightV1", &lightV1);
 	setPipelineVariable(graphHandle, "lightV2", &lightV2);
 
+	m.load("source/castle.obj");
 	m.load("source/box.obj");
 	pushObject(graphHandle, m.pos.data(), m.pos.size(), 3, intersect, hit, shadow);
 	l.load("source/light.obj");

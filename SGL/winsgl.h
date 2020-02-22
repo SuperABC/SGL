@@ -111,7 +111,6 @@
 
 #define INRECT(x, y, xl, yl, xh, yh) (((x)>=(xl))&&((x)<=(xh))&&((y)>=(yl))&&((y)<=(yh)))
 
-
 // Windows string.
 
 #ifdef UNICODE
@@ -308,17 +307,18 @@ typedef char SGbool;
 
 typedef struct {
 	byte r, g, b;
-}RGB;
+}rgb;
 typedef struct {
 	int sizeX, sizeY;
 	unsigned char *data;
+	unsigned char *alpha;
 }bitMap;
 typedef struct {
 	int width, height;
 	unsigned short *content;
 }textMap;
 typedef struct {
-	RGB color;
+	rgb color;
 	int size;
 	SGWINSTR name;
 	int coeff;
@@ -338,13 +338,15 @@ typedef struct _w{
 	font tf;
 	struct _w *child, *next;
 
-	RGB bgColor, passColor, pressColor, fgColor;
+	rgb bgColor, passColor, pressColor, fgColor;
 	bitMap bgImg;
 
 	void(*click)(struct _w *obj);
 	void(*move)(struct _w *obj, int x, int y);
+	void(*drag)(struct _w *obj, int x, int y);
 	void(*press)(struct _w *obj, int key);
 }widget;
+
 
 
 //data interfaces.
@@ -746,6 +748,15 @@ extern "C" {
 	*/
 	bitMap *contrastPic(bitMap *src);
 
+	/**
+	* Create a new small window to show the info.
+	* @Param caption is the window caption.
+	* @Param text is the info showed in new window.
+	* @Param mode describes the button in new window.
+	* @Param result will be called when window closed or button push.
+	*/
+	void alertInfo(const char *caption, const char *text, int mode, void(*result)(int));
+
 
 	/*
 	* SG drawing interfaces
@@ -804,7 +815,7 @@ extern "C" {
 	* Get the rgb color of a pixel.
 	* @Param x and y is the target position of the pixel.
 	*/
-	RGB getPixel(int x, int y);
+	rgb getPixel(int x, int y);
 
 	/**
 	* Draw a line.
@@ -956,7 +967,7 @@ extern "C" {
 	* @Param c is the stopping color which means the area boarder
 	* is with this color.
 	*/
-	SGvoid floodFill(int x, int y, RGB c);
+	SGvoid floodFill(int x, int y, rgb c);
 
 	/**
 	* Show the fps on the screen for testing.

@@ -36,6 +36,9 @@ void _sgInit() {
 void _sgSubInit(vect setup) {
 	setup();
 }
+void _sgSubInit(void(*setup)(void *), void *init) {
+	setup(init);
+}
 
 void _startSubWindow(int id) {
 	SEM_P();
@@ -95,14 +98,57 @@ int createWindow(int width, int height, const char *title, int mode, vect setup,
 	_startSubWindow(tmp);
 	return _windowList.size() - 1;
 }
+int createWindow(int width, int height, const char *title, int mode, void(*setup)(void *), vect loop, void *init) {
+	WNDCLASSEX wc;
+
+	if (!_baseWindow)return SG_OBJECT_NOT_FOUND;
+	Window *sub = new Window(width, height, title, mode);
+
+	memset(&wc, 0, sizeof(wc));
+	wc.cbSize = sizeof(WNDCLASSEX);
+	wc.lpfnWndProc = SubWndProc;
+	wc.hInstance = NULL;
+	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+	wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+	wc.lpszClassName = _widen((string("SubClass") + std::to_string(_windowList.size() * 2)).data());
+	wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+
+	if (!RegisterClassEx(&wc)) {
+		MessageBox(NULL, TEXT("Window Registration Failed!"), TEXT("Error!"), MB_ICONEXCLAMATION | MB_OK);
+
+		delete sub;
+		return SG_IO_ERROR;
+	}
+
+	sub->loop = loop;
+	sub->createWindow(NULL, wc, _baseWindow->getHwnd());
+
+	ShowWindow(sub->getHwnd(), SW_SHOWDEFAULT);
+
+	/*for (unsigned int i = 0; i < _windowList.size(); i++) {
+	if (_windowList[i] == NULL) {
+	_windowList[i] = sub;
+	return i;
+	}
+	}*/
+	_windowList.push_back(sub);
+
+	int tmp = _currentWindow;
+	_endSubWindow();
+	_startSubWindow(_windowList.size() - 1);
+	_sgSubInit(setup, init);
+	_endSubWindow();
+	_startSubWindow(tmp);
+	return _windowList.size() - 1;
+}
 void windowFinish(vect finish) {
 	_windowList[_currentWindow]->finish = finish;
 }
 void closeWindow(int id) {
-	if (id < 0 || id >= (int)_windowList.size())return;
+	if (id >= (int)_windowList.size())return;
+	if (id < 0)id = _currentWindow;
 
 	PostMessage(_windowList[id]->getHwnd(), WM_CLOSE, 0, 0);
-	//UnregisterClass(_widen((string("SubClass") + std::to_string(id)).data()), NULL);
 	if (_windowList[id]->finish)_windowList[id]->finish();
 	delete _windowList[id];
 	_windowList[id] = NULL;
@@ -163,6 +209,8 @@ void sgKeyDown(int cAscii, int x, int y, int utf16) {
 		_windowList[_currentWindow]->key->enqueue((gbk % 0x100) & 0x7fff);
 
 		for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+			if (!crossWidget(_windowList[_currentWindow]->widgets[i]->obj, 0, 0,
+				_windowList[_currentWindow]->getWindowSize().x, _windowList[_currentWindow]->getWindowSize().y))continue;
 			_windowList[_currentWindow]->widgets[i]->keyPress(gbk, true);
 		}
 	}
@@ -176,6 +224,8 @@ void sgKeyDown(int cAscii, int x, int y, int utf16) {
 		_windowList[_currentWindow]->key->enqueue(cAscii & 0x7fff);
 
 		for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+			if (!crossWidget(_windowList[_currentWindow]->widgets[i]->obj, 0, 0,
+				_windowList[_currentWindow]->getWindowSize().x, _windowList[_currentWindow]->getWindowSize().y))continue;
 			_windowList[_currentWindow]->widgets[i]->keyPress(cAscii & 0x7fff);
 		}
 	}
@@ -272,6 +322,8 @@ void sgSpecialDown(int cAscii, int x, int y) {
 	_windowList[_currentWindow]->key->enqueue(cAscii & 0x7fff);
 
 	for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+		if (!crossWidget(_windowList[_currentWindow]->widgets[i]->obj, 0, 0,
+			_windowList[_currentWindow]->getWindowSize().x, _windowList[_currentWindow]->getWindowSize().y))continue;
 		_windowList[_currentWindow]->widgets[i]->keyPress(cAscii & 0x7fff);
 	}
 }
@@ -282,6 +334,8 @@ void sgKeyUp(int cAscii, int x, int y) {
 	_windowList[_currentWindow]->key->enqueue(cAscii | 0x8000);
 
 	for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+		if (!crossWidget(_windowList[_currentWindow]->widgets[i]->obj, 0, 0,
+			_windowList[_currentWindow]->getWindowSize().x, _windowList[_currentWindow]->getWindowSize().y))continue;
 		_windowList[_currentWindow]->widgets[i]->keyPress(cAscii | 0x8000);
 	}
 }
@@ -377,6 +431,8 @@ void sgSpecialUp(int cAscii, int x, int y) {
 	_windowList[_currentWindow]->key->enqueue(cAscii | 0x8000);
 
 	for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+		if (!crossWidget(_windowList[_currentWindow]->widgets[i]->obj, 0, 0,
+			_windowList[_currentWindow]->getWindowSize().x, _windowList[_currentWindow]->getWindowSize().y))continue;
 		_windowList[_currentWindow]->widgets[i]->keyPress(cAscii | 0x8000);
 	}
 }
@@ -393,6 +449,8 @@ void sgMouse(int x, int y) {
 	}
 
 	for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+		if (!crossWidget(_windowList[_currentWindow]->widgets[i]->obj, 0, 0,
+			_windowList[_currentWindow]->getWindowSize().x, _windowList[_currentWindow]->getWindowSize().y))continue;
 		_windowList[_currentWindow]->widgets[i]->mouseMove(x, y);
 	}
 }
@@ -409,6 +467,8 @@ void sgDrag(int x, int y) {
 	}
 
 	for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+		if (!crossWidget(_windowList[_currentWindow]->widgets[i]->obj, 0, 0,
+			_windowList[_currentWindow]->getWindowSize().x, _windowList[_currentWindow]->getWindowSize().y))continue;
 		_windowList[_currentWindow]->widgets[i]->mouseMove(x, y);
 	}
 }
@@ -428,6 +488,8 @@ void sgClick(int button, int state, int x, int y) {
 		_windowList[_currentWindow]->mouse->enqueue(m);
 
 		for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+			if (!crossWidget(_windowList[_currentWindow]->widgets[i]->obj, 0, 0,
+				_windowList[_currentWindow]->getWindowSize().x, _windowList[_currentWindow]->getWindowSize().y))continue;
 			_windowList[_currentWindow]->widgets[i]->mouseClick(x, y, SG_BUTTON_DOWN | SG_LEFT_BUTTON);
 		}
 	}
@@ -445,6 +507,8 @@ void sgClick(int button, int state, int x, int y) {
 		_windowList[_currentWindow]->mouse->enqueue(m);
 
 		for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+			if (!crossWidget(_windowList[_currentWindow]->widgets[i]->obj, 0, 0,
+				_windowList[_currentWindow]->getWindowSize().x, _windowList[_currentWindow]->getWindowSize().y))continue;
 			_windowList[_currentWindow]->widgets[i]->mouseClick(x, y, SG_BUTTON_UP | SG_LEFT_BUTTON);
 		}
 	}
@@ -464,6 +528,8 @@ void sgClick(int button, int state, int x, int y) {
 		_windowList[_currentWindow]->mouse->enqueue(m);
 
 		for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+			if (!crossWidget(_windowList[_currentWindow]->widgets[i]->obj, 0, 0,
+				_windowList[_currentWindow]->getWindowSize().x, _windowList[_currentWindow]->getWindowSize().y))continue;
 			_windowList[_currentWindow]->widgets[i]->mouseClick(x, y, SG_BUTTON_DOWN | SG_RIGHT_BUTTON);
 		}
 	}
@@ -481,6 +547,8 @@ void sgClick(int button, int state, int x, int y) {
 		_windowList[_currentWindow]->mouse->enqueue(m);
 
 		for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+			if (!crossWidget(_windowList[_currentWindow]->widgets[i]->obj, 0, 0,
+				_windowList[_currentWindow]->getWindowSize().x, _windowList[_currentWindow]->getWindowSize().y))continue;
 			_windowList[_currentWindow]->widgets[i]->mouseClick(x, y, SG_BUTTON_UP | SG_RIGHT_BUTTON);
 		}
 	}
@@ -498,6 +566,8 @@ void sgClick(int button, int state, int x, int y) {
 		_windowList[_currentWindow]->mouse->enqueue(m);
 
 		for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+			if (!crossWidget(_windowList[_currentWindow]->widgets[i]->obj, 0, 0,
+				_windowList[_currentWindow]->getWindowSize().x, _windowList[_currentWindow]->getWindowSize().y))continue;
 			_windowList[_currentWindow]->widgets[i]->mouseClick(x, y, SG_BUTTON_DOWN | SG_MIDDLE_BUTTON);
 		}
 	}
@@ -515,6 +585,8 @@ void sgClick(int button, int state, int x, int y) {
 		_windowList[_currentWindow]->mouse->enqueue(m);
 
 		for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+			if (!crossWidget(_windowList[_currentWindow]->widgets[i]->obj, 0, 0,
+				_windowList[_currentWindow]->getWindowSize().x, _windowList[_currentWindow]->getWindowSize().y))continue;
 			_windowList[_currentWindow]->widgets[i]->mouseClick(x, y, SG_BUTTON_UP | SG_MIDDLE_BUTTON);
 		}
 	}
@@ -535,6 +607,8 @@ void sgWheel(int dir) {
 	_windowList[_currentWindow]->mouse->enqueue(m);
 
 	for (unsigned int i = 0; i < _windowList[_currentWindow]->widgets.size(); i++) {
+		if (!crossWidget(_windowList[_currentWindow]->widgets[i]->obj, 0, 0,
+			_windowList[_currentWindow]->getWindowSize().x, _windowList[_currentWindow]->getWindowSize().y))continue;
 		_windowList[_currentWindow]->widgets[i]->mouseClick(x, y, m.z);
 	}
 }
@@ -1283,6 +1357,22 @@ bitMap *contrastPic(bitMap *src) {
 	free(prob);
 	return dst;
 }
+void alertInfo(const char *caption, const char *text, int mode, void(*result)(int)) {
+	int line = 1;
+	int idx = 0;
+
+	while (text[idx++]) {
+		if (text[idx] == '\n') {
+			line++;
+		}
+	}
+
+	createWindow(400, 20 * line + 80, caption, BIT_MAP, [](void *param) {
+		registerWidget(easyWidget(SG_LABEL, "__alert_text", 20, 20,
+			400, 20 * ((std::pair<string, int>*)param)->second + 80,
+			((std::pair<string, int>*)param)->first.data(), NULL));
+	}, []() {}, new std::pair<string, int>(text, line));
+}
 
 
 /*
@@ -1432,7 +1522,7 @@ void clearScreen() {
 int putPixel(int x, int y) {
 	return _windowList[_currentWindow]->putPixel(x, y);
 }
-RGB getPixel(int x, int y) {
+rgb getPixel(int x, int y) {
 	return _windowList[_currentWindow]->getPixel(x, y);
 }
 void putLine(int x1, int y1, int x2, int y2, int mode) {
@@ -1539,7 +1629,7 @@ int maskImage(int left, int top, bitMap *mask, bitMap *bitmap) {
 void funcMap(int x1, int x2, int y1, int y2, float(*vect)(float x)) {
 	return _windowList[_currentWindow]->funcMap(x1, x2, y1, y2, vect);
 }
-void floodFill(int x, int y, RGB c) {
+void floodFill(int x, int y, rgb c) {
 	return _windowList[_currentWindow]->floodFill(x, y, c);
 }
 void setBfc(int bgc, int fgc) {
@@ -1726,6 +1816,9 @@ void _clickDefault(widget *obj) {
 void _moveDefault(widget *obj, int x, int y) {
 
 }
+void _dragDefault(widget *obj, int x, int y) {
+
+}
 void _pressDefault(widget *obj, int k) {
 
 }
@@ -1741,7 +1834,10 @@ Widget *_getSub(Widget *root, const char *name) {
 		}
 		else {
 			Widget *tmp;
-			if (tmp = _getSub(iter, name)) {
+			if (iter->name == name) {
+				return iter;
+			}
+			else if (tmp = _getSub(iter, name)) {
 				return tmp;
 			}
 			else {
@@ -1764,9 +1860,10 @@ Widget *_getByName(const char *name) {
 				for (auto wnd : _windowList) {
 					if (!wnd)continue;
 					for (auto w : wnd->widgets) {
-						if (w->name == name)return w;
+						if (w->name == path)return w;
 					}
 				}
+				return NULL;
 			}
 			else {
 				return _getSub(parent, path.data());
@@ -1836,8 +1933,179 @@ Widget *_getByName(const char *name) {
 	}
 	return NULL;
 }
-Widget *_deleteSub(Widget *root, const char *name) {
-	return NULL;
+int _getIndex(const char *name) {
+	string path(name);
+	int sp1 = path.find('/');
+	int sp2 = path.find('\\');
+	if (sp1 < 0 && sp2 < 0) {
+		for (auto wnd : _windowList) {
+			if (!wnd)continue;
+			for (int i = 0; i < wnd->widgets.size(); i++) {
+				if (wnd->widgets[i]->name == path)return i;
+			}
+		}
+	}
+	else if (sp1 < 0) {
+		for (auto wnd : _windowList) {
+			if (!wnd)continue;
+			for (int i = 0; i < wnd->widgets.size(); i++) {
+				if (wnd->widgets[i]->name == path.substr(0, sp2))return i;
+			}
+		}
+	}
+	else if (sp2 < 0) {
+		for (auto wnd : _windowList) {
+			if (!wnd)continue;
+			for (int i = 0; i < wnd->widgets.size(); i++) {
+				if (wnd->widgets[i]->name == path.substr(0, sp1))return i;
+			}
+		}
+	}
+	else {
+		int sp = min(sp1, sp2);
+		for (auto wnd : _windowList) {
+			if (!wnd)continue;
+			for (int i = 0; i < wnd->widgets.size(); i++) {
+				if (wnd->widgets[i]->name == path.substr(0, sp))return i;
+			}
+		}
+	}
+}
+void _deleteSub(Widget *root, const char *name) {
+	Widget *iter = root->child;
+	Widget *prev = iter;
+	if (iter->name == name) {
+		iter->cease();
+		if (_windowList[iter->window]->backgroundRefresh)
+			_windowList[iter->window]->backgroundRefresh(
+				iter->pos.x, iter->pos.y, iter->pos.x + iter->size.x, iter->pos.y + iter->size.y);
+		root->child = iter->next;
+		delete iter;
+	}
+	else {
+		iter = iter->next;
+		while (iter) {
+			if (iter->name == name) {
+				iter->cease();
+				if (_windowList[iter->window]->backgroundRefresh)
+					_windowList[iter->window]->backgroundRefresh(
+						iter->pos.x, iter->pos.y, iter->pos.x + iter->size.x, iter->pos.y + iter->size.y);
+				prev->next = iter->next;
+				delete iter;
+				break;
+			}
+			iter = iter->next;
+			prev = prev->next;
+		}
+	}
+}
+void _deleteByName(const char *name) {
+	string path(name);
+
+	Widget *parent = NULL;
+	while (true) {
+		int sp1 = path.find('/');
+		int sp2 = path.find('\\');
+		if (sp1 < 0 && sp2 < 0) {
+			if (parent == NULL) {
+				for (auto wnd : _windowList) {
+					if (!wnd)continue;
+					for (auto &w : wnd->widgets) {
+						if (w->name == path) {
+							w->cease();
+							if (_windowList[w->window]->backgroundRefresh)
+								_windowList[w->window]->backgroundRefresh(
+									w->pos.x, w->pos.y, w->pos.x + w->size.x, w->pos.y + w->size.y);
+							delete w;
+							w = wnd->widgets.back();
+							wnd->widgets.pop_back();
+							return;
+						}
+					}
+				}
+				break;
+			}
+			else {
+				return _deleteSub(parent, path.data());
+			}
+		}
+		else if (sp1 < 0) {
+			if (parent == NULL) {
+				int found = 0;
+				for (auto wnd : _windowList) {
+					if (found)break;
+					if (!wnd)continue;
+					for (auto w : wnd->widgets) {
+						if (w->name == path.substr(0, sp2)) {
+							parent = w;
+							found = 1;
+							break;
+						}
+					}
+				}
+				if (!found)break;
+			}
+			else {
+				parent = _getSub(parent, path.substr(0, sp2).data());
+			}
+			path = path.substr(sp2 + 1);
+		}
+		else if (sp2 < 0) {
+			if (parent == NULL) {
+				int found = 0;
+				for (auto wnd : _windowList) {
+					if (found)break;
+					if (!wnd)continue;
+					for (auto w : wnd->widgets) {
+						if (w->name == path.substr(0, sp1)) {
+							parent = w;
+							found = 1;
+							break;
+						}
+					}
+				}
+				if (!found)break;
+			}
+			else {
+				parent = _getSub(parent, path.substr(0, sp1).data());
+			}
+			path = path.substr(sp1 + 1);
+		}
+		else {
+			int sp = min(sp1, sp2);
+			if (parent == NULL) {
+				int found = 0;
+				for (auto wnd : _windowList) {
+					if (found)break;
+					if (!wnd)continue;
+					for (auto w : wnd->widgets) {
+						if (w->name == path.substr(0, sp)) {
+							parent = w;
+							found = 1;
+							break;
+						}
+					}
+				}
+				if (!found)break;
+			}
+			else {
+				parent = _getSub(parent, path.substr(0, sp).data());
+			}
+			path = path.substr(sp + 1);
+		}
+	}
+}
+void _moveSub(Widget *root, int x, int y) {
+	Widget *iter = root->child;
+	while (iter) {
+		iter->obj->pos.x = iter->pos.x = iter->pos.x + x;
+		iter->obj->pos.y = iter->pos.y = iter->pos.y + y;
+		iter->valid = false;
+		if (iter->type == SG_COMBINED) {
+			_moveSub(iter, x, y);
+		}
+		iter = iter->next;
+	}
 }
 
 void setBackgroundRefresh(void(*refresh)(int left, int top, int right, int bottom)) {
@@ -1880,6 +2148,7 @@ widget newWidget(enum _control type, const char *name) {
 
 	ret.click = _clickDefault;
 	ret.move = _moveDefault;
+	ret.drag = _dragDefault;
 	ret.press = _pressDefault;
 
 	switch (type) {
@@ -2032,18 +2301,25 @@ widget easyCombinedWidget(const char *name, int x, int y, int width, int height,
 
 	va_start(ap, num);
 	iter = &parent;
-	iter->child = new widget(va_arg(ap, widget));
-	iter = iter->child;
-	while (--num) {
-		iter->next = new widget(va_arg(ap, widget));
-		iter = iter->next;
+	if (num > 0) {
+		iter->child = new widget(va_arg(ap, widget));
+		iter = iter->child;
+		while (--num) {
+			iter->next = new widget(va_arg(ap, widget));
+			iter = iter->next;
+		}
+	}
+	else {
+		iter->child = NULL;
 	}
 	va_end(ap);
 
 	return parent;
 }
 widget *getWidgetByName(const char *name) {
-	return _getByName(name)->obj;
+	Widget *tmp = _getByName(name);
+	if (tmp)return tmp->obj;
+	else return NULL;
 }
 SGvoid refreshWidget(const char *name) {
 	Widget *tmp = _getByName(name);
@@ -2065,6 +2341,7 @@ SGvoid refreshWidget(const char *name) {
 
 	tmp->click = tmp->obj->click;
 	tmp->move = tmp->obj->move;
+	tmp->drag = tmp->obj->drag;
 	tmp->press = tmp->obj->press;
 
 	tmp->update();
@@ -2110,22 +2387,8 @@ int ceaseWidget(const char *name) {
 	else return SG_OBJECT_NOT_FOUND;
 }
 int deleteWidget(const char *name) {
-	for (auto wnd : _windowList) {
-		if (!wnd)continue;
-		for (auto &w : wnd->widgets) {
-			if (w->name == name) {
-				w->cease();
-				if (_windowList[w->window]->backgroundRefresh)
-					_windowList[w->window]->backgroundRefresh(
-						w->pos.x, w->pos.y, w->pos.x + w->size.x, w->pos.y + w->size.y);
-				delete w;
-				w = wnd->widgets.back();
-				wnd->widgets.pop_back();
-				break;
-			}
-		}
-	}
-	return NULL;
+	_deleteByName(name);
+	return SG_NO_ERORR;
 }
 widget *getSubWidget(const char *parent, const char *sub) {
 	Widget *root = _getByName(parent);
@@ -2199,20 +2462,24 @@ void insertSubWidget(const char *parent, widget sub, int index) {
 	child->next = root->child;
 	root->child = child;
 }
-void deleteSubWidget(const char *parent, const char *name) {
-	Widget *root = _getByName(parent);
-	delete _deleteSub(root, name);
-}
 int moveWidget(const char *name, int xDelta, int yDelta) {
 	Widget *tmp = _getByName(name);
 	if (tmp) {
 		tmp->cease();
-		if (_windowList[tmp->window]->backgroundRefresh)
+		if (_windowList[tmp->window]->backgroundRefresh) {
+			int prev = _windowList[tmp->window]->drawingWidget;
+			_windowList[tmp->window]->drawingWidget = _getIndex(name);
 			_windowList[tmp->window]->backgroundRefresh(
 				tmp->pos.x, tmp->pos.y, tmp->pos.x + tmp->size.x, tmp->pos.y + tmp->size.y);
+			_windowList[tmp->window]->drawingWidget = prev;
+		}
+
 		tmp->obj->pos.x = tmp->pos.x = tmp->pos.x + xDelta;
 		tmp->obj->pos.y = tmp->pos.y = tmp->pos.y + yDelta;
 		tmp->valid = false;
+		if (tmp->type == SG_COMBINED) {
+			_moveSub(tmp, xDelta, yDelta);
+		}
 		tmp->show();
 		return SG_NO_ERORR;
 	}
