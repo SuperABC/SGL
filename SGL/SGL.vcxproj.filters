@@ -33,10 +33,10 @@
     <ClInclude Include="widget.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="winsgl.h">
+    <ClInclude Include="geometry.h">
       <Filter>头文件\pack</Filter>
     </ClInclude>
-    <ClInclude Include="geometry.h">
+    <ClInclude Include="winsgl.h">
       <Filter>头文件\pack</Filter>
     </ClInclude>
   </ItemGroup>

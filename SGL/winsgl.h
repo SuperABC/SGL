@@ -1074,6 +1074,8 @@ extern "C" {
 	*/
 	vec3f randHemi(vec3f normal);
 
+	vec3f phoneSpec(vec3f normal, vec3f wi, float ns);
+
 	/**
 	* An object means a sequence of triangles and their material which contains
 	* intersect function, hit function and shadow function.
@@ -1088,7 +1090,8 @@ extern "C" {
 	*/
 	SGint pushObject(int id, float *data, int length, int vertices,
 		float(*intersect)(int id, void *points, vec3f point, vec3f dir, vec3f *norm),
-		void(*hit)(int id, float dist, void *prd, vec3f norm), void(*shadow)(int id, void *prd));
+		void(*hit)(int id, float dist, void *prd, vec3f norm, void *param),
+		void(*shadow)(int id, void *prd), void *param);
 
 	/**
 	* This is the main tracing function. Use the light with starting point light and
@@ -1109,7 +1112,7 @@ extern "C" {
 	* @Param index of function pointer generate is the position of the drawing pixel.
 	* @Param size of function pointer generate is the size of the whole screen.
 	*/
-	SGvoid rtGenerate(int id, vec3i(*generate)(int id, vec2i index, vec2i size));
+	SGvoid rtGenerate(int id, vec3f(*generate)(int id, vec2i index, vec2i size));
 
 	/**
 	* Set the miss function. That is, when rtTrace function did not hit any objects,
@@ -1119,6 +1122,8 @@ extern "C" {
 	* @Param prd is the struct pointer that carries the ray data for accumulating.
 	*/
 	SGvoid rtMiss(int id, void(*miss)(int id, void *prd));
+
+	vec3f getGraphPixel(int id, int posX, int posY);
 
 
 	/*

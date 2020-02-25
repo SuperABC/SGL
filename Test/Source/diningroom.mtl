@@ -1,0 +1,50 @@
+newmtl scene1:bottle
+illum 4
+Kd 0.37 0.29 0.23
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+Ks 0.50 0.60 0.70
+Ns 20.00
+newmtl scene1:gold
+illum 4
+Kd 1.00 0.79 0.13
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+Ks 1.00 1.00 1.00
+Ns 100.00
+newmtl scene1:lamp
+illum 4
+Kd 1.00 0.29 0.03
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+Ks 1.00 1.00 1.00
+Ns 50.00
+newmtl scene1:light1
+illum 4
+Kd 0.00 0.00 0.00
+Ka 20.00 10.00 20.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl scene1:light3
+illum 4
+Kd 0.00 0.00 0.00
+Ka 20.00 20.00 10.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl scene1:silver
+illum 4
+Kd 0.27 0.29 0.23
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+Ks 1.00 1.00 1.00
+Ns 4000.00
+newmtl scene1:white
+illum 4
+Kd 0.40 0.40 0.40
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00

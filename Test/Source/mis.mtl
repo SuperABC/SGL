@@ -1,0 +1,68 @@
+newmtl mi:lambert7SG
+illum 4
+Kd 0.40 0.40 0.40
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl mi:light1
+illum 4
+Kd 0.00 0.00 0.00
+Ka 901.80 901.80 901.80
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl mi:light2
+illum 4
+Kd 0.00 0.00 0.00
+Ka 100.00 100.00 100.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl mi:light3
+illum 4
+Kd 0.00 0.00 0.00
+Ka 11.11 11.11 11.11
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl mi:light4
+illum 4
+Kd 0.00 0.00 0.00
+Ka 1.24 1.24 1.24
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl mi:light5
+illum 4
+Kd 0.00 0.00 0.00
+Ka 800.00 800.00 800.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+newmtl mi:plate_1
+illum 4
+Kd 0.07 0.09 0.13
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+Ks 1.00 1.00 1.00
+Ns 4000.00
+newmtl mi:plate_2
+illum 4
+Kd 0.07 0.09 0.13
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+Ks 1.00 1.00 1.00
+Ns 500.00
+newmtl mi:plate_3
+illum 4
+Kd 0.07 0.09 0.13
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+Ks 1.00 1.00 1.00
+Ns 100.00
+newmtl mi:plate_5
+illum 4
+Kd 0.07 0.09 0.13
+Ka 0.00 0.00 0.00
+Tf 1.00 1.00 1.00
+Ni 1.00
+Ks 1.00 1.00 1.00
+Ns 50.00
