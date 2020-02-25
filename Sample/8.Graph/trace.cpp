@@ -282,7 +282,7 @@ vec3f light_cbox() {
 }
 
 int frame = 1;
-vec3f generate(int id, vec2i index, vec2i size) {
+vec3i generate(int id, vec2i index, vec2i size) {
 	vec2f move = Vec2f(index.x + (float)random(100) / 100 - .5f, index.y + (float)random(100) / 100 - .5f);
 	vec2f pixel = Vec2f(2 * move.x / size.x - 1.f, 1.f - 2 * move.y / size.y);
 	vec3f eye = *(vec3f *)getPipelineVariable(id, "eye");
@@ -304,12 +304,13 @@ vec3f generate(int id, vec2i index, vec2i size) {
 		if (prd.depth > 10 || random(100) > 100 * max(prd.attenuation.x, max(prd.attenuation.y,prd.attenuation.z)))break;
 		if (prd.done)break;
 	}
+	rgb tmp = getPixel(index.x, index.y);
+	vec3f old = Vec3f(tmp.r / 255.f, tmp.g / 255.f, tmp.b / 255.f);
 	if (prd.result.x > 1.f)prd.result.x = 1.f;
 	if (prd.result.y > 1.f)prd.result.y = 1.f;
 	if (prd.result.z > 1.f)prd.result.z = 1.f;
-	vec3f old = getGraphPixel(id, index.x, index.y);
 	prd.result = prd.result / frame + old * (1 - 1.f / frame);
-	return Vec3f(prd.result.x, prd.result.y, prd.result.z);
+	return Vec3i(prd.result.x * 255, prd.result.y * 255, prd.result.z * 255);
 }
 float intersect(int id, void *pts, vec3f point, vec3f dir, vec3f *norm) {
 	vector<vector<vec3f>> points = *(vector<vector<vec3f>> *)pts;

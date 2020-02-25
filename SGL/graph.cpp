@@ -83,7 +83,7 @@ vec3i fsDefault(int id, int x, int y, float *data) {
 	color.z = (int)(data[5] * 255);
 	return color;
 }
-vec3f generateDefault(int id, vec2i index, vec2i size) {
+vec3i generateDefault(int id, vec2i index, vec2i size) {
 	vec2f pixel = Vec2f(2 * float(index.x) / size.x - 1.f, 1.f - 2 * float(index.y) / size.y);
 	vec3f eye = *(vec3f *)getPipelineVariable(id, "eye");
 	vec3f U = *(vec3f *)getPipelineVariable(id, "U");
@@ -94,7 +94,7 @@ vec3f generateDefault(int id, vec2i index, vec2i size) {
 	vec3f dir = pixel.x * U + pixel.y * V + W;
 	vec3f radiance = Vec3f(0, 0, 0);
 	rtTrace(id, 0, eye, dir, LIGHT_RAY, .001f, INFINITY, &radiance);
-	return Vec3f(radiance.x, radiance.y, radiance.z);
+	return Vec3i((int)(radiance.x * 255), (int)(radiance.y * 255), (int)(radiance.z * 255));
 }
 
 class Graph {
@@ -114,8 +114,6 @@ public:
 		vs = vsDefault;
 		fs = fsDefault;
 		generate = generateDefault;
-
-		hdr = vector<vector<vector<float>>>(bottom - top, vector<vector<float>>(right - left, vector<float>(3, 0.f)));
 	}
 	~Graph() {
 
@@ -157,14 +155,11 @@ public:
 			vec2i size = Vec2i(right - left, bottom - top);
 			for (int j = 0; j < size.y; j++) {
 				for (int i = 0; i < size.x; i++) {
-					vec3f radiance = generate(id, Vec2i(i, j), size);
+					vec3i radiance = generate(id, Vec2i(i, j), size);
 					int p = ((j + left) * tmpCanvas->sizeX + (i + top)) * 3;
-					hdr[j][i][0] = radiance.x;
-					hdr[j][i][1] = radiance.y;
-					hdr[j][i][2] = radiance.z;
-					tmpCanvas->data[p] = clamp(0, 255, (int)(hdr[j][i][0] * 255));
-					tmpCanvas->data[p + 1] = clamp(0, 255, (int)(hdr[j][i][1] * 255));
-					tmpCanvas->data[p + 2] = clamp(0, 255, (int)(hdr[j][i][2] * 255));
+					tmpCanvas->data[p] = clamp(0, 255, radiance.z);
+					tmpCanvas->data[p + 1] = clamp(0, 255, radiance.y);
+					tmpCanvas->data[p + 2] = clamp(0, 255, radiance.x);
 				}
 			}
 		}
@@ -388,9 +383,7 @@ public:
 
 //Members for just ray tracing.
 private:
-	vector<vector<vector<float>>>hdr;
-
-	vec3f(*generate)(int id, vec2i index, vec2i size);
+	vec3i(*generate)(int id, vec2i index, vec2i size);
 	void(*miss)(int id, void *prd);
 
 	class Aabb {
@@ -774,14 +767,11 @@ public:
 			}
 		}
 	}
-	void rtGenerate(vec3f(*generate)(int id, vec2i index, vec2i size)) {
+	void rtGenerate(vec3i(*generate)(int id, vec2i index, vec2i size)) {
 		this->generate = generate;
 	}
 	void rtMiss(void(*miss)(int id, void *prd)) {
 		this->miss = miss;
-	}
-	vec3f getPixel(int x, int y) {
-		return Vec3f(hdr[y][x][0], hdr[y][x][1], hdr[y][x][2]);
 	}
 };
 vector<Graph *> graphs;
@@ -869,14 +859,11 @@ SGint pushObject(int id, float *data, int length, int vertices,
 SGvoid rtTrace(int id, int obj, vec3f light, vec3f dir, int type, float tmin, float tmax, void *prd) {
 	graphs[id]->rtTrace(obj, light, dir, type, tmin, tmax, prd);
 }
-SGvoid rtGenerate(int id, vec3f(*generate)(int id, vec2i index, vec2i size)) {
+SGvoid rtGenerate(int id, vec3i(*generate)(int id, vec2i index, vec2i size)) {
 	graphs[id]->rtGenerate(generate);
 }
 SGvoid rtMiss(int id, void(*miss)(int id, void *prd)) {
 	graphs[id]->rtMiss(miss);
-}
-vec3f getGraphPixel(int id, int posX, int posY) {
-	return graphs[id]->getPixel(posX, posY);
 }
 
 
