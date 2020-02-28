@@ -300,16 +300,16 @@ vec3i generate(int id, vec2i index, vec2i size) {
 	prd.dir = dir;
 	while (1) {
 		rtTrace(id, 0, prd.start, prd.dir, LIGHT_RAY, .001f, INFINITY, &prd);
-		prd.result += prd.radiance;// *prd.attenuation;
-		if (prd.depth > 10 || random(100) > 100 * max(prd.attenuation.x, max(prd.attenuation.y,prd.attenuation.z)))break;
+		prd.result += prd.radiance;
+		if (prd.depth > 10)break;
+		if (prd.depth > 3 && random(100) > 100 * max(prd.attenuation.x, max(prd.attenuation.y, prd.attenuation.z)))break;
 		if (prd.done)break;
 	}
-	rgb tmp = getPixel(index.x, index.y);
-	vec3f old = Vec3f(tmp.r / 255.f, tmp.g / 255.f, tmp.b / 255.f);
-	if (prd.result.x > 1.f)prd.result.x = 1.f;
-	if (prd.result.y > 1.f)prd.result.y = 1.f;
-	if (prd.result.z > 1.f)prd.result.z = 1.f;
-	prd.result = prd.result / frame + old * (1 - 1.f / frame);
+	vec3f result = Vec3f(pow(prd.result.x / (prd.result.x + 1.f), 1 / 2.2f),
+		pow(prd.result.y / (prd.result.y + 1.f), 1 / 2.2f),
+		pow(prd.result.z / (prd.result.z + 1.f), 1 / 2.2f));
+	vec3f old = getGraphPixel(id, index.x, index.y);
+	prd.result = result / frame + old * (1 - 1.f / frame);
 	return Vec3i(prd.result.x * 255, prd.result.y * 255, prd.result.z * 255);
 }
 float intersect(int id, void *pts, vec3f point, vec3f dir, vec3f *norm) {
@@ -320,7 +320,7 @@ float intersect(int id, void *pts, vec3f point, vec3f dir, vec3f *norm) {
 			if (t < 0.001f)continue;
 			if (t < min) {
 				min = t;
-				if(norm)*norm = normalize(cross(triangle[1] - triangle[0], triangle[0] - triangle[2]));
+				if(norm)*norm = normalize(cross(triangle[0] - triangle[1], triangle[0] - triangle[2]));
 			}
 		}
 	}
@@ -350,8 +350,11 @@ void hit(int id, float dist, void *prd, vec3f norm, void *param) {
 			rtTrace(id, 0, hitPoint, ldir, SHADOW_RAY, .001f, ldist - .001f, &sprd);
 			if (!sprd.shadow) {
 				float ndl = abs(dot(norm, ldir));
-				perraydata->radiance = 6000 * perraydata->attenuation * ndl / (ldist * ldist) * Vec3f(10.f, 10.f, 10.f);
+				float ldl = abs(dot(Vec3f(0, 1, 0), ldir));
+				perraydata->radiance = 130 * 105 * perraydata->attenuation *
+					ndl * ldl / (ldist * ldist) * Vec3f(10.f, 10.f, 10.f) / PI;
 			}
+			perraydata->attenuation *= dot(norm, perraydata->dir) * 2;
 		}
 		else {
 			float prob = (length(mat->kd) / (length(mat->kd + mat->ks)));
@@ -368,11 +371,17 @@ void hit(int id, float dist, void *prd, vec3f norm, void *param) {
 				rtTrace(id, 0, hitPoint, ldir, SHADOW_RAY, .001f, ldist - .001f, &sprd);
 				if (!sprd.shadow) {
 					float ndl = abs(dot(norm, ldir));
-					perraydata->radiance = 6000 / prob * perraydata->attenuation * ndl / (ldist * ldist) * Vec3f(10.f, 10.f, 10.f);
+					float ldl = abs(dot(Vec3f(0, 1, 0), ldir));
+					perraydata->radiance = 130 * 105 * perraydata->attenuation *
+						ndl * ldl / (ldist * ldist) * Vec3f(10.f, 10.f, 10.f) / PI;
 				}
+				perraydata->attenuation *= dot(norm, perraydata->dir) * 2;
 			}
 			else {
-				vec3f spec = dot(-1 * perraydata->dir, norm) * 2 * norm + perraydata->dir;
+				perraydata->attenuation *= mat->ks;
+				vec3f wi = -1 * perraydata->dir;
+				if (dot(perraydata->dir, norm) > 0)perraydata->dir = randHemi(-1 * norm);
+				else perraydata->dir = randHemi(norm);
 
 				perraydata->radiance = Vec3f(0.f, 0.f, 0.f);
 				vec3f anchor = light_cbox();
@@ -381,15 +390,14 @@ void hit(int id, float dist, void *prd, vec3f norm, void *param) {
 				Sprd sprd;
 				rtTrace(id, 0, hitPoint, ldir, SHADOW_RAY, .001f, ldist - .001f, &sprd);
 				if (!sprd.shadow) {
-					perraydata->radiance = 1000 / (1 - prob) * perraydata->attenuation *mat->ks *
-						(mat->ns + 2) / (mat->ns + 1) * 4 * max(dot(ldir, (-1 * perraydata->dir + ldir) / 2), 0.0) / 
+					float ldl = abs(dot(Vec3f(0, 1, 0), ldir));
+					perraydata->radiance = 130 * 105 * perraydata->attenuation * ldl *
+						(mat->ns + 2) / (2 * PI) * pow(max(dot(norm, normalize((ldir + wi) / 2)), 0.f), mat->ns) *
 						(ldist * ldist) * Vec3f(10.f, 10.f, 10.f);
 				}
 
-				vec3f wi = -1 * perraydata->dir;
-				perraydata->dir = phoneSpec(norm, wi, mat->ns);
-				perraydata->attenuation *= mat->ks *
-					(mat->ns + 2) / (mat->ns + 1) * 4 * max(dot(perraydata->dir, (perraydata->dir + wi) / 2), 0.0);
+				perraydata->attenuation *= 
+					(mat->ns + 2) / (mat->ns + 1) * 4 * max(dot(perraydata->dir, normalize((perraydata->dir + wi) / 2)), 0.0);
 			}
 		}
 	}

@@ -114,6 +114,8 @@ public:
 		vs = vsDefault;
 		fs = fsDefault;
 		generate = generateDefault;
+
+		hdr = vector<vector<vector<float>>>(bottom - top, vector<vector<float>>(right - left, vector<float>(3, 0.f)));
 	}
 	~Graph() {
 
@@ -153,10 +155,14 @@ public:
 		}
 		else if (method == RAY_TRACER) {
 			vec2i size = Vec2i(right - left, bottom - top);
+#pragma omp parallel for
 			for (int j = 0; j < size.y; j++) {
 				for (int i = 0; i < size.x; i++) {
 					vec3i radiance = generate(id, Vec2i(i, j), size);
 					int p = ((j + left) * tmpCanvas->sizeX + (i + top)) * 3;
+					hdr[j][i][0] = radiance.x / 255.f;
+					hdr[j][i][1] = radiance.y / 255.f;
+					hdr[j][i][2] = radiance.z / 255.f;
 					tmpCanvas->data[p] = clamp(0, 255, radiance.z);
 					tmpCanvas->data[p + 1] = clamp(0, 255, radiance.y);
 					tmpCanvas->data[p + 2] = clamp(0, 255, radiance.x);
@@ -383,6 +389,8 @@ public:
 
 //Members for just ray tracing.
 private:
+	vector<vector<vector<float>>>hdr;
+
 	vec3i(*generate)(int id, vec2i index, vec2i size);
 	void(*miss)(int id, void *prd);
 
@@ -773,6 +781,9 @@ public:
 	void rtMiss(void(*miss)(int id, void *prd)) {
 		this->miss = miss;
 	}
+	vec3f getPixel(int x, int y) {
+		return Vec3f(hdr[y][x][0], hdr[y][x][1], hdr[y][x][2]);
+	}
 };
 vector<Graph *> graphs;
 extern int _currentWindow;
@@ -864,6 +875,9 @@ SGvoid rtGenerate(int id, vec3i(*generate)(int id, vec2i index, vec2i size)) {
 }
 SGvoid rtMiss(int id, void(*miss)(int id, void *prd)) {
 	graphs[id]->rtMiss(miss);
+}
+vec3f getGraphPixel(int id, int posX, int posY) {
+	return graphs[id]->getPixel(posX, posY);
 }
 
 

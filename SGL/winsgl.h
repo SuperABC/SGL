@@ -1114,6 +1114,9 @@ extern "C" {
 	*/
 	SGvoid rtGenerate(int id, vec3i(*generate)(int id, vec2i index, vec2i size));
 
+	vec3f getGraphPixel(int id, int posX, int posY);
+
+
 	/**
 	* Set the miss function. That is, when rtTrace function did not hit any objects,
 	* the miss function will be called.
