@@ -1076,6 +1076,10 @@ extern "C" {
 
 	vec3f phoneSpec(vec3f normal, vec3f wi, float ns);
 
+	vec3f glassSpec(vec3f normal, vec3f wi);
+
+	vec3f glassTrans(vec3f normal, vec3f wi, float ni);
+
 	/**
 	* An object means a sequence of triangles and their material which contains
 	* intersect function, hit function and shadow function.
@@ -1088,8 +1092,8 @@ extern "C" {
 	* @Param shadow is called to judge if current hit point is in shadow.
 	* @Return returns the object id.
 	*/
-	SGint pushObject(int id, float *data, int length, int vertices,
-		float(*intersect)(int id, void *points, vec3f point, vec3f dir, vec3f *norm),
+	SGint pushObject(int id, float *pos, float *norm, int length, int vertices,
+		float(*intersect)(int id, void *points, void *norms, vec3f point, vec3f dir, vec3f *norm),
 		void(*hit)(int id, float dist, void *prd, vec3f norm, void *param),
 		void(*shadow)(int id, void *prd), void *param);
 

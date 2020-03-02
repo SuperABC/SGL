@@ -93,7 +93,7 @@ vec3i generateDefault(int id, vec2i index, vec2i size) {
 	V = normalize(cross(U, W));
 	vec3f dir = pixel.x * U + pixel.y * V + W;
 	vec3f radiance = Vec3f(0, 0, 0);
-	rtTrace(id, 0, eye, dir, LIGHT_RAY, .001f, INFINITY, &radiance);
+	rtTrace(id, 0, eye, dir, LIGHT_RAY, .00001f, INFINITY, &radiance);
 	return Vec3i((int)(radiance.x * 255), (int)(radiance.y * 255), (int)(radiance.z * 255));
 }
 
@@ -588,20 +588,25 @@ private:
 			return (sign12 & sign23 & sign31) != 0;
 		}
 
-		vector<vector<vec3f>> inside(vector<vector<vec3f>> points) {
-			vector<vector<vec3f>> ret;
+		pair<vector<vector<vec3f>>, vector<vector<vec3f>>> inside(vector<vector<vec3f>> points, vector<vector<vec3f>> norms) {
+			pair<vector<vector<vec3f>>, vector<vector<vec3f>>> ret;
+			int pni = 0;
 			for (auto shape : points) {
+				auto sn = norms[pni++];
 				long v1_test, v2_test, v3_test;
 				if ((v1_test = face_plane(shape[0])) == 0) {
-					ret.push_back(shape);
+					ret.first.push_back(shape);
+					ret.second.push_back(sn);
 					continue;
 				};
 				if ((v2_test = face_plane(shape[1])) == 0) {
-					ret.push_back(shape);
+					ret.first.push_back(shape);
+					ret.second.push_back(sn);
 					continue;
 				};
 				if ((v3_test = face_plane(shape[2])) == 0) {
-					ret.push_back(shape);
+					ret.first.push_back(shape);
+					ret.second.push_back(sn);
 					continue;
 				};
 
@@ -619,17 +624,20 @@ private:
 
 				if ((v1_test & v2_test) == 0)
 					if (check_line(shape[0], shape[1], v1_test | v2_test)) {
-						ret.push_back(shape);
+						ret.first.push_back(shape);
+						ret.second.push_back(sn);
 						continue;
 					};
 				if ((v1_test & v3_test) == 0)
 					if (check_line(shape[0], shape[2], v1_test | v3_test)) {
-						ret.push_back(shape);
+						ret.first.push_back(shape);
+						ret.second.push_back(sn);
 						continue;
 					};
 				if ((v2_test & v3_test) == 0)
 					if (check_line(shape[1], shape[2], v2_test | v3_test)) {
-						ret.push_back(shape);
+						ret.first.push_back(shape);
+						ret.second.push_back(sn);
 						continue;
 					};
 
@@ -645,7 +653,8 @@ private:
 					hitpp.x = hitpp.y = hitpp.z = d / denom;
 					if (fabs(hitpp.x) <= 0.5)
 						if (point_triangle_intersection(hitpp, shape)) {
-							ret.push_back(shape);
+							ret.first.push_back(shape);
+							ret.second.push_back(sn);
 							continue;
 						};
 				}
@@ -653,7 +662,8 @@ private:
 					hitpn.z = -(hitpn.x = hitpn.y = d / denom);
 					if (fabs(hitpn.x) <= 0.5)
 						if (point_triangle_intersection(hitpn, shape)) {
-							ret.push_back(shape);
+							ret.first.push_back(shape);
+							ret.second.push_back(sn);
 							continue;
 						};
 				}
@@ -661,7 +671,8 @@ private:
 					hitnp.y = -(hitnp.x = hitnp.z = d / denom);
 					if (fabs(hitnp.x) <= 0.5)
 						if (point_triangle_intersection(hitnp, shape)) {
-							ret.push_back(shape);
+							ret.first.push_back(shape);
+							ret.second.push_back(sn);
 							continue;
 						};
 				}
@@ -669,19 +680,23 @@ private:
 					hitnn.y = hitnn.z = -(hitnn.x = d / denom);
 					if (fabs(hitnn.x) <= 0.5)
 						if (point_triangle_intersection(hitnn, shape)) {
-							ret.push_back(shape);
+							ret.first.push_back(shape);
+							ret.second.push_back(sn);
 							continue;
 						};
 				}
 			}
 			return ret;
 		}
-		void build(vector<vector<vec3f>> points, int depth) {
-			if (points.size() <= BVH_CAPACITY || depth > BVH_DEPTH)this->points = points;
+		void build(vector<vector<vec3f>> points, vector<vector<vec3f>> norms, int depth) {
+			if (points.size() <= BVH_CAPACITY || depth > BVH_DEPTH) {
+				this->points = points;
+				this->norms = norms;
+			}
 			else {
 				vec3f mid = aabb.middle();
 				for (int i = 0; i < 8; i++) {
-					childs.push_back(new Bvh(points, mid, aabb.vertex(i), depth+1));
+					childs.push_back(new Bvh(points, norms, mid, aabb.vertex(i), depth+1));
 				}
 			}
 		}
@@ -689,22 +704,25 @@ private:
 	public:
 		Aabb aabb;
 		vector<vector<vec3f>> points;
+		vector<vector<vec3f>> norms;
 		vector<Bvh*> childs;
 
-		Bvh(vector<vector<vec3f>> points) : aabb(points) {
-			build(points, 0);
+		Bvh(vector<vector<vec3f>> points, vector<vector<vec3f>> norms) : aabb(points) {
+			build(points, norms, 0);
 		}
-		Bvh(vector<vector<vec3f>> points, vec3f min, vec3f max, int depth) : aabb(min, max) {
-			build(inside(points), depth);
+		Bvh(vector<vector<vec3f>> points, vector<vector<vec3f>> norms, vec3f min, vec3f max, int depth) : aabb(min, max) {
+			auto pn = inside(points, norms);
+			build(pn.first, pn.second, depth);
 		}
 
-		vector<vector<vec3f>> intersect(vec3f o, vec3f d) {
-			vector<vector<vec3f>> res;
+		pair<vector<vector<vec3f>>, vector<vector<vec3f>>> intersect(vec3f o, vec3f d) {
+			pair<vector<vector<vec3f>>, vector<vector<vec3f>>> res;
 			if (!aabb.intersect(o, d))return res;
-			if (childs.size() == 0)return points;
+			if (childs.size() == 0)return { points, norms };
 			for (auto c : childs) {
-				vector<vector<vec3f>> tmp = c->intersect(o, d);
-				res.insert(res.end(), tmp.begin(), tmp.end());
+				auto tmp = c->intersect(o, d);
+				res.first.insert(res.first.end(), tmp.first.begin(), tmp.first.end());
+				res.second.insert(res.second.end(), tmp.second.begin(), tmp.second.end());
 			}
 			return res;
 		}
@@ -716,30 +734,35 @@ private:
 		Bvh *tree;
 
 		void *param;
-		float(*intersect)(int id, void *points, vec3f point, vec3f dir, vec3f *norm);
+		float(*intersect)(int id, void *points, void *norms, vec3f point, vec3f dir, vec3f *norm);
 		void(*hit)(int id, float dist, void *prd, vec3f norm, void *param);
 		void(*shadow)(int id, void *prd);
 
-		Object(vector<vector<vec3f>> p,
-			float(*intersect)(int id, void *points, vec3f point, vec3f dir, vec3f *norm),
+		Object(vector<vector<vec3f>> p, vector<vector<vec3f>> n,
+			float(*intersect)(int id, void *points, void *norms, vec3f point, vec3f dir, vec3f *norm),
 			void(*hit)(int id, float dist, void *prd, vec3f norm, void *param),
 			void(*shadow)(int id, void *prd), void *param) :
 			intersect(intersect), hit(hit), shadow(shadow), param(param) {
-			tree = new Bvh(p);
+			tree = new Bvh(p, n);
 		}
 	};
 	vector<Object *> objs;
+
 public:
-	int pushObject(float *data, int length, int vertices,
-		float(*intersect)(int id, void *points, vec3f point, vec3f dir, vec3f *norm),
+	int pushObject(float *pos, float *norm, int length, int vertices,
+		float(*intersect)(int id, void *points, void *norms, vec3f point, vec3f dir, vec3f *norm),
 		void(*hit)(int id, float dist, void *prd, vec3f norm, void *param),
 		void(*shadow)(int id, void *prd), void *param) {
-		vector<vector<vec3f>> p;
+		vector<vector<vec3f>> p, n;
 		for (int i = 0; i < length; i+=3) {
-			if ((i/3)%vertices == 0)p.push_back(vector<vec3f>());
-			p.back().push_back(Vec3f(data[i], data[i + 1], data[i + 2]));
+			if ((i / 3) % vertices == 0) {
+				p.push_back(vector<vec3f>());
+				n.push_back(vector<vec3f>());
+			}
+			p.back().push_back(Vec3f(pos[i], pos[i + 1], pos[i + 2]));
+			n.back().push_back(Vec3f(norm[i], norm[i + 1], norm[i + 2]));
 		}
-		objs.push_back(new Object(p, intersect, hit, shadow, param));
+		objs.push_back(new Object(p, n, intersect, hit, shadow, param));
 		return objs.size() - 1;
 	}
 	void rtTrace(int obj, vec3f light, vec3f dir, int type, float tmin, float tmax, void *prd) {
@@ -749,9 +772,9 @@ public:
 			vec3f norm, niter;
 			void *param = NULL;
 			for (auto &obj : objs) {
-				vector<vector<vec3f>> res = obj->tree->intersect(light, dir);
-				if (res.size() == 0)continue;
-				if (float t = obj->intersect(id, &res, light, dir, &niter)) {
+				auto res = obj->tree->intersect(light, dir);
+				if (res.first.size() == 0)continue;
+				if (float t = obj->intersect(id, &res.first, &res.second, light, dir, &niter)) {
 					if (t < tmin || t > tmax)continue;
 					if (t < min) {
 						min = t;
@@ -766,9 +789,9 @@ public:
 		}
 		else if (type == SHADOW_RAY) {
 			for (auto &obj : objs) {
-				vector<vector<vec3f>> res = obj->tree->intersect(light, dir);
-				if (res.size() == 0)continue;
-				if (float t = obj->intersect(id, &res, light, dir, NULL)) {
+				auto res = obj->tree->intersect(light, dir);
+				if (res.first.size() == 0)continue;
+				if (float t = obj->intersect(id, &res.first, &res.second, light, dir, NULL)) {
 					if (t <= tmin || t >= tmax)continue;
 					obj->shadow(id, prd);
 				}
@@ -858,14 +881,50 @@ vec3f randHemi(vec3f normal) {
 	return x * tangent + y * binormal + z * normal;
 }
 vec3f phoneSpec(vec3f normal, vec3f wi, float ns) {
-	return dot(wi, normal) * 2 * normal - wi;
-	//return randHemi(normal);
+	vec3f binormal, tangent;
+	if (fabs(normal.x) > fabs(normal.z)) {
+		binormal.x = -normal.y;
+		binormal.y = normal.x;
+		binormal.z = 0;
+	}
+	else {
+		binormal.x = 0;
+		binormal.y = -normal.z;
+		binormal.z = normal.y;
+	}
+	binormal = normalize(binormal);
+	tangent = cross(binormal, normal);
+
+	float p = random(1000) / 1000.f;
+	float phi = acos(pow(p, 1/(ns+1)));
+	float theta = random(1000) / 1000.f * 2 * PI;
+
+	float x = sin(phi) * cos(theta);
+	float y = sin(phi) * sin(theta);
+	float z = cos(phi);
+
+	vec3f h = x * tangent + y * binormal + z * normal;
+	vec3f o = dot(wi, h) * 2 * h - wi;
+	return o;
 }
-SGint pushObject(int id, float *data, int length, int vertices,
-	float(*intersect)(int id, void *points, vec3f point, vec3f dir, vec3f *norm),
+vec3f glassSpec(vec3f normal, vec3f wi) {
+	return dot(wi, normal) * 2 * normal - wi;
+}
+vec3f glassTrans(vec3f normal, vec3f wi, float ni) {
+	float sint = length(cross(normal, wi));
+	if (sint / ni >= 1)return glassSpec(normal, wi);
+	float ti = asin(sint / ni);
+	if (ti > PI / 2)ti = PI / 2 - .001f;
+
+	vec3f n = dot(wi, normal) * normal;
+	vec3f p = normalize(n - wi) * length(n) * tan(ti);
+	return normalize(-1 * n + p);
+}
+SGint pushObject(int id, float *pos, float *norm, int length, int vertices,
+	float(*intersect)(int id, void *points, void *norms, vec3f point, vec3f dir, vec3f *norm),
 	void(*hit)(int id, float dist, void *prd, vec3f norm, void *param),
 	void(*shadow)(int id, void *prd), void *param) {
-	return graphs[id]->pushObject(data, length, vertices, intersect, hit, shadow, param);
+	return graphs[id]->pushObject(pos, norm, length, vertices, intersect, hit, shadow, param);
 }
 SGvoid rtTrace(int id, int obj, vec3f light, vec3f dir, int type, float tmin, float tmax, void *prd) {
 	graphs[id]->rtTrace(obj, light, dir, type, tmin, tmax, prd);

@@ -171,7 +171,7 @@ public:
 				tmp2 = v2.find_first_of('/', tmp2) + 1;
 				tmp3 = v3.find_first_of('/', tmp3) + 1;
 				tmp4 = v4.find_first_of('/', tmp4) + 1;
-				if (norm.size() == 0 || tmp1 == 0 || tmp2 == 0 || tmp3 == 0 || tmp4 == 0) {
+				if (normal.size() == 0 || tmp1 == 0 || tmp2 == 0 || tmp3 == 0 || tmp4 == 0) {
 					int p1 = atoi(v1.c_str());
 					int p2 = atoi(v2.c_str());
 					int p3 = atoi(v3.c_str());
@@ -300,27 +300,43 @@ vec3i generate(int id, vec2i index, vec2i size) {
 	prd.dir = dir;
 	while (1) {
 		rtTrace(id, 0, prd.start, prd.dir, LIGHT_RAY, .001f, INFINITY, &prd);
+		if (prd.radiance.x < 0 || prd.radiance.y < 0 || prd.radiance.z < 0) {
+			alertInfo("", ("(" + std::to_string(index.x) + ", " + std::to_string(index.y) + ")").data(), 0, NULL);
+		}
 		prd.result += prd.radiance;
-		if (prd.depth > 10)break;
-		if (prd.depth > 3 && random(100) > 100 * max(prd.attenuation.x, max(prd.attenuation.y, prd.attenuation.z)))break;
 		if (prd.done)break;
+		if (prd.depth > 10)break;
+		float pcont = max(prd.attenuation.x, max(prd.attenuation.y, prd.attenuation.z));
+		if (prd.depth > 3 && random(100) > 100 * pcont)break;
+		if (pcont < .001f)break;
+		prd.attenuation /= pcont;
 	}
 	vec3f result = Vec3f(pow(prd.result.x / (prd.result.x + 1.f), 1 / 2.2f),
 		pow(prd.result.y / (prd.result.y + 1.f), 1 / 2.2f),
 		pow(prd.result.z / (prd.result.z + 1.f), 1 / 2.2f));
+	if (isnan(result.x) || isnan(result.y) || isnan(result.z))
+		alertInfo("nan", (to_string(index.x) + "," + to_string(index.y)).data(), 0, NULL);
 	vec3f old = getGraphPixel(id, index.x, index.y);
 	prd.result = result / frame + old * (1 - 1.f / frame);
 	return Vec3i(prd.result.x * 255, prd.result.y * 255, prd.result.z * 255);
 }
-float intersect(int id, void *pts, vec3f point, vec3f dir, vec3f *norm) {
+void miss(int id, void *prd) {
+	Prd *perraydata = (Prd *)prd;
+	perraydata->done = true;
+}
+
+float intersect(int id, void *pts, void *nms, vec3f point, vec3f dir, vec3f *norm) {
 	vector<vector<vec3f>> points = *(vector<vector<vec3f>> *)pts;
+	vector<vector<vec3f>> norms = *(vector<vector<vec3f>> *)nms;
 	float min = INFINITY;
+	int pni = 0;
 	for (auto &triangle : points) {
+		auto n = norms[pni++];
 		if (float t = intersectTriangle(triangle[0], triangle[1], triangle[2], point, dir)) {
 			if (t < 0.001f)continue;
 			if (t < min) {
 				min = t;
-				if(norm)*norm = normalize(cross(triangle[0] - triangle[1], triangle[0] - triangle[2]));
+				if (norm)*norm = geo::TriangleInterp(triangle, point + t*dir, n);
 			}
 		}
 	}
@@ -332,11 +348,14 @@ void hit(int id, float dist, void *prd, vec3f norm, void *param) {
 	Prd *perraydata = (Prd *)prd;
 	perraydata->depth++;
 
-	dist -= .001f;
 	vec3f hitPoint = perraydata->start + dist * perraydata->dir;
 	perraydata->start = hitPoint;
 
-	if (mat->ni == 1.f) {
+	if (!(mat->ka == Vec3f(0.f, 0.f, 0.f))) {
+		perraydata->done = true;
+		perraydata->radiance = Vec3f(10.f, 10.f, 10.f);
+	}
+	else if (mat->ni == 1.f) {
 		if (mat->ks == Vec3f(0.f, 0.f, 0.f)) {
 			perraydata->attenuation *= mat->kd;
 			if (dot(perraydata->dir, norm) > 0)perraydata->dir = randHemi(-1 * norm);
@@ -357,7 +376,7 @@ void hit(int id, float dist, void *prd, vec3f norm, void *param) {
 			perraydata->attenuation *= dot(norm, perraydata->dir) * 2;
 		}
 		else {
-			float prob = (length(mat->kd) / (length(mat->kd + mat->ks)));
+			float prob = square(mat->kd) / (square(mat->kd) + square(mat->ks));
 			if (random(1000) < (prob * 1000)) {
 				perraydata->attenuation *= mat->kd;
 				if (dot(perraydata->dir, norm) > 0)perraydata->dir = randHemi(-1 * norm);
@@ -380,8 +399,8 @@ void hit(int id, float dist, void *prd, vec3f norm, void *param) {
 			else {
 				perraydata->attenuation *= mat->ks;
 				vec3f wi = -1 * perraydata->dir;
-				if (dot(perraydata->dir, norm) > 0)perraydata->dir = randHemi(-1 * norm);
-				else perraydata->dir = randHemi(norm);
+				//perraydata->dir = dot(wi, norm) * norm * 2 - wi;
+				perraydata->dir = phoneSpec(norm, wi, mat->ns);
 
 				perraydata->radiance = Vec3f(0.f, 0.f, 0.f);
 				vec3f anchor = light_cbox();
@@ -392,32 +411,44 @@ void hit(int id, float dist, void *prd, vec3f norm, void *param) {
 				if (!sprd.shadow) {
 					float ldl = abs(dot(Vec3f(0, 1, 0), ldir));
 					perraydata->radiance = 130 * 105 * perraydata->attenuation * ldl *
-						(mat->ns + 2) / (2 * PI) * pow(max(dot(norm, normalize((ldir + wi) / 2)), 0.f), mat->ns) *
+						(mat->ns + 2) / (2 * PI) * pow(max(dot(norm, normalize(ldir + wi)), 0.f), mat->ns) /
 						(ldist * ldist) * Vec3f(10.f, 10.f, 10.f);
 				}
-
 				perraydata->attenuation *= 
-					(mat->ns + 2) / (mat->ns + 1) * 4 * max(dot(perraydata->dir, normalize((perraydata->dir + wi) / 2)), 0.0);
+					(mat->ns + 2) / (mat->ns + 1) * 4 * max(dot(perraydata->dir, normalize(perraydata->dir + wi)), 0.f);
 			}
 		}
 	}
 	else {
-		perraydata->start += perraydata->dir * .002f;
+		vec3f transdir;
+		float yitai, yitat;
+		if (dot(perraydata->dir, norm) < 0) {
+			yitai = 1;
+			yitat = mat->ni;
+			transdir = glassTrans(norm, -1 * perraydata->dir, mat->ni);
+		}
+		else {
+			yitai = mat->ni;
+			yitat = 1;
+			transdir = glassTrans(norm, -1 * perraydata->dir, 1.f / mat->ni);
+		}
+
+		float costi = abs(dot(-1 * perraydata->dir, norm));
+		float costt = abs(dot(transdir, norm));
+		float rp = (yitat * costi - yitai * costt) / (yitat * costi + yitai * costt);
+		float rt = (yitai * costi - yitat * costt) / (yitai * costi + yitat * costt);
+		float fr = (rp * rp + rt * rt) / 2;
+
 		perraydata->radiance = Vec3f(0.f, 0.f, 0.f);
+		if (random(1000) < (fr * 1000)) {
+			perraydata->dir = glassSpec(norm, -1 * perraydata->dir);
+		}
+		else perraydata->dir = transdir;
 	}
-}
-void emit(int id, float dist, void *prd, vec3f norm, void *param) {
-	Prd *perraydata = (Prd *)prd;
-	perraydata->done = true;
-	perraydata->radiance = Vec3f(10.f, 10.f, 10.f);
 }
 void shadow(int id, void *prd) {
 	Sprd *perraydata = (Sprd *)prd;
 	perraydata->shadow = true;
-}
-void miss(int id, void *prd) {
-	Prd *perraydata = (Prd *)prd;
-	perraydata->done = true;
 }
 
 void sgSetup() {
@@ -434,41 +465,11 @@ void sgSetup() {
 
 	m.load("source/cbox.obj");
 	for (auto i : m.corespond) {
-		pushObject(graphHandle, m.pos.data() + i.second.first, i.second.second, 3, intersect, hit, shadow, &m.mats[i.first]);
+		pushObject(graphHandle, m.pos.data() + i.second.first, m.norm.data() + i.second.first,
+			i.second.second, 3, intersect, hit, shadow, &m.mats[i.first]);
 	}
-	l.load("source/light.obj");
-	pushObject(graphHandle, l.pos.data(), l.pos.size(), 3, intersect, emit, shadow, NULL);
 }
 void sgLoop() {
 	refreshTracer(graphHandle);
 	frame++;
-
-	static int drag = 0;
-	static int prex, prey;
-	if (biosMouse(1).z) {
-		vec3i m = biosMouse(0);
-		if (m.z == (SG_LEFT_BUTTON | SG_BUTTON_DOWN)) {
-			drag = 1;
-			prex = m.x;
-			prey = m.y;
-		}
-		if (m.z == (SG_LEFT_BUTTON | SG_BUTTON_UP)) {
-			drag = 0;
-		}
-		if (m.z == SG_MIDDLE_BUTTON_UP) {
-			eye.zoom(0.8f);
-			frame = 1;
-		}
-		if (m.z == SG_MIDDLE_BUTTON_DOWN) {
-			eye.zoom(1.25f);
-			frame = 1;
-		}
-	}
-	if (drag) {
-		vec2i m = mousePos();
-		eye.rotate(0.01f * (m.x - prex), 0.01f * (m.y - prey));
-		prex = m.x;
-		prey = m.y;
-		frame = 1;
-	}
 }

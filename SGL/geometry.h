@@ -76,6 +76,9 @@ vec4f Vec4f(vec3f v, float w);
 vec2f normalize(vec2f v);
 vec3f normalize(vec3f v);
 vec4f normalize(vec4f v);
+float square(vec2f v);
+float square(vec3f v);
+float square(vec4f v);
 float length(vec2f v);
 float length(vec3f v);
 float length(vec4f v);
@@ -410,6 +413,7 @@ template<class vec> vec cross(const vec v1, const vec v2) {
 
 float intersectTriangle(const vec3f p0, const vec3f p1, const vec3f p2,
 	const vec3f line, const vec3f dir);
+vec3f TriangleInterp(vector<vec3f> shape, vec3f hit, vector<vec3f> data);
 
 }
 #endif
