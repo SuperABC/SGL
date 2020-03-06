@@ -412,8 +412,9 @@ template<class vec> vec cross(const vec v1, const vec v2) {
 }
 
 float intersectTriangle(const vec3f p0, const vec3f p1, const vec3f p2,
-	const vec3f line, const vec3f dir);
+	const vec3f line, const vec3f dir, float *beta, float *gamma);
 vec3f TriangleInterp(vector<vec3f> shape, vec3f hit, vector<vec3f> data);
+float linePointDist(vec3f start, vec3f dir, vec3f point);
 
 }
 #endif

@@ -1116,7 +1116,7 @@ extern "C" {
 	* @Param index of function pointer generate is the position of the drawing pixel.
 	* @Param size of function pointer generate is the size of the whole screen.
 	*/
-	SGvoid rtGenerate(int id, vec3i(*generate)(int id, vec2i index, vec2i size));
+	SGvoid rtGenerate(int id, vec3f(*generate)(int id, vec2i index, vec2i size));
 
 	vec3f getGraphPixel(int id, int posX, int posY);
 

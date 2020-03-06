@@ -1848,7 +1848,7 @@ Widget *_getSub(Widget *root, const char *name) {
 	}
 	return NULL;
 }
-Widget *_getByName(const char *name) {
+Widget *_getByName(const char *name, bool refresh = false) {
 	string path(name);
 
 	Widget *parent = NULL;
@@ -1866,6 +1866,7 @@ Widget *_getByName(const char *name) {
 				return NULL;
 			}
 			else {
+				if (refresh)parent->valid = false;
 				return _getSub(parent, path.data());
 			}
 		}
@@ -1885,6 +1886,7 @@ Widget *_getByName(const char *name) {
 				}
 			}
 			else {
+				if (refresh)parent->valid = false;
 				parent = _getSub(parent, path.substr(0, sp2).data());
 			}
 			path = path.substr(sp2 + 1);
@@ -1905,6 +1907,7 @@ Widget *_getByName(const char *name) {
 				}
 			}
 			else {
+				if (refresh)parent->valid = false;
 				parent = _getSub(parent, path.substr(0, sp1).data());
 			}
 			path = path.substr(sp1 + 1);
@@ -1926,6 +1929,7 @@ Widget *_getByName(const char *name) {
 				}
 			}
 			else {
+				if (refresh)parent->valid = false;
 				parent = _getSub(parent, path.substr(0, sp).data());
 			}
 			path = path.substr(sp + 1);
@@ -2322,7 +2326,7 @@ widget *getWidgetByName(const char *name) {
 	else return NULL;
 }
 SGvoid refreshWidget(const char *name) {
-	Widget *tmp = _getByName(name);
+	Widget *tmp = _getByName(name, true);
 	tmp->valid = false;
 
 	tmp->style = tmp->obj->style;
@@ -2398,6 +2402,8 @@ widget *getSubWidget(const char *parent, const char *sub) {
 }
 void insertSubWidget(const char *parent, widget sub, int index) {
 	Widget *root = _getByName(parent);
+	if (root->size.x < sub.pos.x + sub.size.x)root->size.x = root->obj->size.x = sub.pos.x + sub.size.x;
+	if (root->size.y < sub.pos.y + sub.size.y)root->size.y = root->obj->size.y = sub.pos.y + sub.size.y;
 	Widget *child = NULL;
 	switch (sub.type) {
 	case SG_BUTTON:

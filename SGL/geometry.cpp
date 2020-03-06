@@ -108,19 +108,19 @@ float length(vec4f v) {
 namespace geo {
 
 float intersectTriangle(const vec3f p0, const vec3f p1, const vec3f p2,
-	const vec3f line, const vec3f dir) {
-		vec3f e0 = p1 - p0;
-		vec3f e1 = p0 - p2;
-		vec3f n = cross(e1, e0);
-		vec3f e2 = (1.f / dot(n, dir) * (p0 - line));
-		vec3f i = cross(dir, e2);
+	const vec3f line, const vec3f dir, float *beta, float *gamma) {
+	vec3f e0 = p1 - p0;
+	vec3f e1 = p0 - p2;
+	vec3f n = cross(e1, e0);
+	vec3f e2 = (1.f / dot(n, dir) * (p0 - line));
+	vec3f i = cross(dir, e2);
 
-		float beta = dot(i, e1), gamma = dot(i, e0);
-		float t = dot(n, e2);
+	*beta = dot(i, e1), *gamma = dot(i, e0);
+	float t = dot(n, e2);
 
-		if (beta >= 0.f && gamma >= 0.f &&beta + gamma <= 1.f)
-			return t;
-		else return 0.f;
+	if (*beta >= 0.f && *gamma >= 0.f &&*beta + *gamma <= 1.f)
+		return t;
+	else return 0.f;
 }
 vec3f TriangleInterp(vector<vec3f> shape, vec3f hit, vector<vec3f> data) {
 	vec3f ret;
@@ -146,6 +146,11 @@ vec3f TriangleInterp(vector<vec3f> shape, vec3f hit, vector<vec3f> data) {
 		ret = (1 - u - v)*data[0] + u * data[1] + v * data[2];
 	}
 	return ret;
+}
+float linePointDist(vec3f start, vec3f dir, vec3f point) {
+	vec3f d = point - start;
+	dir = normalize(dir);
+	return length(cross(d, dir));
 }
 
 }

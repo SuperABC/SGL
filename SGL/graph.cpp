@@ -10,7 +10,7 @@
 #define TRIANGLE_VERTEX 3
 
 #define BVH_CAPACITY 16
-#define BVH_DEPTH 16
+#define BVH_DEPTH 8
 
 
 using std::string;
@@ -83,7 +83,7 @@ vec3i fsDefault(int id, int x, int y, float *data) {
 	color.z = (int)(data[5] * 255);
 	return color;
 }
-vec3i generateDefault(int id, vec2i index, vec2i size) {
+vec3f generateDefault(int id, vec2i index, vec2i size) {
 	vec2f pixel = Vec2f(2 * float(index.x) / size.x - 1.f, 1.f - 2 * float(index.y) / size.y);
 	vec3f eye = *(vec3f *)getPipelineVariable(id, "eye");
 	vec3f U = *(vec3f *)getPipelineVariable(id, "U");
@@ -94,7 +94,7 @@ vec3i generateDefault(int id, vec2i index, vec2i size) {
 	vec3f dir = pixel.x * U + pixel.y * V + W;
 	vec3f radiance = Vec3f(0, 0, 0);
 	rtTrace(id, 0, eye, dir, LIGHT_RAY, .00001f, INFINITY, &radiance);
-	return Vec3i((int)(radiance.x * 255), (int)(radiance.y * 255), (int)(radiance.z * 255));
+	return radiance;
 }
 
 class Graph {
@@ -158,14 +158,14 @@ public:
 #pragma omp parallel for
 			for (int j = 0; j < size.y; j++) {
 				for (int i = 0; i < size.x; i++) {
-					vec3i radiance = generate(id, Vec2i(i, j), size);
+					vec3f radiance = generate(id, Vec2i(i, j), size);
 					int p = ((j + left) * tmpCanvas->sizeX + (i + top)) * 3;
-					hdr[j][i][0] = radiance.x / 255.f;
-					hdr[j][i][1] = radiance.y / 255.f;
-					hdr[j][i][2] = radiance.z / 255.f;
-					tmpCanvas->data[p] = clamp(0, 255, radiance.z);
-					tmpCanvas->data[p + 1] = clamp(0, 255, radiance.y);
-					tmpCanvas->data[p + 2] = clamp(0, 255, radiance.x);
+					hdr[j][i][0] = radiance.x;
+					hdr[j][i][1] = radiance.y;
+					hdr[j][i][2] = radiance.z;
+					tmpCanvas->data[p] = clamp(0.f, 255.f, 255 * pow(radiance.z / (radiance.z + 1.f), 1 / 2.2f));
+					tmpCanvas->data[p + 1] = clamp(0.f, 255.f, 255 * pow(radiance.y / (radiance.y + 1.f), 1 / 2.2f));
+					tmpCanvas->data[p + 2] = clamp(0.f, 255.f, 255 * pow(radiance.x / (radiance.x + 1.f), 1 / 2.2f));
 				}
 			}
 		}
@@ -391,7 +391,7 @@ public:
 private:
 	vector<vector<vector<float>>>hdr;
 
-	vec3i(*generate)(int id, vec2i index, vec2i size);
+	vec3f(*generate)(int id, vec2i index, vec2i size);
 	void(*miss)(int id, void *prd);
 
 	class Aabb {
@@ -798,7 +798,7 @@ public:
 			}
 		}
 	}
-	void rtGenerate(vec3i(*generate)(int id, vec2i index, vec2i size)) {
+	void rtGenerate(vec3f(*generate)(int id, vec2i index, vec2i size)) {
 		this->generate = generate;
 	}
 	void rtMiss(void(*miss)(int id, void *prd)) {
@@ -929,7 +929,7 @@ SGint pushObject(int id, float *pos, float *norm, int length, int vertices,
 SGvoid rtTrace(int id, int obj, vec3f light, vec3f dir, int type, float tmin, float tmax, void *prd) {
 	graphs[id]->rtTrace(obj, light, dir, type, tmin, tmax, prd);
 }
-SGvoid rtGenerate(int id, vec3i(*generate)(int id, vec2i index, vec2i size)) {
+SGvoid rtGenerate(int id, vec3f(*generate)(int id, vec2i index, vec2i size)) {
 	graphs[id]->rtGenerate(generate);
 }
 SGvoid rtMiss(int id, void(*miss)(int id, void *prd)) {

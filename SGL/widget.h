@@ -1570,8 +1570,7 @@ public:
 	virtual void draw(int id) {
 		Widget *iter = child;
 		while (iter) {
-			if (!iter->visible || iter->valid ||
-				!crossWidget(iter->obj, pos.x, pos.y, pos.x + size.x, pos.y + size.y)) {
+			if (!iter->visible || iter->valid) {
 				iter = iter->next;
 				continue;
 			}
@@ -1589,10 +1588,6 @@ public:
 		__super::mouseMove(x, y);
 		Widget *iter = child;
 		while (iter) {
-			if (!crossWidget(iter->obj, pos.x, pos.y, pos.x + size.x, pos.y + size.y)) {
-				iter = iter->next;
-				continue;
-			}
 			iter->mouseMove(x, y);
 			iter = iter->next;
 		}
