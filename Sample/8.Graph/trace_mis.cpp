@@ -486,8 +486,8 @@ void hit(int id, float dist, void *prd, vec3f norm, void *param) {
 			perraydata->attenuation *= dot(norm, perraydata->dir) * 2;
 		}
 		else {
-			if (random(1000) < 600) {
-				perraydata->attenuation *= mat->kd;
+			if (random(1000) < 200) {
+				perraydata->attenuation *= mat->kd * 5;
 				if (dot(perraydata->dir, norm) > 0)perraydata->dir = randHemi(-1 * norm);
 				else perraydata->dir = randHemi(norm);
 
@@ -508,7 +508,7 @@ void hit(int id, float dist, void *prd, vec3f norm, void *param) {
 				perraydata->attenuation *= dot(norm, perraydata->dir) * 2;
 			}
 			else {
-				perraydata->attenuation *= mat->ks;
+				perraydata->attenuation *= mat->ks/2;
 				vec3f wi = -1 * perraydata->dir;
 				perraydata->dir = phoneSpec(norm, wi, mat->ns);
 
@@ -522,7 +522,7 @@ void hit(int id, float dist, void *prd, vec3f norm, void *param) {
 					if (!sprd.shadow) {
 						float ldl = abs(dot(light_normal(i, anchor), ldir));
 						perraydata->radiance += perraydata->attenuation * ldl *
-							pow(max(dot(ldir, glassSpec(norm, wi)), 0.f), mat->ns) /
+							mat->ns * pow(max(dot(ldir, glassSpec(norm, wi)), 0.f), mat->ns) /
 							(ldist * ldist) * light_radiance(i);
 					}
 				}
