@@ -496,7 +496,7 @@ void hit(int id, float dist, void *prd, vec3f norm, void *param) {
 			perraydata->dir = glassSpec(norm, -1 * perraydata->dir);
 		}
 		else perraydata->dir = transdir;
-		perraydata->depth--;
+		perraydata->depth = 0;
 	}
 }
 void shadow(int id, void *prd) {
