@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2019, Super GP Individual.
+* Copyright (c) 2016-2020, Super GP Individual.
 * All Rights Reserved.
 *
 * Permission to use, copy, modify, and distribute this library for any
@@ -19,7 +19,7 @@
 
 //SGL standard macros.
 
-#define _SGL_V500
+#define _SGL_V501
 #define _CRT_SECURE_NO_WARNINGS
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
@@ -1074,10 +1074,27 @@ extern "C" {
 	*/
 	vec3f randHemi(vec3f normal);
 
+	/**
+	* Select one direction from the hemisphere using phone reflection model.
+	* @Param normal is the hemisphere normal.
+	* @Param wi is the income light.
+	* @Param ns is the specular parameter.
+	*/
 	vec3f phoneSpec(vec3f normal, vec3f wi, float ns);
 
+	/**
+	* Return the reflect direction of income light.
+	* @Param normal is the hemisphere normal.
+	* @Param wi is the income light.
+	*/
 	vec3f glassSpec(vec3f normal, vec3f wi);
 
+	/**
+	* Return the transmit direction of income light.
+	* @Param normal is the hemisphere normal.
+	* @Param wi is the income light.
+	* @Param ni is the refract index.
+	*/
 	vec3f glassTrans(vec3f normal, vec3f wi, float ni);
 
 	/**
@@ -1118,9 +1135,6 @@ extern "C" {
 	*/
 	SGvoid rtGenerate(int id, vec3f(*generate)(int id, vec2i index, vec2i size));
 
-	vec3f getGraphPixel(int id, int posX, int posY);
-
-
 	/**
 	* Set the miss function. That is, when rtTrace function did not hit any objects,
 	* the miss function will be called.
@@ -1130,6 +1144,11 @@ extern "C" {
 	*/
 	SGvoid rtMiss(int id, void(*miss)(int id, void *prd));
 
+	/**
+	* Get the float color of one pixel.
+	* @Param id is the graph id.
+	* @Param posX and posY is the pixel coordinate.
+	*/
 	vec3f getGraphPixel(int id, int posX, int posY);
 
 

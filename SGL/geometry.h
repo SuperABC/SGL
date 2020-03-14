@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2019, Super GP Individual.
+* Copyright (c) 2016-2020, Super GP Individual.
 * All Rights Reserved.
 *
 * Permission to use, copy, modify, and distribute this library for any
@@ -63,7 +63,7 @@ vec4f Vec4f(float x, float y, float z, float w);
 #include <istream>
 #include <vector>
 
-#define VECN(Tv) (sizeof(Tv) /sizeof(Tv::x))
+#define __VECN(_Tv) (sizeof(_Tv) /sizeof(_Tv::x))
 
 
 using std::vector;
@@ -114,16 +114,16 @@ public:
 		for (int i = 0; i < row; i++)
 			memcpy(data[i].data(), d + i * row,  col * sizeof(Tv));
 	}
-	template <class Tv> Matrix(Tv v, int l = VECN(Tv)) : Matrix(l, 1) {
+	template <class Tv> Matrix(Tv v, int l = __VECN(Tv)) : Matrix(l, 1) {
 		operator[](0)[0] = (&v.x)[0];
 		operator[](1)[0] = (&v.x)[1];
 		if (l > 2)
-			if(VECN(Tv)>2)
+			if(__VECN(Tv)>2)
 				operator[](2)[0] = (&v.x)[2];
 			else
 				operator[](2)[0] = 0;
 		if (l > 3)
-			if (VECN(Tv) > 3)
+			if (__VECN(Tv) > 3)
 				operator[](3)[0] = (&v.x)[3];
 			else
 				operator[](3)[0] = 0;
@@ -153,12 +153,12 @@ public:
 
 	template <class vec> vec row(int row) {
 		vec ret;
-		for (int i = 0; i < VECN(vec); i++)(&ret.x)[i] = data[row][i];
+		for (int i = 0; i < __VECN(vec); i++)(&ret.x)[i] = data[row][i];
 		return ret;
 	}
 	template <class vec> vec col(int col) {
 		vec ret;
-		for (int i = 0; i < VECN(vec); i++)(&ret.x)[i] = data[i][col];
+		for (int i = 0; i < __VECN(vec); i++)(&ret.x)[i] = data[i][col];
 		return ret;
 	}
 	inline vector<T> &operator[](const int row) {
@@ -267,83 +267,83 @@ template<class vec> vec operator+(const vec v1, const vec v2) {
 	vec ret;
 	(&ret.x)[0] = (&v1.x)[0] + (&v2.x)[0];
 	(&ret.x)[1] = (&v1.x)[1] + (&v2.x)[1];
-	if (VECN(vec) > 2)(&ret.x)[2] = (&v1.x)[2] + (&v2.x)[2];
-	if (VECN(vec) > 3)(&ret.x)[3] = (&v1.x)[3] + (&v2.x)[3];
+	if (__VECN(vec) > 2)(&ret.x)[2] = (&v1.x)[2] + (&v2.x)[2];
+	if (__VECN(vec) > 3)(&ret.x)[3] = (&v1.x)[3] + (&v2.x)[3];
 	return ret;
 }
 template<class vec> vec &operator+=(vec &v1, const vec v2) {
 	(&v1.x)[0] += (&v2.x)[0];
 	(&v1.x)[1] += (&v2.x)[1];
-	if (VECN(vec) > 2)(&v1.x)[2] +=(&v2.x)[2];
-	if (VECN(vec) > 3)(&v1.x)[3] += (&v2.x)[3];
+	if (__VECN(vec) > 2)(&v1.x)[2] +=(&v2.x)[2];
+	if (__VECN(vec) > 3)(&v1.x)[3] += (&v2.x)[3];
 	return v1;
 }
 template<class vec> vec operator-(const vec v1, const vec v2) {
 	vec ret;
 	(&ret.x)[0] = (&v1.x)[0] - (&v2.x)[0];
 	(&ret.x)[1] = (&v1.x)[1] - (&v2.x)[1];
-	if (VECN(vec) > 2)(&ret.x)[2] = (&v1.x)[2] - (&v2.x)[2];
-	if (VECN(vec) > 3)(&ret.x)[3] = (&v1.x)[3] - (&v2.x)[3];
+	if (__VECN(vec) > 2)(&ret.x)[2] = (&v1.x)[2] - (&v2.x)[2];
+	if (__VECN(vec) > 3)(&ret.x)[3] = (&v1.x)[3] - (&v2.x)[3];
 	return ret;
 }
 template<class vec> vec &operator-=(vec &v1, const vec v2) {
 	(&v1.x)[0] -= (&v2.x)[0];
 	(&v1.x)[1] -= (&v2.x)[1];
-	if (VECN(vec) > 2)(&v1.x)[2] -= (&v2.x)[2];
-	if (VECN(vec) > 3)(&v1.x)[3] -= (&v2.x)[3];
+	if (__VECN(vec) > 2)(&v1.x)[2] -= (&v2.x)[2];
+	if (__VECN(vec) > 3)(&v1.x)[3] -= (&v2.x)[3];
 	return v1;
 }
 template<class vec> vec operator*(const vec v, const float s) {
 	vec ret;
 	(&ret.x)[0] = (&v.x)[0] * s;
 	(&ret.x)[1] = (&v.x)[1] * s;
-	if (VECN(vec) > 2)(&ret.x)[2] = (&v.x)[2] * s;
-	if (VECN(vec) > 3)(&ret.x)[3] = (&v.x)[3] * s;
+	if (__VECN(vec) > 2)(&ret.x)[2] = (&v.x)[2] * s;
+	if (__VECN(vec) > 3)(&ret.x)[3] = (&v.x)[3] * s;
 	return ret;
 }
 template<class vec> vec operator*(const float s, const vec v) {
 	vec ret;
 	(&ret.x)[0] = (&v.x)[0] * s;
 	(&ret.x)[1] = (&v.x)[1] * s;
-	if (VECN(vec) > 2)(&ret.x)[2] = (&v.x)[2] * s;
-	if (VECN(vec) > 3)(&ret.x)[3] = (&v.x)[3] * s;
+	if (__VECN(vec) > 2)(&ret.x)[2] = (&v.x)[2] * s;
+	if (__VECN(vec) > 3)(&ret.x)[3] = (&v.x)[3] * s;
 	return ret;
 }
 template<class vec> vec &operator*=(vec &v, const float s) {
 	(&v.x)[0] *= s;
 	(&v.x)[1] *= s;
-	if (VECN(vec) > 2)(&v.x)[2] *= s;
-	if (VECN(vec) > 3)(&v.x)[3] *= s;
+	if (__VECN(vec) > 2)(&v.x)[2] *= s;
+	if (__VECN(vec) > 3)(&v.x)[3] *= s;
 	return v;
 }
 template<class vec> vec operator*(const vec v1, const vec v2) {
 	vec ret;
 	(&ret.x)[0] = (&v1.x)[0] * (&v2.x)[0];
 	(&ret.x)[1] = (&v1.x)[1] * (&v2.x)[1];
-	if (VECN(vec) > 2)(&ret.x)[2] = (&v1.x)[2] * (&v2.x)[2];
-	if (VECN(vec) > 3)(&ret.x)[3] = (&v1.x)[3] * (&v2.x)[3];
+	if (__VECN(vec) > 2)(&ret.x)[2] = (&v1.x)[2] * (&v2.x)[2];
+	if (__VECN(vec) > 3)(&ret.x)[3] = (&v1.x)[3] * (&v2.x)[3];
 	return ret;
 }
 template<class vec> vec &operator*=(vec &v1, const vec v2) {
 	(&v1.x)[0] *= (&v2.x)[0];
 	(&v1.x)[1] *= (&v2.x)[1];
-	if (VECN(vec) > 2)(&v1.x)[2] *= (&v2.x)[2];
-	if (VECN(vec) > 3)(&v1.x)[3] *= (&v2.x)[3];
+	if (__VECN(vec) > 2)(&v1.x)[2] *= (&v2.x)[2];
+	if (__VECN(vec) > 3)(&v1.x)[3] *= (&v2.x)[3];
 	return v1;
 }
 template<class vec> vec operator/(const vec v, const float s) {
 	vec ret;
 	(&ret.x)[0] = (&v.x)[0] / s;
 	(&ret.x)[1] = (&v.x)[1] / s;
-	if (VECN(vec) > 2)(&ret.x)[2] = (&v.x)[2] / s;
-	if (VECN(vec) > 3)(&ret.x)[3] = (&v.x)[3] / s;
+	if (__VECN(vec) > 2)(&ret.x)[2] = (&v.x)[2] / s;
+	if (__VECN(vec) > 3)(&ret.x)[3] = (&v.x)[3] / s;
 	return ret;
 }
 template<class vec> vec &operator/=(vec &v, const float s) {
 	(&v.x)[0] /= s;
 	(&v.x)[1] /= s;
-	if (VECN(vec) > 2)(&v.x)[2] /= s;
-	if (VECN(vec) > 3)(&v.x)[3] /= s;
+	if (__VECN(vec) > 2)(&v.x)[2] /= s;
+	if (__VECN(vec) > 3)(&v.x)[3] /= s;
 	return v;
 }
 template<class vec> vec operator/(const vec v1, const vec v2) {
@@ -352,10 +352,10 @@ template<class vec> vec operator/(const vec v1, const vec v2) {
 	else (&ret.x)[0] = 0;
 	if ((&v2.x)[1])(&ret.x)[1] = (&v1.x)[1] / (&v2.x)[1];
 	else (&ret.x)[1] = 0;
-	if (VECN(vec) > 2)
+	if (__VECN(vec) > 2)
 		if ((&v2.x)[2])(&ret.x)[2] = (&v1.x)[2] / (&v2.x)[2];
 		else (&ret.x)[2] = 0;
-	if (VECN(vec) > 3)
+	if (__VECN(vec) > 3)
 		if ((&v2.x)[3])(&ret.x)[3] = (&v1.x)[3] / (&v2.x)[3];
 		else (&ret.x)[3] = 0;
 	return ret;
@@ -365,10 +365,10 @@ template<class vec> vec &operator/=(vec &v1, const vec v2) {
 	else (&v1.x)[0] = 0;
 	if ((&v2.x)[1])(&v1.x)[1] /= (&v2.x)[1];
 	else (&v1.x)[1] = 0;
-	if (VECN(vec) > 2)
+	if (__VECN(vec) > 2)
 		if ((&v2.x)[2])(&v1.x)[2] /= (&v2.x)[2];
 		else (&v1.x)[2] = 0;
-	if (VECN(vec) > 3)
+	if (__VECN(vec) > 3)
 		if ((&v2.x)[3])(&v1.x)[3] /= (&v2.x)[3];
 		else (&v1.x)[3] = 0;
 	return v1;
@@ -376,22 +376,22 @@ template<class vec> vec &operator/=(vec &v1, const vec v2) {
 template<class vec> bool operator<(const vec v1, const vec v2) {
 	if ((&v1.x)[0] > (&v2.x)[0])return false;
 	if ((&v1.x)[1] > (&v2.x)[1])return false;
-	if (VECN(vec) > 2)if ((&v1.x)[2] > (&v2.x)[2])return false;
-	if (VECN(vec) > 3)if ((&v1.x)[3] > (&v2.x)[3])return false;
+	if (__VECN(vec) > 2)if ((&v1.x)[2] > (&v2.x)[2])return false;
+	if (__VECN(vec) > 3)if ((&v1.x)[3] > (&v2.x)[3])return false;
 	return true;
 }
 template<class vec> bool operator>(const vec v1, const vec v2) {
 	if ((&v1.x)[0] < (&v2.x)[0])return false;
 	if ((&v1.x)[1] < (&v2.x)[1])return false;
-	if (VECN(vec) > 2)if ((&v1.x)[2] < (&v2.x)[2])return false;
-	if (VECN(vec) > 3)if ((&v1.x)[3] < (&v2.x)[3])return false;
+	if (__VECN(vec) > 2)if ((&v1.x)[2] < (&v2.x)[2])return false;
+	if (__VECN(vec) > 3)if ((&v1.x)[3] < (&v2.x)[3])return false;
 	return true;
 }
 template<class vec> bool operator==(const vec v1, const vec v2) {
 	if ((&v1.x)[0] != (&v2.x)[0])return false;
 	if ((&v1.x)[1] != (&v2.x)[1])return false;
-	if (VECN(vec) > 2)if ((&v1.x)[2] != (&v2.x)[2])return false;
-	if (VECN(vec) > 3)if ((&v1.x)[3] != (&v2.x)[3])return false;
+	if (__VECN(vec) > 2)if ((&v1.x)[2] != (&v2.x)[2])return false;
+	if (__VECN(vec) > 3)if ((&v1.x)[3] != (&v2.x)[3])return false;
 	return true;
 }
 
@@ -399,8 +399,8 @@ template<class vec> float dot(const vec v1, const vec v2) {
 	float ret = 0.f;
 	ret += (&v1.x)[0] * (&v2.x)[0];
 	ret += (&v1.x)[1] * (&v2.x)[1];
-	if (VECN(vec) > 2)ret += (&v1.x)[2] * (&v2.x)[2];
-	if (VECN(vec) > 3)ret += (&v1.x)[3] * (&v2.x)[3];
+	if (__VECN(vec) > 2)ret += (&v1.x)[2] * (&v2.x)[2];
+	if (__VECN(vec) > 3)ret += (&v1.x)[3] * (&v2.x)[3];
 	return ret;
 }
 template<class vec> vec cross(const vec v1, const vec v2) {
@@ -413,7 +413,6 @@ template<class vec> vec cross(const vec v1, const vec v2) {
 
 float intersectTriangle(const vec3f p0, const vec3f p1, const vec3f p2,
 	const vec3f line, const vec3f dir, float *beta, float *gamma);
-vec3f TriangleInterp(vector<vec3f> shape, vec3f hit, vector<vec3f> data);
 float linePointDist(vec3f start, vec3f dir, vec3f point);
 
 }

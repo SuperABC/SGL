@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2019, Super GP Individual.
+* Copyright (c) 2016-2020, Super GP Individual.
 * All Rights Reserved.
 *
 * Permission to use, copy, modify, and distribute this library for any

@@ -122,31 +122,6 @@ float intersectTriangle(const vec3f p0, const vec3f p1, const vec3f p2,
 		return t;
 	else return 0.f;
 }
-vec3f TriangleInterp(vector<vec3f> shape, vec3f hit, vector<vec3f> data) {
-	vec3f ret;
-	if ((shape[1].y - shape[0].y) * (shape[2].x - shape[0].x) != (shape[2].y - shape[0].y) * (shape[1].x - shape[0].x)) {
-		float u = -((shape[0].x - hit.x)*(shape[2].y - shape[0].y) - (shape[0].y - hit.y)*(shape[2].x - shape[0].x)) /
-			((shape[1].x - shape[0].x)*(shape[2].y - shape[0].y) - (shape[1].y - shape[0].y)*(shape[2].x - shape[0].x));
-		float v = -((shape[0].x - hit.x)*(shape[1].y - shape[0].y) - (shape[0].y - hit.y)*(shape[1].x - shape[0].x)) /
-			((shape[2].x - shape[0].x)*(shape[1].y - shape[0].y) - (shape[2].y - shape[0].y)*(shape[1].x - shape[0].x));
-		ret = (1 - u - v)*data[0] + u * data[1] + v * data[2];
-	}
-	else if((shape[1].z - shape[0].z) * (shape[2].y - shape[0].y) != (shape[2].z - shape[0].z) * (shape[1].y - shape[0].y)) {
-		float u = -((shape[0].y - hit.y)*(shape[2].z - shape[0].z) - (shape[0].z - hit.z)*(shape[2].y - shape[0].y)) /
-			((shape[1].y - shape[0].y)*(shape[2].z - shape[0].z) - (shape[1].z - shape[0].z)*(shape[2].y - shape[0].y));
-		float v = -((shape[0].y - hit.y)*(shape[1].z - shape[0].z) - (shape[0].z - hit.z)*(shape[1].y - shape[0].y)) /
-			((shape[2].y - shape[0].y)*(shape[1].z - shape[0].z) - (shape[2].z - shape[0].z)*(shape[1].y - shape[0].y));
-		ret = (1 - u - v)*data[0] + u * data[1] + v * data[2];
-	}
-	else {
-		float u = -((shape[0].z - hit.z)*(shape[2].x - shape[0].x) - (shape[0].x - hit.x)*(shape[2].z - shape[0].z)) /
-			((shape[1].z - shape[0].z)*(shape[2].x - shape[0].x) - (shape[1].x - shape[0].x)*(shape[2].z - shape[0].z));
-		float v = -((shape[0].z - hit.z)*(shape[1].x - shape[0].x) - (shape[0].x - hit.x)*(shape[1].z - shape[0].z)) /
-			((shape[2].z - shape[0].z)*(shape[1].x - shape[0].x) - (shape[2].x - shape[0].x)*(shape[1].z - shape[0].z));
-		ret = (1 - u - v)*data[0] + u * data[1] + v * data[2];
-	}
-	return ret;
-}
 float linePointDist(vec3f start, vec3f dir, vec3f point) {
 	vec3f d = point - start;
 	dir = normalize(dir);
