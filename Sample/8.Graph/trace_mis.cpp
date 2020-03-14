@@ -527,7 +527,7 @@ void hit(int id, float dist, void *prd, vec3f norm, void *param) {
 					}
 				}
 				perraydata->attenuation *=
-					(mat->ns + 2) / (mat->ns + 1) * 4 * max(dot(perraydata->dir, normalize(perraydata->dir + wi)), 0.f);
+					mat->ns * pow(max(dot(perraydata->dir, glassSpec(norm, wi)), 0.f), mat->ns);
 			}
 		}
 	}

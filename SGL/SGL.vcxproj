@@ -83,10 +83,12 @@
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(Configuration)\</IntDir>
     <TargetName>winsgl</TargetName>
-    <OutDir>$(SolutionDir)\Pack\lib\</OutDir>
+    <OutDir>$(SolutionDir)\Pack\lib\x86\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)\Pack\lib\x64\</OutDir>
+    <TargetName>winsgl</TargetName>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>

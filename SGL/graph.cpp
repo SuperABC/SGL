@@ -9,8 +9,8 @@
 
 #define TRIANGLE_VERTEX 3
 
-#define BVH_CAPACITY 16
-#define BVH_DEPTH 8
+#define BVH_CAPACITY 10
+#define BVH_DEPTH 6
 
 
 using std::string;
@@ -398,7 +398,7 @@ private:
 	public:
 		vec3f min, max;
 
-		Aabb(vector<vector<vec3f>> p) {
+		Aabb(vector<vector<vec3f>> &p) {
 			min = Vec3f(INFINITY, INFINITY, INFINITY);
 			max = Vec3f(-INFINITY, -INFINITY, -INFINITY);
 			for (auto points : p) {
@@ -547,7 +547,7 @@ private:
 				if (check_point(p1, p2, (-0.5f - p1.z) / (p2.z - p1.z), 0x1f)) return true;
 			return false;
 		}
-		bool point_triangle_intersection(vec3f p, vector<vec3f> t) {
+		bool point_triangle_intersection(vec3f &p, vector<vec3f> &t) {
 			long sign12, sign23, sign31;
 			vec3f vect12, vect23, vect31, vect1h, vect2h, vect3h;
 			vec3f cross12_1p, cross23_2p, cross31_3p;
@@ -588,25 +588,22 @@ private:
 			return (sign12 & sign23 & sign31) != 0;
 		}
 
-		pair<vector<vector<vec3f>>, vector<vector<vec3f>>> inside(vector<vector<vec3f>> points, vector<vector<vec3f>> norms) {
-			pair<vector<vector<vec3f>>, vector<vector<vec3f>>> ret;
+		vector<int> inside(vector<vector<vec3f>> &points, vector<int> &indices) {
+			vector<int> ret;
 			int pni = 0;
-			for (auto shape : points) {
-				auto sn = norms[pni++];
+			for (auto idx : indices) {
+				auto shape = points[idx];
 				long v1_test, v2_test, v3_test;
 				if ((v1_test = face_plane(shape[0])) == 0) {
-					ret.first.push_back(shape);
-					ret.second.push_back(sn);
+					ret.push_back(idx);
 					continue;
 				};
 				if ((v2_test = face_plane(shape[1])) == 0) {
-					ret.first.push_back(shape);
-					ret.second.push_back(sn);
+					ret.push_back(idx);
 					continue;
 				};
 				if ((v3_test = face_plane(shape[2])) == 0) {
-					ret.first.push_back(shape);
-					ret.second.push_back(sn);
+					ret.push_back(idx);
 					continue;
 				};
 
@@ -624,20 +621,17 @@ private:
 
 				if ((v1_test & v2_test) == 0)
 					if (check_line(shape[0], shape[1], v1_test | v2_test)) {
-						ret.first.push_back(shape);
-						ret.second.push_back(sn);
+						ret.push_back(idx);
 						continue;
 					};
 				if ((v1_test & v3_test) == 0)
 					if (check_line(shape[0], shape[2], v1_test | v3_test)) {
-						ret.first.push_back(shape);
-						ret.second.push_back(sn);
+						ret.push_back(idx);
 						continue;
 					};
 				if ((v2_test & v3_test) == 0)
 					if (check_line(shape[1], shape[2], v2_test | v3_test)) {
-						ret.first.push_back(shape);
-						ret.second.push_back(sn);
+						ret.push_back(idx);
 						continue;
 					};
 
@@ -653,8 +647,7 @@ private:
 					hitpp.x = hitpp.y = hitpp.z = d / denom;
 					if (fabs(hitpp.x) <= 0.5)
 						if (point_triangle_intersection(hitpp, shape)) {
-							ret.first.push_back(shape);
-							ret.second.push_back(sn);
+							ret.push_back(idx);
 							continue;
 						};
 				}
@@ -662,8 +655,7 @@ private:
 					hitpn.z = -(hitpn.x = hitpn.y = d / denom);
 					if (fabs(hitpn.x) <= 0.5)
 						if (point_triangle_intersection(hitpn, shape)) {
-							ret.first.push_back(shape);
-							ret.second.push_back(sn);
+							ret.push_back(idx);
 							continue;
 						};
 				}
@@ -671,8 +663,7 @@ private:
 					hitnp.y = -(hitnp.x = hitnp.z = d / denom);
 					if (fabs(hitnp.x) <= 0.5)
 						if (point_triangle_intersection(hitnp, shape)) {
-							ret.first.push_back(shape);
-							ret.second.push_back(sn);
+							ret.push_back(idx);
 							continue;
 						};
 				}
@@ -680,49 +671,47 @@ private:
 					hitnn.y = hitnn.z = -(hitnn.x = d / denom);
 					if (fabs(hitnn.x) <= 0.5)
 						if (point_triangle_intersection(hitnn, shape)) {
-							ret.first.push_back(shape);
-							ret.second.push_back(sn);
+							ret.push_back(idx);
 							continue;
 						};
 				}
 			}
 			return ret;
 		}
-		void build(vector<vector<vec3f>> points, vector<vector<vec3f>> norms, int depth) {
-			if (points.size() <= BVH_CAPACITY || depth > BVH_DEPTH) {
-				this->points = points;
-				this->norms = norms;
+		void build(vector<vector<vec3f>> &points, vector<int> &indices, int depth) {
+			if (indices.size() <= BVH_CAPACITY || depth > BVH_DEPTH) {
+				this->indices = indices;
 			}
 			else {
 				vec3f mid = aabb.middle();
 				for (int i = 0; i < 8; i++) {
-					childs.push_back(new Bvh(points, norms, mid, aabb.vertex(i), depth+1));
+					childs.push_back(new Bvh(points, indices, mid, aabb.vertex(i), depth+1));
 				}
 			}
 		}
 
 	public:
 		Aabb aabb;
-		vector<vector<vec3f>> points;
-		vector<vector<vec3f>> norms;
+		vector<int> indices;
 		vector<Bvh*> childs;
 
-		Bvh(vector<vector<vec3f>> points, vector<vector<vec3f>> norms) : aabb(points) {
-			build(points, norms, 0);
+		Bvh(vector<vector<vec3f>> &points) : aabb(points) {
+			vector<int> init(points.size());
+			for (int i = 0; i < init.size(); i++)init[i] = i;
+			build(points, init, 0);
 		}
-		Bvh(vector<vector<vec3f>> points, vector<vector<vec3f>> norms, vec3f min, vec3f max, int depth) : aabb(min, max) {
-			auto pn = inside(points, norms);
-			build(pn.first, pn.second, depth);
+		Bvh(vector<vector<vec3f>> &points, vector<int> &indices, vec3f min, vec3f max, int depth) : aabb(min, max) {
+			vector<int> pn = inside(points, indices);
+			build(points, pn, depth);
 		}
 
-		pair<vector<vector<vec3f>>, vector<vector<vec3f>>> intersect(vec3f o, vec3f d) {
-			pair<vector<vector<vec3f>>, vector<vector<vec3f>>> res;
+		vector<int> intersect(vec3f o, vec3f d) {
+			vector<int> res;
 			if (!aabb.intersect(o, d))return res;
-			if (childs.size() == 0)return { points, norms };
+			if (childs.size() == 0)return { indices };
 			for (auto c : childs) {
 				auto tmp = c->intersect(o, d);
-				res.first.insert(res.first.end(), tmp.first.begin(), tmp.first.end());
-				res.second.insert(res.second.end(), tmp.second.begin(), tmp.second.end());
+				res.insert(res.end(), tmp.begin(), tmp.end());
 			}
 			return res;
 		}
@@ -732,6 +721,8 @@ private:
 		map<string, void *>vars;
 	public:
 		Bvh *tree;
+		vector<vector<vec3f>> points;
+		vector<vector<vec3f>> norms;
 
 		void *param;
 		float(*intersect)(int id, void *points, void *norms, vec3f point, vec3f dir, vec3f *norm);
@@ -743,7 +734,9 @@ private:
 			void(*hit)(int id, float dist, void *prd, vec3f norm, void *param),
 			void(*shadow)(int id, void *prd), void *param) :
 			intersect(intersect), hit(hit), shadow(shadow), param(param) {
-			tree = new Bvh(p, n);
+			tree = new Bvh(p);
+			points = p;
+			norms = n;
 		}
 	};
 	vector<Object *> objs;
@@ -773,8 +766,13 @@ public:
 			void *param = NULL;
 			for (auto &obj : objs) {
 				auto res = obj->tree->intersect(light, dir);
-				if (res.first.size() == 0)continue;
-				if (float t = obj->intersect(id, &res.first, &res.second, light, dir, &niter)) {
+				if (res.size() == 0)continue;
+				vector<vector<vec3f>>pts, nms;
+				for (auto i : res) {
+					pts.push_back(obj->points[i]);
+					nms.push_back(obj->norms[i]);
+				}
+				if (float t = obj->intersect(id, &pts, &nms, light, dir, &niter)) {
 					if (t < tmin || t > tmax)continue;
 					if (t < min) {
 						min = t;
@@ -790,10 +788,16 @@ public:
 		else if (type == SHADOW_RAY) {
 			for (auto &obj : objs) {
 				auto res = obj->tree->intersect(light, dir);
-				if (res.first.size() == 0)continue;
-				if (float t = obj->intersect(id, &res.first, &res.second, light, dir, NULL)) {
+				if (res.size() == 0)continue;
+				vector<vector<vec3f>>pts, nms;
+				for (auto i : res) {
+					pts.push_back(obj->points[i]);
+					nms.push_back(obj->norms[i]);
+				}
+				if (float t = obj->intersect(id, &pts, &nms, light, dir, NULL)) {
 					if (t <= tmin || t >= tmax)continue;
 					obj->shadow(id, prd);
+					break;
 				}
 			}
 		}
