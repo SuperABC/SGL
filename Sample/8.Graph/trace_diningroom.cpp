@@ -9,7 +9,7 @@ using namespace geo;
 using namespace std;
 
 int graphHandle;
-int WIDTH = 640, HEIGHT = 360;
+int WIDTH = 640 * 2, HEIGHT = 360 * 2;
 int lightNum = 2;
 
 class Eye {
@@ -372,7 +372,7 @@ vec3f generate(int id, vec2i index, vec2i size) {
 		}
 		prd.result += prd.radiance;
 		if (prd.done)break;
-		if (prd.depth >= 4)break;
+		if (prd.depth >= 2)break;
 		float pcont = max(prd.attenuation.x, max(prd.attenuation.y, prd.attenuation.z));
 		if (prd.depth > 1 && random(100) > 100 * pcont)break;
 		if (pcont < .001f)break;
@@ -412,6 +412,7 @@ float intersect(int id, void *pts, void *nms, vec3f point, vec3f dir, vec3f *nor
 void hit(int id, float dist, void *prd, vec3f norm, void *param) {
 	Material *mat = (Material *)param;
 	Prd *perraydata = (Prd *)prd;
+	norm = normalize(norm);
 	perraydata->depth++;
 
 	vec3f hitPoint = perraydata->start + dist * perraydata->dir;
@@ -462,7 +463,7 @@ void hit(int id, float dist, void *prd, vec3f norm, void *param) {
 					Sprd sprd;
 					rtTrace(id, 0, hitPoint, ldir, SHADOW_RAY, .001f, ldist - .001f, &sprd);
 					if (!sprd.shadow) {
-						float ndl = abs(dot(norm, ldir));
+						float ndl = max(dot(norm, ldir), 0.f);
 						float ldl = abs(dot(light_normal(i, anchor), ldir));
 						perraydata->radiance += perraydata->attenuation *
 							ndl * ldl / (ldist * ldist) * light_radiance(i) / PI;
@@ -500,6 +501,16 @@ void shadow(int id, void *prd) {
 	perraydata->shadow = true;
 }
 
+void saveRender() {
+	ofstream fout("diningroom.bin", ios::binary);
+	for (int y = 0; y < HEIGHT; y++) {
+		for (int x = 0; x < WIDTH; x++) {
+			vec3f tmp = getGraphPixel(graphHandle, x, y);
+			fout.write((const char *)&tmp, sizeof(tmp));
+		}
+	}
+}
+
 void sgSetup() {
 	initWindow(WIDTH, HEIGHT, "View", BIT_MAP);
 
@@ -525,7 +536,7 @@ void sgSetup() {
 	// 29、36:彑中
 	// 41、45:能
 	for (auto i : m.corespond) {
-		//if (obj != 9) {
+		//if (obj != 11 && obj != 13 && obj != 15 && obj != 21) {
 		//	obj++;
 		//	continue;
 		//}
@@ -541,6 +552,14 @@ void sgSetup() {
 	}
 }
 void sgLoop() {
-	refreshTracer(graphHandle);
-	frame++;
+	static int spp = 0;
+
+	if (spp++ < 1000) {
+		refreshTracer(graphHandle);
+		frame++;
+	}
+	else {
+		saveRender();
+		exit(0);
+	}
 }

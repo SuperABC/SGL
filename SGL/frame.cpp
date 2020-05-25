@@ -49,13 +49,13 @@ void _endSubWindow() {
 	SEM_V();
 }
 
-void initWindow(int width, int height, const char *title, int mode) {
+void initWindow(int width, int height, SGtext title, int mode) {
 	if (mode != BIT_MAP && mode != TEXT_MAP)exit(SG_INVALID_MODE);
 
 	if(_windowList.empty())
 		_windowList.push_back(new Window(width, height, title, mode));
 }
-int createWindow(int width, int height, const char *title, int mode, vect setup, vect loop) {
+int createWindow(int width, int height, SGtext title, int mode, vect setup, vect loop) {
 	WNDCLASSEX wc;
 
 	if (!_baseWindow)return SG_OBJECT_NOT_FOUND;
@@ -98,7 +98,7 @@ int createWindow(int width, int height, const char *title, int mode, vect setup,
 	_startSubWindow(tmp);
 	return _windowList.size() - 1;
 }
-int createWindow(int width, int height, const char *title, int mode, void(*setup)(void *), vect loop, void *init) {
+int createWindow(int width, int height, SGtext title, int mode, void(*setup)(void *), vect loop, void *init) {
 	WNDCLASSEX wc;
 
 	if (!_baseWindow)return SG_OBJECT_NOT_FOUND;
@@ -160,7 +160,7 @@ void resizeFuntion(void(*func)(int x, int y)) {
 	if(func)_windowList[_currentWindow]->resize = func;
 	else _windowList[_currentWindow]->resize = [](int x, int y) {};
 }
-void renameCaption(const char *name) {
+void renameCaption(SGtext name) {
 	SetWindowText(_windowList[_currentWindow]->getHwnd(), _widen(String(name)));
 }
 void hideCaption() {
@@ -171,7 +171,7 @@ void showCaption() {
 	LONG lStyle = GetWindowLong(_windowList[_currentWindow]->getHwnd(), GWL_STYLE);
 	SetWindowLong(_windowList[_currentWindow]->getHwnd(), GWL_STYLE, lStyle | WS_CAPTION);
 }
-void setIcon(const char *ico) {
+void setIcon(SGtext ico) {
 	_windowList[_currentWindow]->setIcon(LoadImage(NULL, _widen(ico), IMAGE_ICON, 0, 0,
 		LR_LOADFROMFILE | LR_DEFAULTSIZE));
 }
@@ -740,7 +740,7 @@ vec2i getSize(int obj) {
 	}
 	return Vec2i(0, 0);
 }
-void debugf(const char *format, ...) {
+void debugf(SGtext format, ...) {
 	va_list ap;
 	string buffer;
 	va_start(ap, format);
@@ -855,13 +855,13 @@ int selectSave(char name[], char start[], char format[], char def[], int idx) {
 		return SG_OBJECT_NOT_FOUND;
 	}
 }
-int makePath(const char path[]) {
+int makePath(SGtext path) {
 	if (!PathFileExists(_widen(path))) {
 		_wmkdir(_widen(path));
 	}
 	return SG_NO_ERORR;
 }
-int fileExist(const char path[]) {
+int fileExist(SGtext path) {
 	return PathFileExists(_widen(path));
 }
 int selectDir(char name[], char start[]) {
@@ -887,7 +887,7 @@ void initMci() {
 	mci.buffer = (SGWINSTR)malloc(sizeof(SG_MCI_BUFFER_SIZE));
 	mci.num = 0;
 }
-int loadMciSrc(const char *filename) {
+int loadMciSrc(SGtext filename) {
 	unsigned int i;
 	char randstr[6];
 	char *cmd = (char *)malloc(256);
@@ -1004,7 +1004,7 @@ int resumeMci(int id) {
 void createThread(thread func, void *param) {
 	threads.push_back(CreateThread(NULL, 0, func, param, 0, NULL));
 }
-int copyText(const char *src) {
+int copyText(SGtext src) {
 	HGLOBAL hg;
 	char *pt;
 
@@ -1066,7 +1066,7 @@ SOCKET createServer(int port) {
 	listen(sockSrv, SG_MAX_CONNECTION);
 	return sockSrv;
 }
-SOCKET createClient(const char *server, int port) {
+SOCKET createClient(SGtext server, int port) {
 	WORD wVersionRequested;
 	WSADATA wsaData;
 	int err;
@@ -1099,265 +1099,18 @@ SOCKET acceptOne(SOCKET server) {
 
 	return accept(server, (SOCKADDR*)&addrClient, &len);
 }
-int socketSend(SOCKET s, const char *buffer) {
+int socketSend(SOCKET s, SGtext buffer) {
 	if (send(s, buffer, (int)strlen(buffer) + 1, 0) == SOCKET_ERROR)return SG_CONNECTION_FAILED;
 	return SG_NO_ERORR;
 }
-int socketReceive(SOCKET s, char *buffer, int len) {
+int socketReceive(SOCKET s, SGstring buffer, int len) {
 	if (recv(s, buffer, len, 0) == SOCKET_ERROR)return SG_CONNECTION_FAILED;
 	return SG_NO_ERORR;
 }
 void closeSocket(SOCKET s) {
 	closesocket(s);
 }
-bitMap *copyPic(bitMap *src) {
-	bitMap *dst = (bitMap*)malloc(sizeof(bitMap));
-	dst->data = (unsigned char *)malloc(src->sizeX*src->sizeY * 3 * sizeof(char));
-
-	dst->sizeX = src->sizeX;
-	dst->sizeY = src->sizeY;
-	memcpy(dst->data, src->data, src->sizeX*src->sizeY * 3 * sizeof(char));
-	return dst;
-}
-bitMap *grayPic(bitMap *src) {
-	int i, j, v;
-	bitMap *dst = (bitMap*)malloc(sizeof(bitMap));
-	dst->data = (unsigned char *)malloc(src->sizeX*src->sizeY * 3 * sizeof(char));
-
-	dst->sizeX = src->sizeX;
-	dst->sizeY = src->sizeY;
-	for (i = 0; i < src->sizeY; i++) {
-		for (j = 0; j < src->sizeX; j++) {
-			v = (int)(src->data[(i*src->sizeX + j) * 3] * 0.299f +
-				src->data[(i*src->sizeX + j) * 3 + 1] * 0.587f +
-				src->data[(i*src->sizeX + j) * 3 + 2] * 0.114f);
-			dst->data[(i*src->sizeX + j) * 3] =
-				dst->data[(i*src->sizeX + j) * 3 + 1] =
-				dst->data[(i*src->sizeX + j) * 3 + 2] = v;
-		}
-	}
-	return dst;
-}
-bitMap *binaryPic(bitMap *src, int threshold) {
-	int i, j, v;
-	bitMap *dst = (bitMap*)malloc(sizeof(bitMap));
-	dst->data = (unsigned char *)malloc(src->sizeX*src->sizeY * 3 * sizeof(char));
-
-	dst->sizeX = src->sizeX;
-	dst->sizeY = src->sizeY;
-	for (i = 0; i < src->sizeY; i++) {
-		for (j = 0; j < src->sizeX; j++) {
-			v = (int)(src->data[(i*src->sizeX + j) * 3] * 0.299f +
-				src->data[(i*src->sizeX + j) * 3 + 1] * 0.587f +
-				src->data[(i*src->sizeX + j) * 3 + 2] * 0.114f);
-			if (v < threshold)
-				dst->data[(i*src->sizeX + j) * 3] =
-				dst->data[(i*src->sizeX + j) * 3 + 1] =
-				dst->data[(i*src->sizeX + j) * 3 + 2] = 0;
-			else
-				dst->data[(i*src->sizeX + j) * 3] =
-				dst->data[(i*src->sizeX + j) * 3 + 1] =
-				dst->data[(i*src->sizeX + j) * 3 + 2] = 255;
-		}
-	}
-	return dst;
-}
-bitMap *zoomPic(bitMap *src, float rate) {
-	int i, j;
-	float tmpx, tmpy, deltax, deltay;
-	bitMap *dst = (bitMap*)malloc(sizeof(bitMap));
-	dst->data = (unsigned char *)malloc((int)(src->sizeX * rate) * (int)(src->sizeY * rate) * 3 * sizeof(char));
-	dst->sizeX = (int)(src->sizeX * rate);
-	dst->sizeY = (int)(src->sizeY * rate);
-	for (i = 0; i < dst->sizeY; i++) {
-		for (j = 0; j < dst->sizeX; j++) {
-			tmpx = j / rate;
-			tmpy = i / rate;
-			deltax = tmpx - (int)tmpx;
-			deltay = tmpy - (int)tmpy;
-			dst->data[(i*dst->sizeX + j) * 3] = (unsigned char)
-				((src->data[((int)(i / rate + 1)*src->sizeX + (int)(j / rate)) * 3] * (1 - deltay) +
-					src->data[((int)(i / rate)*src->sizeX + (int)(j / rate)) * 3] * deltay)*deltax +
-					(src->data[((int)(i / rate + 1)*src->sizeX + (int)(j / rate + 1)) * 3] * (1 - deltay) +
-						src->data[((int)(i / rate)*src->sizeX + (int)(j / rate + 1)) * 3] * deltay)*(1 - deltax));
-			dst->data[(i*dst->sizeX + j) * 3 + 1] = (unsigned char)
-				((src->data[((int)(i / rate + 1)*src->sizeX + (int)(j / rate)) * 3 + 1] * (1 - deltay) +
-					src->data[((int)(i / rate)*src->sizeX + (int)(j / rate)) * 3 + 1] * deltay)*deltax +
-					(src->data[((int)(i / rate + 1)*src->sizeX + (int)(j / rate + 1)) * 3 + 1] * (1 - deltay) +
-						src->data[((int)(i / rate)*src->sizeX + (int)(j / rate + 1)) * 3 + 1] * deltay)*(1 - deltax));
-			dst->data[(i*dst->sizeX + j) * 3 + 2] = (unsigned char)
-				((src->data[((int)(i / rate + 1)*src->sizeX + (int)(j / rate)) * 3 + 2] * (1 - deltay) +
-					src->data[((int)(i / rate)*src->sizeX + (int)(j / rate)) * 3 + 2] * deltay)*deltax +
-					(src->data[((int)(i / rate + 1)*src->sizeX + (int)(j / rate + 1)) * 3 + 2] * (1 - deltay) +
-						src->data[((int)(i / rate)*src->sizeX + (int)(j / rate + 1)) * 3 + 2] * deltay)*(1 - deltax));
-		}
-	}
-	return dst;
-}
-bitMap *rotatePic(bitMap *src, float angle) {
-	return NULL;
-}
-bitMap *filterPic(bitMap *src, int mode) {
-	int i, j, v, x, y, z, pos;
-	float weight, sum;
-	bitMap *dst = (bitMap*)malloc(sizeof(bitMap));
-	dst->data = (unsigned char *)malloc(src->sizeX*src->sizeY * 3 * sizeof(char));
-
-	dst->sizeX = src->sizeX;
-	dst->sizeY = src->sizeY;
-	switch (mode) {
-	case MEAN_FILTER:
-		for (i = 0; i < src->sizeY; i++) {
-			for (j = 0; j < src->sizeX; j++) {
-				pos = (i*src->sizeX + j) * 3;
-				if (i == 0 || j == 0 || i == src->sizeY - 1 || j == src->sizeX - 1)
-					memcpy(dst->data + pos, src->data + pos, 3 * sizeof(char));
-				else {
-					for (z = 0; z < 3; z++) {
-						v = 0;
-						for (y = 0; y < 3; y++) {
-							for (x = 0; x < 3; x++) {
-								v += src->data[pos + ((y - 1)*src->sizeX + x - 1) * 3 + z];
-							}
-						}
-						dst->data[pos + z] = v / 9;;
-					}
-				}
-			}
-		}
-		break;
-	case LAPLACIAN_FILTER:
-		for (i = 0; i < src->sizeY; i++) {
-			for (j = 0; j < src->sizeX; j++) {
-				pos = (i*src->sizeX + j) * 3;
-				if (i == 0 || j == 0 || i == src->sizeY - 1 || j == src->sizeX - 1)
-					memcpy(dst->data + pos, src->data + pos, 3 * sizeof(char));
-				else {
-					for (z = 0; z < 3; z++) {
-						v = 0;
-						v += src->data[pos - 3 + z];
-						v += src->data[pos + 3 + z];
-						v += src->data[pos - src->sizeX * 3 + z];
-						v += src->data[pos + src->sizeX * 3 + z];
-						v -= 4 * src->data[pos + z];
-						dst->data[pos + z] = src->data[pos + z] + v / 9;
-					}
-				}
-			}
-		}
-		break;
-	case BILATERAL_FILTER:
-		for (i = 0; i < src->sizeY; i++) {
-			for (j = 0; j < src->sizeX; j++) {
-				int pos = (i*src->sizeX + j) * 3;
-				if (i == 0 || j == 0 || i == src->sizeY - 1 || j == src->sizeX - 1)
-					memcpy(dst->data + pos, src->data + pos, 3 * sizeof(char));
-				else {
-					for (z = 0; z < 3; z++) {
-						sum = 0;
-						weight = 0;
-						for (y = 0; y < 3; y++) {
-							for (x = 0; x < 3; x++) {
-								weight += (float)exp(-((x - 1)*(x - 1) + (y - 1)*(y - 1)) -
-									((src->data[pos + z] - src->data[pos + ((y - 1)*src->sizeX + x - 1) * 3 + z])*
-									(src->data[pos + z] - src->data[pos + ((y - 1)*src->sizeX + x - 1) * 3 + z])) / 1024);
-								sum += src->data[pos + ((y - 1)*src->sizeX + x - 1) * 3 + z] *
-									(float)exp(-((x - 1)*(x - 1) + (y - 1)*(y - 1)) -
-									((src->data[pos + z] - src->data[pos + ((y - 1)*src->sizeX + x - 1) * 3 + z])*
-										(src->data[pos + z] - src->data[pos + ((y - 1)*src->sizeX + x - 1) * 3 + z])) / 1024);
-							}
-						}
-						dst->data[pos + z] = (int)(sum / weight);
-					}
-				}
-			}
-		}
-		break;
-	default:
-		free(dst);
-		return NULL;
-	}
-	return dst;
-}
-bitMap *luminantPic(bitMap *src, int delta) {
-	int i, j, y, u, v;
-	bitMap *dst = (bitMap*)malloc(sizeof(bitMap));
-	dst->data = (unsigned char *)malloc(src->sizeX*src->sizeY * 3 * sizeof(char));
-
-	dst->sizeX = src->sizeX;
-	dst->sizeY = src->sizeY;
-	for (i = 0; i < src->sizeY; i++) {
-		for (j = 0; j < src->sizeX; j++) {
-			y = (int)(src->data[(i*src->sizeX + j) * 3] * 0.299f +
-				src->data[(i*src->sizeX + j) * 3 + 1] * 0.587f +
-				src->data[(i*src->sizeX + j) * 3 + 2] * 0.114f);
-			u = -(int)(src->data[(i*src->sizeX + j) * 3] * 0.417f -
-				src->data[(i*src->sizeX + j) * 3 + 1] * 0.289f +
-				src->data[(i*src->sizeX + j) * 3 + 2] * 0.436f);
-			v = (int)(src->data[(i*src->sizeX + j) * 3] * 0.615f -
-				src->data[(i*src->sizeX + j) * 3 + 1] * 0.515f -
-				src->data[(i*src->sizeX + j) * 3 + 2] * 0.100f);
-
-			y += delta;
-			if (y > 255)y = 255;
-			if (y < 0)y = 0;
-
-			dst->data[(i*src->sizeX + j) * 3] = (char)(y + 1.14f * v);
-			dst->data[(i*src->sizeX + j) * 3 + 1] = (char)(y - 0.39f * u - 0.58f * v);
-			dst->data[(i*src->sizeX + j) * 3 + 2] = (char)(y + 2.03f * u);
-		}
-	}
-	return dst;
-}
-bitMap *contrastPic(bitMap *src) {
-	int i, j, y, u, v;
-	char *gray = (char *)malloc(src->sizeX*src->sizeY * sizeof(char));
-	float *prob = (float *)malloc(256 * sizeof(float));
-	bitMap *dst = (bitMap*)malloc(sizeof(bitMap));
-	dst->data = (unsigned char *)malloc(src->sizeX*src->sizeY * 3 * sizeof(char));
-
-	for (i = 0; i < 256; i++) {
-		prob[i] = 0.f;
-	}
-	for (i = 0; i < src->sizeY; i++) {
-		for (j = 0; j < src->sizeX; j++) {
-			gray[(i*src->sizeX + j)] = (int)(src->data[(i*src->sizeX + j) * 3] * 0.299f +
-				src->data[(i*src->sizeX + j) * 3 + 1] * 0.587f +
-				src->data[(i*src->sizeX + j) * 3 + 2] * 0.114f);
-			prob[gray[(i*src->sizeX + j)]] += 1.f / (src->sizeX*src->sizeY);
-		}
-	}
-	for (i = 1; i < 256; i++) {
-		prob[i] += prob[i - 1];
-	}
-
-	dst->sizeX = src->sizeX;
-	dst->sizeY = src->sizeY;
-	for (i = 0; i < src->sizeY; i++) {
-		for (j = 0; j < src->sizeX; j++) {
-			y = (int)(src->data[(i*src->sizeX + j) * 3] * 0.299f +
-				src->data[(i*src->sizeX + j) * 3 + 1] * 0.587f +
-				src->data[(i*src->sizeX + j) * 3 + 2] * 0.114f);
-			u = -(int)(src->data[(i*src->sizeX + j) * 3] * 0.417f -
-				src->data[(i*src->sizeX + j) * 3 + 1] * 0.289f +
-				src->data[(i*src->sizeX + j) * 3 + 2] * 0.436f);
-			v = (int)(src->data[(i*src->sizeX + j) * 3] * 0.615f -
-				src->data[(i*src->sizeX + j) * 3 + 1] * 0.515f -
-				src->data[(i*src->sizeX + j) * 3 + 2] * 0.100f);
-
-			y = (int)prob[y] * 255;
-
-			dst->data[(i*src->sizeX + j) * 3] = (char)(y + 1.14f * v);
-			dst->data[(i*src->sizeX + j) * 3 + 1] = (char)(y - 0.39f * u - 0.58f * v);
-			dst->data[(i*src->sizeX + j) * 3 + 2] = (char)(y + 2.03f * u);
-		}
-	}
-
-	free(gray);
-	free(prob);
-	return dst;
-}
-void alertInfo(const char *caption, const char *text, int mode, void(*result)(int)) {
+void alertInfo(SGtext caption, SGtext text, int mode, void(*result)(int)) {
 	int line = 1;
 	int idx = 0;
 
@@ -1381,7 +1134,7 @@ void alertInfo(const char *caption, const char *text, int mode, void(*result)(in
 * The image after drawing will be shown after the loop function.
 */
 
-int _stringPrintf(const char *format, va_list ap, char *buffer) {
+int _stringPrintf(SGtext format, va_list ap, char *buffer) {
 	string buf;
 	while (*format) {
 		if (*format == '\t') {
@@ -1428,7 +1181,7 @@ int _stringPrintf(const char *format, va_list ap, char *buffer) {
 	strcpy(buffer, buf.data());
 	return SG_NO_ERORR;
 }
-int _stringLength(const char *format, va_list ap) {
+int _stringLength(SGtext format, va_list ap) {
 	int len = 0;
 	while (*format) {
 		if (*format == '\t') {
@@ -1504,7 +1257,7 @@ void setColor(int r, int g, int b) {
 void setFontSize(int height) {
 	_windowList[_currentWindow]->setFontSize(height);
 }
-void setFontName(const char *name) {
+void setFontName(SGtext name) {
 	_windowList[_currentWindow]->setFontName(name);
 }
 void setFontStyle(int coeff) {
@@ -1540,56 +1293,8 @@ void putCircle(int xc, int yc, int r, int mode) {
 void putEllipse(int xc, int yc, int a, int b, int mode) {
 	return _windowList[_currentWindow]->putEllipse(xc, yc, a, b, mode);
 }
-bitMap loadBmp(const char *filename) {
-	FILE *fp = NULL;
-	SGstring p = NULL;
-	int width, height, i;
-	dword dataOffset, lineBytes;
-	dword lines;
-	bitMap ret;
-
-	p = (SGstring)malloc(2048 * 3 * sizeof(char));
-	if (p == NULL)goto displayError;
-	fp = fopen(filename, "rb");
-	if (fp == NULL)goto displayError;
-
-	fread(p, 1, 0x36, fp);
-	if (*(word *)p != 0x4D42)goto displayError;
-	if (*(word *)(p + 0x1C) != 24)goto displayError;
-
-	width = *(dword *)(p + 0x12);
-	height = *(dword *)(p + 0x16);
-	dataOffset = *(dword *)(p + 0x0A);
-	lineBytes = (width * 3 + 3) / 4 * 4;
-
-	ret.data = (unsigned char *)malloc(width * height * 3 * sizeof(char));
-	if (ret.data == NULL)goto displayError;
-	fseek(fp, dataOffset, SEEK_SET);
-
-	ret.sizeX = width;
-	ret.sizeY = height;
-	for (i = height - 1; i >= 0; i--) {
-		fread(p, 1, lineBytes, fp);
-		lines = i * width * 3;
-		memcpy(ret.data + lines, p, width * 3);
-	}
-
-	free(p);
-	fclose(fp);
-	return ret;
-
-displayError:
-	if (p != NULL)free(p);
-	if (fp != NULL)fclose(fp);
-	ret.data = NULL;
-	ret.sizeX = ret.sizeY = SG_IO_ERROR;
-	return ret;
-}
 void putBitmap(int x, int y, bitMap bmp) {
 	return _windowList[_currentWindow]->putBitmap(x, y, bmp);
-}
-int drawBmp(int x, int y, const char *filename) {
-	return _windowList[_currentWindow]->drawBmp(x, y, filename);
 }
 void putChar(char ch, int x, int y) {
 	return _windowList[_currentWindow]->putChar(ch, x, y);
@@ -1597,16 +1302,16 @@ void putChar(char ch, int x, int y) {
 void putNumber(int n, int x, int y, char lr) {
 	return _windowList[_currentWindow]->putNumber(n, x, y, lr);
 }
-int putString(const char *str, int x, int y) {
+int putString(SGtext str, int x, int y) {
 	return _windowList[_currentWindow]->putString(str, x, y);
 }
-int putStringConstraint(const char *str, int x, int y, int start, int constraint) {
+int putStringConstraint(SGtext str, int x, int y, int start, int constraint) {
 	return _windowList[_currentWindow]->putStringConstraint(str, x, y, start, constraint);
 }
-int stringWidth(const char *str, int x) {
+int stringWidth(SGtext str, int x) {
 	return _windowList[_currentWindow]->stringWidth(str, x);
 }
-char *stringFormat(const char *str, ...) {
+char *stringFormat(SGtext str, ...) {
 	int cnt = 0;
 	va_list ap;
 	char *result;
@@ -1653,7 +1358,7 @@ int getShort(int x, int y) {
 void writeChar(char c, int x, int y) {
 	return _windowList[_currentWindow]->writeChar(c, x, y);
 }
-void writeString(const char *s, int x, int y) {
+void writeString(SGtext s, int x, int y) {
 	return _windowList[_currentWindow]->writeString(s, x, y);
 }
 int getText(int left, int top, int right, int bottom, textMap *text) {
@@ -1684,7 +1389,7 @@ void disablePanel() {
 	if (_windowList[_currentWindow]->panel->cover->data)free(_windowList[_currentWindow]->panel->cover->data);
 	free(_windowList[_currentWindow]->panel->cover);
 }
-int addPanelItem(const char *name, vect function, int shift, int ctrl) {
+int addPanelItem(SGtext name, vect function, int shift, int ctrl) {
 	int i = 0;
 	Panel *panel = _windowList[_currentWindow]->panel;
 	if (shift == 0 && ctrl == 0) {
@@ -1741,7 +1446,7 @@ int addPanelItem(const char *name, vect function, int shift, int ctrl) {
 	}
 	return SG_OUT_OF_RANGE;
 }
-int changePanelItem(int id, const char *name, vect function) {
+int changePanelItem(int id, SGtext name, vect function) {
 	int i;
 	Panel *panel = _windowList[_currentWindow]->panel;
 	for (i = 0; i < SG_MAX_PANEL_FUNCTION; i++) {
@@ -1822,7 +1527,7 @@ void _dragDefault(widget *obj, int x, int y) {
 void _pressDefault(widget *obj, int k) {
 
 }
-Widget *_getSub(Widget *root, const char *name) {
+Widget *_getSub(Widget *root, SGtext name) {
 	Widget *iter = root->child;
 	while (iter) {
 		if (iter->type != SG_COMBINED) {
@@ -1848,7 +1553,7 @@ Widget *_getSub(Widget *root, const char *name) {
 	}
 	return NULL;
 }
-Widget *_getByName(const char *name, bool refresh = false) {
+Widget *_getByName(SGtext name, bool refresh = false) {
 	string path(name);
 
 	Widget *parent = NULL;
@@ -1944,7 +1649,7 @@ int _getIndex(const char *name) {
 	if (sp1 < 0 && sp2 < 0) {
 		for (auto wnd : _windowList) {
 			if (!wnd)continue;
-			for (int i = 0; i < wnd->widgets.size(); i++) {
+			for (unsigned int i = 0; i < wnd->widgets.size(); i++) {
 				if (wnd->widgets[i]->name == path)return i;
 			}
 		}
@@ -1952,7 +1657,7 @@ int _getIndex(const char *name) {
 	else if (sp1 < 0) {
 		for (auto wnd : _windowList) {
 			if (!wnd)continue;
-			for (int i = 0; i < wnd->widgets.size(); i++) {
+			for (unsigned int i = 0; i < wnd->widgets.size(); i++) {
 				if (wnd->widgets[i]->name == path.substr(0, sp2))return i;
 			}
 		}
@@ -1960,7 +1665,7 @@ int _getIndex(const char *name) {
 	else if (sp2 < 0) {
 		for (auto wnd : _windowList) {
 			if (!wnd)continue;
-			for (int i = 0; i < wnd->widgets.size(); i++) {
+			for (unsigned int i = 0; i < wnd->widgets.size(); i++) {
 				if (wnd->widgets[i]->name == path.substr(0, sp1))return i;
 			}
 		}
@@ -1969,13 +1674,14 @@ int _getIndex(const char *name) {
 		int sp = min(sp1, sp2);
 		for (auto wnd : _windowList) {
 			if (!wnd)continue;
-			for (int i = 0; i < wnd->widgets.size(); i++) {
+			for (unsigned int i = 0; i < wnd->widgets.size(); i++) {
 				if (wnd->widgets[i]->name == path.substr(0, sp))return i;
 			}
 		}
 	}
+	return SG_OBJECT_NOT_FOUND;
 }
-void _deleteSub(Widget *root, const char *name) {
+void _deleteSub(Widget *root, SGtext name) {
 	Widget *iter = root->child;
 	Widget *prev = iter;
 	if (iter->name == name) {
@@ -2003,7 +1709,7 @@ void _deleteSub(Widget *root, const char *name) {
 		}
 	}
 }
-void _deleteByName(const char *name) {
+void _deleteByName(SGtext name) {
 	string path(name);
 
 	Widget *parent = NULL;
@@ -2118,7 +1824,7 @@ void setBackgroundRefresh(void(*refresh)(int left, int top, int right, int botto
 void useBackgroundRefresh(int left, int top, int right, int bottom) {
 	_windowList[_currentWindow]->useBgRefresh(left, top, right, bottom);
 }
-widget newWidget(enum _control type, const char *name) {
+widget newWidget(enum _control type, SGtext name) {
 	widget ret;
 	ret.type = type;
 
@@ -2279,7 +1985,7 @@ void registerWidget(widget obj) {
 		break;
 	}
 }
-widget easyWidget(int type, const char *name, int x, int y, int width, int height, const char *content, void(*click)(widget *obj)) {
+widget easyWidget(int type, SGtext name, int x, int y, int width, int height, SGtext content, void(*click)(widget *obj)) {
 	widget tmp = newWidget((enum _control)type, name);
 	tmp.pos.x = x;
 	tmp.pos.y = y;
@@ -2293,7 +1999,7 @@ widget easyWidget(int type, const char *name, int x, int y, int width, int heigh
 
 	return tmp;
 }
-widget easyCombinedWidget(const char *name, int x, int y, int width, int height, int num, ...) {
+widget easyCombinedWidget(SGtext name, int x, int y, int width, int height, int num, ...) {
 	widget parent = newWidget(SG_COMBINED, name);
 	parent.pos.x = x;
 	parent.pos.y = y;
@@ -2320,12 +2026,12 @@ widget easyCombinedWidget(const char *name, int x, int y, int width, int height,
 
 	return parent;
 }
-widget *getWidgetByName(const char *name) {
+widget *getWidgetByName(SGtext name) {
 	Widget *tmp = _getByName(name);
 	if (tmp)return tmp->obj;
 	else return NULL;
 }
-SGvoid refreshWidget(const char *name) {
+SGvoid refreshWidget(SGtext name) {
 	Widget *tmp = _getByName(name, true);
 	tmp->valid = false;
 
@@ -2371,7 +2077,7 @@ int crossWidget(widget *obj, int left, int top, int right, int bottom) {
 
 	return horizontal && vertical;
 }
-int showWidget(const char *name) {
+int showWidget(SGtext name) {
 	Widget *tmp = _getByName(name);
 	if (tmp) {
 		tmp->show();
@@ -2379,7 +2085,7 @@ int showWidget(const char *name) {
 	}
 	else return SG_OBJECT_NOT_FOUND;
 }
-int ceaseWidget(const char *name) {
+int ceaseWidget(SGtext name) {
 	Widget *tmp = _getByName(name);
 	if (tmp) {
 		tmp->cease();
@@ -2390,17 +2096,17 @@ int ceaseWidget(const char *name) {
 	}
 	else return SG_OBJECT_NOT_FOUND;
 }
-int deleteWidget(const char *name) {
+int deleteWidget(SGtext name) {
 	_deleteByName(name);
 	return SG_NO_ERORR;
 }
-widget *getSubWidget(const char *parent, const char *sub) {
+widget *getSubWidget(SGtext parent, SGtext sub) {
 	Widget *root = _getByName(parent);
 	Widget *tmp = _getSub(root, sub);
 	if (tmp)return tmp->obj;
 	else return NULL;
 }
-void insertSubWidget(const char *parent, widget sub, int index) {
+void insertSubWidget(SGtext parent, widget sub, int index) {
 	Widget *root = _getByName(parent);
 	if (root->size.x < sub.pos.x + sub.size.x)root->size.x = root->obj->size.x = sub.pos.x + sub.size.x;
 	if (root->size.y < sub.pos.y + sub.size.y)root->size.y = root->obj->size.y = sub.pos.y + sub.size.y;
@@ -2468,7 +2174,7 @@ void insertSubWidget(const char *parent, widget sub, int index) {
 	child->next = root->child;
 	root->child = child;
 }
-int moveWidget(const char *name, int xDelta, int yDelta) {
+int moveWidget(SGtext name, int xDelta, int yDelta) {
 	Widget *tmp = _getByName(name);
 	if (tmp) {
 		tmp->cease();
@@ -2491,16 +2197,16 @@ int moveWidget(const char *name, int xDelta, int yDelta) {
 	}
 	else return SG_OBJECT_NOT_FOUND;
 }
-void setWidgetTop(const char *name) {
+void setWidgetTop(SGtext name) {
 	_windowList[_currentWindow]->setWidgetTop(name);
 }
-void setWidgetBottom(const char *name) {
+void setWidgetBottom(SGtext name) {
 	_windowList[_currentWindow]->setWidgetBottom(name);
 }
-void setSubWidgetTop(const char *parent, const char *name) {
+void setSubWidgetTop(SGtext parent, SGtext name) {
 
 }
-void setSubWidgetBottom(const char *parent, const char *name) {
+void setSubWidgetBottom(SGtext parent, SGtext name) {
 
 }
 void widgetCover(int window, int id, int left, int top, int right, int bottom) {
@@ -2515,13 +2221,13 @@ void widgetCover(int window, int id, int left, int top, int right, int bottom) {
 struct _menu _popupMenuInfo[SG_MAX_POPUP_NUM];
 int _popupNum = 0, _tmpItem = 0;
 
-int _addList(const char *name, struct _menu *super, int id);
-int _addItem(const char *name, struct _menu *super, int id, void(*func)());
+int _addList(SGtext name, struct _menu *super, int id);
+int _addItem(SGtext name, struct _menu *super, int id, void(*func)());
 int _addSeparator(struct _menu *super, int id);
 void _checkItem(struct _menu *m, int id, int check, int disable);
 void _createMenu(enum _menuType type, struct _item *it, HMENU super);
 void _callMenu(struct _menu *m, int id);
-int _addList(const char *name, struct _menu *super, int id) {
+int _addList(SGtext name, struct _menu *super, int id) {
 	int i, j, ret;
 
 	if (super == NULL)return SG_OBJECT_NOT_FOUND;
@@ -2554,7 +2260,7 @@ int _addList(const char *name, struct _menu *super, int id) {
 		return SG_OBJECT_NOT_FOUND;
 	}
 }
-int _addItem(const char *name, struct _menu *super, int id, void(*func)()) {
+int _addItem(SGtext name, struct _menu *super, int id, void(*func)()) {
 	int i, ret;
 
 	if (super == NULL)return SG_OBJECT_NOT_FOUND;
@@ -2717,11 +2423,11 @@ int initMainMenu() {
 	}
 	return _windowList[_currentWindow]->_mainMenuInfo.id;
 }
-int addMainMenuList(const char *title, int id) {
+int addMainMenuList(SGtext title, int id) {
 	if (_windowList[_currentWindow]->_mainMenu == 0)return SG_INVALID_MODE;
 	return _addList(title, &_windowList[_currentWindow]->_mainMenuInfo, id);
 }
-int addMainMenuItem(const char *title, int id, void(*func)()) {
+int addMainMenuItem(SGtext title, int id, void(*func)()) {
 	if (_windowList[_currentWindow]->_mainMenu == 0)return SG_INVALID_MODE;
 	return _addItem(title, &_windowList[_currentWindow]->_mainMenuInfo, id, func);
 }
@@ -2783,11 +2489,11 @@ int initTrayMenu() {
 	}
 	return _windowList[_currentWindow]->_trayMenuInfo.id;
 }
-int addTrayMenuList(const char *title, int id) {
+int addTrayMenuList(SGtext title, int id) {
 	if (_windowList[_currentWindow]->_trayMenu == 0)return SG_INVALID_MODE;
 	return _addList(title, &_windowList[_currentWindow]->_trayMenuInfo, id);
 }
-int addTrayMenuItem(const char *title, int id, void(*func)()) {
+int addTrayMenuItem(SGtext title, int id, void(*func)()) {
 	if (_windowList[_currentWindow]->_trayMenu == 0)return SG_INVALID_MODE;
 	return _addItem(title, &_windowList[_currentWindow]->_trayMenuInfo, id, func);
 }
@@ -2821,7 +2527,7 @@ int createPopupMenu() {
 	}
 	return _popupMenuInfo[_popupNum++].id;
 }
-int addPopupMenuList(const char *title, int id) {
+int addPopupMenuList(SGtext title, int id) {
 	int i, ret;
 	for (i = 0; i < _popupNum; i++) {
 		if ((ret = _addList(title, &_popupMenuInfo[i], id)) < 0)continue;
@@ -2830,7 +2536,7 @@ int addPopupMenuList(const char *title, int id) {
 	if (i == _popupNum)return SG_OBJECT_NOT_FOUND;
 	return ret;
 }
-int addPopupMenuItem(const char *title, int id, void(*func)()) {
+int addPopupMenuItem(SGtext title, int id, void(*func)()) {
 	int i, ret;
 	for (i = 0; i < _popupNum; i++) {
 		if ((ret = _addItem(title, &_popupMenuInfo[i], id, func)) < 0)continue;

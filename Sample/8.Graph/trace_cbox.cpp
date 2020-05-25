@@ -395,6 +395,7 @@ float intersect(int id, void *pts, void *nms, vec3f point, vec3f dir, vec3f *nor
 void hit(int id, float dist, void *prd, vec3f norm, void *param) {
 	Material *mat = (Material *)param;
 	Prd *perraydata = (Prd *)prd;
+	norm = normalize(norm);
 	perraydata->depth++;
 
 	vec3f hitPoint = perraydata->start + dist * perraydata->dir;
@@ -504,6 +505,16 @@ void shadow(int id, void *prd) {
 	perraydata->shadow = true;
 }
 
+void saveRender() {
+	ofstream fout("cbox.bin", ios::binary);
+	for (int y = 0; y < HEIGHT; y++) {
+		for (int x = 0; x < WIDTH; x++) {
+			vec3f tmp = getGraphPixel(graphHandle, x, y);
+			fout.write((const char *)&tmp, sizeof(tmp));
+		}
+	}
+}
+
 void sgSetup() {
 	initWindow(WIDTH, HEIGHT, "View", BIT_MAP);
 
@@ -522,6 +533,14 @@ void sgSetup() {
 	}
 }
 void sgLoop() {
-	refreshTracer(graphHandle);
-	frame++;
+	static int spp = 0;
+
+	if (spp++ < 2000) {
+		refreshTracer(graphHandle);
+		frame++;
+	}
+	else {
+		saveRender();
+		exit(0);
+	}
 }

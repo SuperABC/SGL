@@ -163,9 +163,9 @@ public:
 					hdr[j][i][0] = radiance.x;
 					hdr[j][i][1] = radiance.y;
 					hdr[j][i][2] = radiance.z;
-					tmpCanvas->data[p] = clamp(0.f, 255.f, 255 * pow(radiance.z / (radiance.z + 1.f), 1 / 2.2f));
-					tmpCanvas->data[p + 1] = clamp(0.f, 255.f, 255 * pow(radiance.y / (radiance.y + 1.f), 1 / 2.2f));
-					tmpCanvas->data[p + 2] = clamp(0.f, 255.f, 255 * pow(radiance.x / (radiance.x + 1.f), 1 / 2.2f));
+					tmpCanvas->data[p] = (byte)clamp(0.f, 255.f, 255 * pow(radiance.z / (radiance.z + 1.f), 1 / 2.2f));
+					tmpCanvas->data[p + 1] = (byte)clamp(0.f, 255.f, 255 * pow(radiance.y / (radiance.y + 1.f), 1 / 2.2f));
+					tmpCanvas->data[p + 2] = (byte)clamp(0.f, 255.f, 255 * pow(radiance.x / (radiance.x + 1.f), 1 / 2.2f));
 				}
 			}
 		}
@@ -697,7 +697,7 @@ private:
 
 		Bvh(vector<vector<vec3f>> &points) : aabb(points) {
 			vector<int> init(points.size());
-			for (int i = 0; i < init.size(); i++)init[i] = i;
+			for (unsigned int i = 0; i < init.size(); i++)init[i] = i;
 			build(points, init, 0);
 		}
 		Bvh(vector<vector<vec3f>> &points, vector<int> &indices, vec3f min, vec3f max, int depth) : aabb(min, max) {
@@ -835,12 +835,12 @@ SGint deleteGraphRegion(int id) {
 SGvoid clearGraphBuffer(int id) {
 	graphs[id]->clearBuffer();
 }
-SGvoid setPipelineVariable(int id, const char * name, void *var) {
-	if (id < 0 || id >= graphs.size())return;
+SGvoid setPipelineVariable(int id, SGtext name, void *var) {
+	if (id < 0 || id >= (int)graphs.size())return;
 	graphs[id]->setPipelineVariable(name, var);
 }
-SGvoid *getPipelineVariable(int id, const char *name) {
-	if (id < 0 || id >= graphs.size())return NULL;
+SGvoid *getPipelineVariable(int id, SGtext name) {
+	if (id < 0 || id >= (int)graphs.size())return NULL;
 	return graphs[id]->getPipelineVariable(name);
 }
 SGvoid refreshGraph(int id, int elementNum) {
@@ -877,7 +877,7 @@ vec3f randHemi(vec3f normal) {
 
 	float p = random(1000) / 1000.f;
 	float phi = acos(1 - p);
-	float theta = random(1000) / 1000.f * 2 * PI;
+	float theta = random(1000) / 1000.f * 2 * float(PI);
 	float x = sin(phi) * cos(theta);
 	float y = sin(phi) * sin(theta);
 	float z = cos(phi);
@@ -901,7 +901,7 @@ vec3f phoneSpec(vec3f normal, vec3f wi, float ns) {
 
 	float p = random(1000) / 1000.f;
 	float phi = acos(pow(p, 1/(ns+1)));
-	float theta = random(1000) / 1000.f * 2 * PI;
+	float theta = random(1000) / 1000.f * 2 * float(PI);
 
 	float x = sin(phi) * cos(theta);
 	float y = sin(phi) * sin(theta);
@@ -918,7 +918,7 @@ vec3f glassTrans(vec3f normal, vec3f wi, float ni) {
 	float sint = length(cross(normal, wi));
 	if (sint / ni >= 1)return glassSpec(normal, wi);
 	float ti = asin(sint / ni);
-	if (ti > PI / 2)ti = PI / 2 - .001f;
+	if (ti > float(PI) / 2)ti = float(PI) / 2 - .001f;
 
 	vec3f n = dot(wi, normal) * normal;
 	vec3f p = normalize(n - wi) * length(n) * tan(ti);

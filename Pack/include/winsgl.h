@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2016-2019, Super GP Individual.
+* Copyright (c) 2016-2020, Super GP Individual.
 * All Rights Reserved.
 *
 * Permission to use, copy, modify, and distribute this library for any
@@ -19,7 +19,8 @@
 
 //SGL standard macros.
 
-#define _SGL_V500
+#define _SGL_V502
+#define _SGL_VERSION_STRING "v5.0.2"
 #define _CRT_SECURE_NO_WARNINGS
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
@@ -33,7 +34,7 @@
 #endif
 #define SG_A(name) name ".a"
 
-#pragma comment(lib, SG_LIB("winsgl"))
+//#pragma comment(lib, SG_LIB("winsgl"))
 #pragma comment(lib, "winmm.lib")
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "shlwapi.lib")
@@ -61,6 +62,7 @@
 //SG const macros.
 
 #define SG_PI 3.14159265358979323846
+
 #define SG_CHAR_WIDTH 8
 #define SG_CHAR_HEIGHT 16
 #define SG_LINE_DELTA_DEFAULT 20
@@ -229,6 +231,7 @@ enum _style { //Styles of widget.
 	WEBSITE,
 };
 enum _filter {
+	SGL_FILTER,
 	MEAN_FILTER,
 	LAPLACIAN_FILTER,
 	BILATERAL_FILTER
@@ -296,7 +299,9 @@ typedef unsigned int SGuint;
 typedef long SGlong;
 typedef unsigned long SGulong;
 typedef char *SGstring;
+typedef const char *SGtext;
 typedef unsigned char *SGustring;
+typedef unsigned const char *SGutext;
 typedef float SGfloat;
 typedef double SGdouble;
 #ifdef __cplusplus
@@ -310,8 +315,8 @@ typedef struct {
 }rgb;
 typedef struct {
 	int sizeX, sizeY;
-	unsigned char *data;
-	unsigned char *alpha;
+	byte *data;
+	byte *alpha;
 }bitMap;
 typedef struct {
 	int width, height;
@@ -323,7 +328,7 @@ typedef struct {
 	SGWINSTR name;
 	int coeff;
 }font;
-typedef struct _w {
+typedef struct _w{
 	enum _control type;
 
 	vec2i pos;
@@ -372,7 +377,7 @@ union JSON_Data {
 struct JSON_Item {
 	enum JSON_Type t;
 
-	char *name;
+	SGstring name;
 	union JSON_Data data;
 
 	struct JSON_Item *next;
@@ -409,7 +414,7 @@ extern "C" {
 	* @Param title is the string displayed in caption bar.
 	* @Param mode can be assigned either BIT_MAP or TEXT_MAP.
 	*/
-	SGvoid initWindow(int width, int height, const char *title, int mode);
+	SGvoid initWindow(int width, int height, SGtext title, int mode);
 
 	/**
 	* Used in sgSetup, to set the parameters of the circular graphic window.
@@ -426,7 +431,7 @@ extern "C" {
 	* @Param setup and loop is the logic of the window created.
 	* @Return returns the id of the window created.
 	*/
-	SGint createWindow(int width, int height, const char *title, int mode, vect setup, vect loop);
+	SGint createWindow(int width, int height, SGtext title, int mode, vect setup, vect loop);
 
 	/**
 	* Used in setup or loop function to define what to do when
@@ -452,7 +457,7 @@ extern "C" {
 	* Rename the caption of the window.
 	* @Param name is the new caption name to be displayed.
 	*/
-	SGvoid renameCaption(const char *name);
+	SGvoid renameCaption(SGtext name);
 
 	/**
 	* Hide the caption bar.
@@ -500,7 +505,7 @@ extern "C" {
 	* @Param format is the output format.
 	* @Param ... is the value for the format.
 	*/
-	SGvoid debugf(const char *format, ...);
+	SGvoid debugf(SGtext format, ...);
 
 	/**
 	* Wait for t millisecond. During the time the window won't refresh.
@@ -532,7 +537,7 @@ extern "C" {
 	SGint random(int n);
 
 	/**
-	* Use Win API Graphic mode to choose one file.
+	* Use Win API Graphic mode to choose one file. 
 	* @Param name name is used to receive the selected file name with its path.
 	* @Param start is the path to begin with so set it to NULL as default.
 	* @Param format is the probable file format and each format is seperated
@@ -548,7 +553,7 @@ extern "C" {
 	* @Param start is the path to begin with so set it to NULL as default.
 	* @Param format is the probable file format and each format is seperated
 	* with \0, and it's set to NULL as default as well.
-	* @Param def is the default format to append if no format is input.
+	* @Param def is the default format to append if no format is input. 
 	* @Param idx is the default format index which is usually set to 1.
 	*/
 	SGint selectSave(char name[], char start[], char format[], char def[], int idx);
@@ -564,14 +569,14 @@ extern "C" {
 	* If the given folder does not exist, then create it.
 	* @Param path is the path to find and create.
 	*/
-	SGint makePath(const char path[]);
+	SGint makePath(SGtext path);
 
 	/**
 	* Check if one file exists.
 	* @Param path is the path of file.
 	* @Return returns 1 if the given file exists, or else return 0.
 	*/
-	SGint fileExist(const char path[]);
+	SGint fileExist(SGtext path);
 
 	/**
 	* Initialize the media(mp3) device.
@@ -583,7 +588,7 @@ extern "C" {
 	* @Param filename is the mp3 file name.
 	* @Return the identifier of this mci.
 	*/
-	SGint loadMciSrc(const char *filename);
+	SGint loadMciSrc(SGtext filename);
 
 	/**
 	* Start playing music.
@@ -621,7 +626,7 @@ extern "C" {
 	* to other programs.
 	* @Param src is the source passed to window clipboard.
 	*/
-	SGint copyText(const char *src);
+	SGint copyText(SGtext src);
 
 	/**
 	* Copy the given text into windows clipboard so that it can be pasted
@@ -641,10 +646,10 @@ extern "C" {
 	/**
 	* Set up a client and connect to server(localhost is "127.0.0.1").
 	* @Param port is the port number. the port should be equal to the one
-	* set by server.
+	* set by server. 
 	* @Return the socket of the client.
 	*/
-	SOCKET createClient(const char *server, int port);
+	SOCKET createClient(SGtext server, int port);
 
 	/**
 	* Used by a server to accept one request, one acceptOne should answer
@@ -659,7 +664,7 @@ extern "C" {
 	* @Param s stands for the socket of the given connection.
 	* @Param buffer is the sending data.
 	*/
-	SGint socketSend(SOCKET s, const char *buffer);
+	SGint socketSend(SOCKET s, SGtext buffer);
 
 	/**
 	* Used to receive a string via one connection.
@@ -670,7 +675,7 @@ extern "C" {
 	* @Return the status of the revceiving. If the connection is stopped,
 	* the return value is SG_CONNECTION_FAILED.
 	*/
-	SGint socketReceive(SOCKET s, char *buffer, int len);
+	SGint socketReceive(SOCKET s, SGstring buffer, int len);
 
 	/**
 	* When one the connection is cut, we should close the socket of this
@@ -684,69 +689,69 @@ extern "C" {
 	* at top_left in the caption bar and in the tray.
 	* @Param ico can be either recource path or pre-defined variables.
 	*/
-	SGvoid setIcon(const char *ico);
+	SGvoid setIcon(SGtext ico);
 
 	/**
 	* Copy picture to a new area of memory.
 	* @Param src is the copy source.
-	* @Return point to the new area.
+	* @Return the new area.
 	*/
-	bitMap *copyPic(bitMap *src);
+	bitMap copyPic(bitMap src);
 
 	/**
 	* Copy picture to a new area of memory and change it to grayscale picture.
 	* @Param src is the handle source.
-	* @Return point to the handle result.
+	* @Return the handle result.
 	*/
-	bitMap *grayPic(bitMap *src);
+	bitMap grayPic(bitMap src);
 
 	/**
 	* Copy picture to a new area of memory and change it to binary picture.
 	* @Param src is the handle source.
 	* @Param threshold controls the handle result.
-	* @Return point to the handle result.
+	* @Return the handle result.
 	*/
-	bitMap *binaryPic(bitMap *src, int threshold);
+	bitMap binaryPic(bitMap src, int threshold);
 
 	/**
 	* Copy picture to a new area of memory and zoom.
 	* @Param src is the handle source.
 	* @Param rate is the zoom rate.
-	* @Return point to the handle result.
+	* @Return the handle result.
 	*/
-	bitMap *zoomPic(bitMap *src, float rate);
+	bitMap zoomPic(bitMap src, float rate);
 
 	/**
 	* Copy picture to a new area of memory and rotate.
 	* @Param src is the handle source.
 	* @Param angle is the rotate rate.
-	* @Return point to the handle result.
+	* @Return the handle result.
 	*/
-	bitMap *rotatePic(bitMap *src, float angle);
+	bitMap rotatePic(bitMap src, float angle);
 
 	/**
 	* Copy picture to a new area of memory and filter.
 	* @Param src is the handle source.
 	* @Param mode can be set to MEAN_FILTER or LAPLACIAN_FILTER
 	* or BILATERAL_FILTER.
-	* @Return point to the handle result.
+	* @Return the handle result.
 	*/
-	bitMap *filterPic(bitMap *src, int mode);
+	bitMap filterPic(bitMap src, int mode);
 
 	/**
 	* Copy picture to a new area of memory and change its luminance.
 	* @Param src is the handle source.
 	* @Param delta is the luminance delta.
-	* @Return point to the handle result.
+	* @Return the handle result.
 	*/
-	bitMap *luminantPic(bitMap *src, int delta);
+	bitMap luminantPic(bitMap src, int delta);
 
 	/**
 	* Copy picture to a new area of memory and change its contrast.
 	* @Param src is the handle source.
-	* @Return point to the handle result.
+	* @Return the handle result.
 	*/
-	bitMap *contrastPic(bitMap *src);
+	bitMap contrastPic(bitMap src);
 
 	/**
 	* Create a new small window to show the info.
@@ -755,7 +760,7 @@ extern "C" {
 	* @Param mode describes the button in new window.
 	* @Param result will be called when window closed or button push.
 	*/
-	void alertInfo(const char *caption, const char *text, int mode, void(*result)(int));
+	void alertInfo(SGtext caption, SGtext text, int mode, void(*result)(int));
 
 
 	/*
@@ -780,7 +785,7 @@ extern "C" {
 	* Set the font name.
 	* @Param name defines the current font name.
 	*/
-	SGvoid setFontName(const char *name);
+	SGvoid setFontName(SGtext name);
 
 	/**
 	* Set the font style.
@@ -862,7 +867,28 @@ extern "C" {
 	* @Param filename is the name of picture file with .bmp format.
 	* @Return the memory pointer of the picture.
 	*/
-	bitMap loadBmp(const char *filename);
+	bitMap loadBmp(SGtext filename);
+
+	/**
+	* Save bmp to file.
+	* @Param filename is the name of picture file with .bmp format.
+	* @Param bmp is the picture source.
+	*/
+	void saveBmp(SGtext filename, bitMap bmp);
+
+	/**
+	* Load png to a bitMap struct other than showing it on screen.
+	* @Param filename is the name of picture file with .png format.
+	* @Return the memory pointer of the picture.
+	*/
+	bitMap loadPng(SGtext filename);
+
+	/**
+	* Save png to file.
+	* @Param filename is the name of picture file with .png format.
+	* @Param png is the picture source.
+	*/
+	void savePng(SGtext filename, bitMap png);
 
 	/**
 	* Put a bmp picture on the screen.
@@ -870,13 +896,6 @@ extern "C" {
 	* @Param bmp is the memory pointer of the picture.
 	*/
 	void putBitmap(int x, int y, bitMap bmp);
-
-	/**
-	* Put a bmp picture on the screen.
-	* @Param x and y is the top-left corner of the picture.
-	* @Param filename is the name of picture file with .bmp format.
-	*/
-	SGint drawBmp(int x, int y, const char *filename);
 
 	/**
 	* Draw one character ch on the screen.
@@ -900,7 +919,7 @@ extern "C" {
 	* @Param str is the string content.
 	* @Param x and y is the top-left corner of the string.
 	*/
-	SGint putString(const char *str, int x, int y);
+	SGint putString(SGtext str, int x, int y);
 
 	/**
 	* Draw one string on the screen with max x-length.
@@ -909,7 +928,7 @@ extern "C" {
 	* @Param start is the index of first character to be shown .
 	* @Param constraint is the x pixel length of the constraint .
 	*/
-	SGint putStringConstraint(const char *str, int x, int y, int start, int constraint);
+	SGint putStringConstraint(SGtext str, int x, int y, int start, int constraint);
 
 	/**
 	* Get the width on x axis of the given string in current font.
@@ -917,7 +936,7 @@ extern "C" {
 	* @Param x in the index of the end character.
 	* @Return the pixels on x-axis.
 	*/
-	SGint stringWidth(const char *str, int x);
+	SGint stringWidth(SGtext str, int x);
 
 	/**
 	* Build the string with format controling.
@@ -925,7 +944,7 @@ extern "C" {
 	* @Param ... are the values.
 	* @Return the built string.
 	*/
-	char *stringFormat(const char *str, ...);
+	char *stringFormat(SGtext str, ...);
 
 	/**
 	* Copy the pixel messages of the given area to parameter bitmap.
@@ -1003,7 +1022,7 @@ extern "C" {
 	* is used so just change the content rather than recall this function with another
 	* pointer when you want to change this variable.
 	*/
-	SGvoid setPipelineVariable(int id, const char *name, void *var);
+	SGvoid setPipelineVariable(int id, SGtext name, void *var);
 
 	/**
 	* Get the variable from programmable pipeline coding environment to user coding
@@ -1011,7 +1030,7 @@ extern "C" {
 	* @Param id is the graph id.
 	* @Param name is the unique name of this variable.
 	*/
-	SGvoid *getPipelineVariable(int id, const char *name);
+	SGvoid *getPipelineVariable(int id, SGtext name);
 
 	/**
 	* When finish sending data strips and uniform variables, draw the
@@ -1074,10 +1093,27 @@ extern "C" {
 	*/
 	vec3f randHemi(vec3f normal);
 
+	/**
+	* Select one direction from the hemisphere using phone reflection model.
+	* @Param normal is the hemisphere normal.
+	* @Param wi is the income light.
+	* @Param ns is the specular parameter.
+	*/
 	vec3f phoneSpec(vec3f normal, vec3f wi, float ns);
 
+	/**
+	* Return the reflect direction of income light.
+	* @Param normal is the hemisphere normal.
+	* @Param wi is the income light.
+	*/
 	vec3f glassSpec(vec3f normal, vec3f wi);
 
+	/**
+	* Return the transmit direction of income light.
+	* @Param normal is the hemisphere normal.
+	* @Param wi is the income light.
+	* @Param ni is the refract index.
+	*/
 	vec3f glassTrans(vec3f normal, vec3f wi, float ni);
 
 	/**
@@ -1085,8 +1121,8 @@ extern "C" {
 	* intersect function, hit function and shadow function.
 	* @Param id is the graph id.
 	* @Param data is the triangle vertices sequence.
-	* @Param length is the num of elements.
-	* @Param vertices is the vertex num of one element.
+	* @Param length is the num of elements. 
+	* @Param vertices is the vertex num of one element. 
 	* @Param intersect is called to judge if current ray intersect with one element.
 	* @Param hit is called to calculate the color to be shown.
 	* @Param shadow is called to judge if current hit point is in shadow.
@@ -1118,9 +1154,6 @@ extern "C" {
 	*/
 	SGvoid rtGenerate(int id, vec3f(*generate)(int id, vec2i index, vec2i size));
 
-	vec3f getGraphPixel(int id, int posX, int posY);
-
-
 	/**
 	* Set the miss function. That is, when rtTrace function did not hit any objects,
 	* the miss function will be called.
@@ -1130,6 +1163,11 @@ extern "C" {
 	*/
 	SGvoid rtMiss(int id, void(*miss)(int id, void *prd));
 
+	/**
+	* Get the float color of one pixel.
+	* @Param id is the graph id.
+	* @Param posX and posY is the pixel coordinate.
+	*/
 	vec3f getGraphPixel(int id, int posX, int posY);
 
 
@@ -1192,7 +1230,7 @@ extern "C" {
 	* @Param s is the string.
 	* @Param x and y is the character position.
 	*/
-	SGvoid writeString(const char *s, int x, int y);
+	SGvoid writeString(SGtext s, int x, int y);
 
 	/**
 	* Copy the text messages of the given area to parameter text.
@@ -1276,7 +1314,7 @@ extern "C" {
 	* @Parameter shift and ctrl means if this function need to press these two key.
 	* @Return value is the id of this item.
 	*/
-	SGint addPanelItem(const char *name, vect function, int shift, int ctrl);
+	SGint addPanelItem(SGtext name, vect function, int shift, int ctrl);
 
 	/**
 	* Change the name and function of an input panel item.
@@ -1286,7 +1324,7 @@ extern "C" {
 	* @Param function is called when right button is released.
 	* @Return value is id or SG_OBJECT_NOT_FOUND
 	*/
-	SGint changePanelItem(int id, const char *name, vect function);
+	SGint changePanelItem(int id, SGtext name, vect function);
 
 	/**
 	* Delete one input panel item.
@@ -1329,7 +1367,7 @@ extern "C" {
 	* @Param id is the item id.
 	* @Return value is the new list id.
 	*/
-	SGint addMainMenuList(const char *title, int id);
+	SGint addMainMenuList(SGtext title, int id);
 
 	/**
 	* Add a new item of name title into the menu.
@@ -1338,7 +1376,7 @@ extern "C" {
 	* @Param func will be called when this item is clicked.
 	* @Return value is the new list id.
 	*/
-	SGint addMainMenuItem(const char *title, int id, void(*func)());
+	SGint addMainMenuItem(SGtext title, int id, void(*func)());
 
 	/**
 	* Add a separate line in the list.
@@ -1399,7 +1437,7 @@ extern "C" {
 	* @Param id is the item id.
 	* @Return value is the new list id.
 	*/
-	SGint addTrayMenuList(const char *title, int id);
+	SGint addTrayMenuList(SGtext title, int id);
 
 	/**
 	* Add a new item of name title into the tray menu.
@@ -1408,7 +1446,7 @@ extern "C" {
 	* @Param func will be called when this item is clicked.
 	* @Return value is the new list id.
 	*/
-	SGint addTrayMenuItem(const char *title, int id, void(*func)());
+	SGint addTrayMenuItem(SGtext title, int id, void(*func)());
 
 	/**
 	* Add a separate line in the list.
@@ -1451,7 +1489,7 @@ extern "C" {
 	* @Param id is the item id.
 	* @Return value is the new list id.
 	*/
-	SGint addPopupMenuList(const char *title, int id);
+	SGint addPopupMenuList(SGtext title, int id);
 
 	/**
 	* Add a new item of name title into the popup menu.
@@ -1460,7 +1498,7 @@ extern "C" {
 	* @Param func will be called when this item is clicked.
 	* @Return value is the new list id.
 	*/
-	SGint addPopupMenuItem(const char *title, int id, void(*func)());
+	SGint addPopupMenuItem(SGtext title, int id, void(*func)());
 
 	/**
 	* Add a separate line in the list.
@@ -1533,7 +1571,7 @@ extern "C" {
 	* @Param name is the widget name.
 	* @Return struct is the mid-object of widget.
 	*/
-	widget newWidget(enum _control type, const char *name);
+	widget newWidget(enum _control type, SGtext name);
 
 	/**
 	* After setting all the parameters, give back the mid-object to
@@ -1552,8 +1590,8 @@ extern "C" {
 	* @Param click will be called when widget is pressed.
 	* @Return struct is the mid-object of widget.
 	*/
-	widget easyWidget(int type, const char *name,
-		int x, int y, int width, int height, const char *content, void(*click)(widget *obj));
+	widget easyWidget(int type, SGtext name,
+		int x, int y, int width, int height, SGtext content, void(*click)(widget *obj));
 
 	/**
 	* Create a combined widget. Pass the sub widget number and
@@ -1564,24 +1602,24 @@ extern "C" {
 	* @Param num is the number of sub widgets.
 	* @Param ... are the sub widgets.
 	*/
-	widget easyCombinedWidget(const char *name, int x, int y, int width, int height, int num, ...);
+	widget easyCombinedWidget(SGtext name, int x, int y, int width, int height, int num, ...);
 
 	/**
 	* Get the widget structure by the given name.
 	* @Param name is the widget name.
 	* @Return the poiter of the widget's mid-object.
 	*/
-	widget *getWidgetByName(const char *name);
+	widget *getWidgetByName(SGtext name);
 
 	/**
 	* After modifing the structure returned by getWidgetByName, apply the
 	* modification.
 	* @Param name is the widget name.
 	*/
-	SGvoid refreshWidget(const char *name);
+	SGvoid refreshWidget(SGtext name);
 
 	/**
-	* Judge if coordinate (x, y) is in widget obj.
+	* Judge if coordinate (x, y) is in widget obj. 
 	* @Param obj is the mid-object of widget.
 	* @Param x and y is the position to be judged.
 	*/
@@ -1598,26 +1636,26 @@ extern "C" {
 	* Make the widget of name visible.
 	* @Param name is the widget name.
 	*/
-	SGint showWidget(const char *name);
+	SGint showWidget(SGtext name);
 
 	/**
 	* Make the widget of name disvisible.
 	* @Param name is the widget name.
 	*/
-	SGint ceaseWidget(const char *name);
+	SGint ceaseWidget(SGtext name);
 
 	/**
 	* Delete the widget with the given name.
 	* @Param name is the widget name.
 	*/
-	SGint deleteWidget(const char *name);
+	SGint deleteWidget(SGtext name);
 
 	/**
 	* Returns the sub widget with the given name in parent's childs.
 	* @Param parent is the parent widget name.
 	* @Param sub is the sub widget name.
 	*/
-	widget *getSubWidget(const char *parent, const char *sub);
+	widget *getSubWidget(SGtext parent, SGtext sub);
 
 	/**
 	* Insert a child widget. The index decides the display order.
@@ -1625,35 +1663,35 @@ extern "C" {
 	* @Param sub is the sub widget.
 	* @Param index defines the insert position.
 	*/
-	SGvoid insertSubWidget(const char *parent, widget sub, int index);
+	SGvoid insertSubWidget(SGtext parent, widget sub, int index);
 
 	/**
 	* Delete the child widget of the given name.
 	* @Param parent is the parent widget name.
 	* @Param sub is the sub widget name.
 	*/
-	SGvoid deleteSubWidget(const char *parent, const char *name);
+	SGvoid deleteSubWidget(SGtext parent, SGtext name);
 
 	/**
 	* Move the widget to (x + xDelta, y + yDelta) with the given name.
 	* @Param name is the widget name.
 	* @Param xDelta and yDelta define the moving delta.
 	*/
-	SGint moveWidget(const char *name, int xDelta, int yDelta);
+	SGint moveWidget(SGtext name, int xDelta, int yDelta);
 
 	/**
 	* Set the widget with the given name to the top which means no other
 	* widgets can conver it.
 	* @Param name is the widget name.
 	*/
-	SGvoid setWidgetTop(const char *name);
+	SGvoid setWidgetTop(SGtext name);
 
 	/**
 	* Set the widget with the given name to the bottom which means any
 	* widget can conver it.
 	* @Param name is the widget name.
 	*/
-	SGvoid setWidgetBottom(const char *name);
+	SGvoid setWidgetBottom(SGtext name);
 
 	/**
 	* Set the sub widget with the given name to the top in combined widget
@@ -1661,7 +1699,7 @@ extern "C" {
 	* @Param parent is the combined widget name.
 	* @Param name is the sub widget name.
 	*/
-	SGvoid setSubWidgetTop(const char *parent, const char *name);
+	SGvoid setSubWidgetTop(SGtext parent, SGtext name);
 
 	/**
 	* Set the sub widget with the given name to the bottom in combined widget
@@ -1669,13 +1707,17 @@ extern "C" {
 	* @Param parent is the combined widget name.
 	* @Param name is the sub widget name.
 	*/
-	SGvoid setSubWidgetBottom(const char *parent, const char *name);
+	SGvoid setSubWidgetBottom(SGtext parent, SGtext name);
 
 
 	/*
 	* SG data interfaces
 	* These functions are used to deal with big data.
 	*/
+
+	void zip(SGstring src, SGstring dst);
+
+	void unzip(SGstring src, SGstring dst);
 
 	/**
 	* Create an empty json object.
@@ -1700,7 +1742,7 @@ extern "C" {
 	* @Param json is the json string.
 	* @Retrun struct is the correspondent json structure.
 	*/
-	struct JSON *readJson(const char *json);
+	struct JSON *readJson(SGtext json);
 
 	/**
 	* Give the correspondent string with the given json.
@@ -1715,7 +1757,7 @@ extern "C" {
 	* @Param name is the content name.
 	* @Return struct is the item with the given name.
 	*/
-	struct JSON_Item *getContent(struct JSON *json, const char *name);
+	struct JSON_Item *getContent(struct JSON *json, SGtext name);
 
 	/**
 	* Get the item in a json array with the given index.
@@ -1730,7 +1772,7 @@ extern "C" {
 	* @Param json is the json structure.
 	* @Param name is the content name.
 	*/
-	void deleteContent(struct JSON *json, const char *name);
+	void deleteContent(struct JSON *json, SGtext name);
 
 	/**
 	* Delete the item in a json array with the given index.
@@ -1743,13 +1785,13 @@ extern "C" {
 	* If there is an item in json object with the given name, then reset its
 	* value. Or else, add this item.
 	*/
-	void setIntContent(struct JSON *json, const char *name, SGint i);
-	void setFloatContent(struct JSON *json, const char *name, SGfloat f);
-	void setCharContent(struct JSON *json, const char *name, SGchar c);
-	void setBoolContent(struct JSON *json, const char *name, SGbool b);
-	void setStringContent(struct JSON *json, const char *name, const char *s);
-	void setObjectContent(struct JSON *json, const char *name, struct JSON *j);
-	void setArrayContent(struct JSON *json, const char *name, struct JSON *j);
+	void setIntContent(struct JSON *json, SGtext name, SGint i);
+	void setFloatContent(struct JSON *json, SGtext name, SGfloat f);
+	void setCharContent(struct JSON *json, SGtext name, SGchar c);
+	void setBoolContent(struct JSON *json, SGtext name, SGbool b);
+	void setStringContent(struct JSON *json, SGtext name, const char *s);
+	void setObjectContent(struct JSON *json, SGtext name, struct JSON *j);
+	void setArrayContent(struct JSON *json, SGtext name, struct JSON *j);
 
 	/**
 	* If there is an item in json array with the given index, then reset its

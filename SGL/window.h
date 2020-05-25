@@ -1247,58 +1247,6 @@ public:
 		}
 
 	}
-	int drawBmp(int x, int y, const char *filename) {
-		FILE *fp = NULL;
-		SGstring p = NULL, tmp = NULL;
-		int width, height, i;
-		dword dataOffset, lineBytes;
-		dword lines;
-		byte *vp;
-
-		if (sglMode != BIT_MAP && !innerFunc)return SG_INVALID_MODE;
-		if (checkThread())return SG_WRONG_THREAD;
-
-		vp = buffer->data + (y*buffer->sizeX + x) * 3;
-
-		if (x < 0 || y < 0)goto displayError;
-		p = (SGstring)malloc(2048 * 3 * sizeof(char));
-		if (p == NULL)goto displayError;
-		fp = fopen(filename, "rb");
-		if (fp == NULL)goto displayError;
-
-		fread(p, 1, 0x36, fp);
-		if (*(word *)p != 0x4D42)goto displayError;
-		if (*(word *)(p + 0x1C) != 24)goto displayError;
-
-		width = *(dword *)(p + 0x12);
-		height = *(dword *)(p + 0x16);
-		dataOffset = *(dword *)(p + 0x0A);
-		lineBytes = (width * 3 + 3) / 4 * 4;
-
-		if (y + height > buffer->sizeY) {
-			fseek(fp, dataOffset + (y + height - buffer->sizeY)*lineBytes, SEEK_SET);
-			height = buffer->sizeY - y;
-		}
-		else fseek(fp, dataOffset, SEEK_SET);
-
-		for (i = height - 1; i >= 0; i--) {
-			fread(p, 1, lineBytes, fp);
-			lines = i * buffer->sizeX * 3;
-			tmp = p;
-			if (x + width > buffer->sizeX)
-				memcpy(vp + lines, p, (buffer->sizeX - x) * 3);
-			else memcpy(vp + lines, p, width * 3);
-		}
-
-		free(p);
-		fclose(fp);
-		return SG_NO_ERORR;
-
-	displayError:
-		if (p != NULL)free(p);
-		if (fp != NULL)fclose(fp);
-		return SG_IO_ERROR;
-	}
 	void putChar(char ch, int x, int y) {
 		int j, k;
 

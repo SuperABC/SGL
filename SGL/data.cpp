@@ -3,19 +3,21 @@
 #include "winsgl.h"
 #include "inner.h"
 #include "util.h"
+#include <direct.h>
 #include <exception>
 
 using std::exception;
+using std::string;
 
 /*
 * SG data interfaces
 * These functions are used to deal with big data.
 */
 
-int subObjectCont(struct JSON *obj, char *name, const char *json, int i);
-int subArrayCont(struct JSON *obj, char *name, const char *json, int i);
-int subObjectElement(struct JSON *obj, int idx, const char *json, int i);
-int subArrayElement(struct JSON *obj, int idx, const char *json, int i);
+int subObjectCont(struct JSON *obj, char *name, SGtext json, int i);
+int subArrayCont(struct JSON *obj, char *name, SGtext json, int i);
+int subObjectElement(struct JSON *obj, int idx, SGtext json, int i);
+int subArrayElement(struct JSON *obj, int idx, SGtext json, int i);
 
 struct JSON *createJson() {
 	int i;
@@ -79,7 +81,7 @@ void freeJson(struct JSON *json) {
 	}
 }
 
-int subObjectCont(struct JSON *obj, char *name, const char *json, int i) {
+int subObjectCont(struct JSON *obj, char *name, SGtext json, int i) {
 	int j, point;
 	char label[256];
 	char cont[256];
@@ -159,7 +161,7 @@ int subObjectCont(struct JSON *obj, char *name, const char *json, int i) {
 	i++;
 	return i;
 }
-int subArrayCont(struct JSON *obj, char *name, const char *json, int i) {
+int subArrayCont(struct JSON *obj, char *name, SGtext json, int i) {
 	int j, point;
 	char cont[256];
 	struct JSON *content = createJsonArray();
@@ -227,7 +229,7 @@ int subArrayCont(struct JSON *obj, char *name, const char *json, int i) {
 	i++;
 	return i;
 }
-int subObjectElement(struct JSON *obj, int idx, const char *json, int i) {
+int subObjectElement(struct JSON *obj, int idx, SGtext json, int i) {
 	int j, point;
 	char label[256];
 	char cont[256];
@@ -307,7 +309,7 @@ int subObjectElement(struct JSON *obj, int idx, const char *json, int i) {
 	i++;
 	return i;
 }
-int subArrayElement(struct JSON *obj, int idx, const char *json, int i) {
+int subArrayElement(struct JSON *obj, int idx, SGtext json, int i) {
 	int j, point;
 	char cont[256];
 	struct JSON *element = createJsonArray();
@@ -375,7 +377,7 @@ int subArrayElement(struct JSON *obj, int idx, const char *json, int i) {
 	i++;
 	return i;
 }
-struct JSON *readJson(const char *json) {
+struct JSON *readJson(SGtext json) {
 	int i = 0, j;
 	char point;
 	char name[256];
@@ -658,7 +660,7 @@ char *writeJson(struct JSON *json) {
 	return buf;
 }
 
-struct JSON_Item *getContent(struct JSON *json, const char *name) {
+struct JSON_Item *getContent(struct JSON *json, SGtext name) {
 	int i, sum = 0;
 	struct JSON_Item *iter = NULL;
 
@@ -692,7 +694,7 @@ struct JSON_Item *getElement(struct JSON *json, int idx) {
 
 	return NULL;
 }
-void deleteContent(struct JSON *json, const char *name) {
+void deleteContent(struct JSON *json, SGtext name) {
 	int i, sum = 0;
 	struct JSON_Item *iter = NULL, *tmp;
 
@@ -744,7 +746,7 @@ void deleteElement(struct JSON *json, int idx) {
 	}
 }
 
-void setIntContent(struct JSON *json, const char *name, SGint i) {
+void setIntContent(struct JSON *json, SGtext name, SGint i) {
 	int ch, sum = 0;
 	struct JSON_Item *iter;
 
@@ -771,7 +773,7 @@ void setIntContent(struct JSON *json, const char *name, SGint i) {
 	iter->next = json->hash[sum];
 	json->hash[sum] = iter;
 }
-void setFloatContent(struct JSON *json, const char *name, SGfloat f) {
+void setFloatContent(struct JSON *json, SGtext name, SGfloat f) {
 	int ch, sum = 0;
 	struct JSON_Item *iter;
 
@@ -798,7 +800,7 @@ void setFloatContent(struct JSON *json, const char *name, SGfloat f) {
 	iter->next = json->hash[sum];
 	json->hash[sum] = iter;
 }
-void setCharContent(struct JSON *json, const char *name, SGchar c) {
+void setCharContent(struct JSON *json, SGtext name, SGchar c) {
 	int ch, sum = 0;
 	struct JSON_Item *iter;
 
@@ -825,7 +827,7 @@ void setCharContent(struct JSON *json, const char *name, SGchar c) {
 	iter->next = json->hash[sum];
 	json->hash[sum] = iter;
 }
-void setBoolContent(struct JSON *json, const char *name, SGbool b) {
+void setBoolContent(struct JSON *json, SGtext name, SGbool b) {
 	int ch, sum = 0;
 	struct JSON_Item *iter;
 
@@ -852,7 +854,7 @@ void setBoolContent(struct JSON *json, const char *name, SGbool b) {
 	iter->next = json->hash[sum];
 	json->hash[sum] = iter;
 }
-void setStringContent(struct JSON *json, const char *name, const char *s) {
+void setStringContent(struct JSON *json, SGtext name, const char *s) {
 	int ch, sum = 0;
 	struct JSON_Item *iter;
 
@@ -881,7 +883,7 @@ void setStringContent(struct JSON *json, const char *name, const char *s) {
 	iter->next = json->hash[sum];
 	json->hash[sum] = iter;
 }
-void setObjectContent(struct JSON *json, const char *name, struct JSON *j) {
+void setObjectContent(struct JSON *json, SGtext name, struct JSON *j) {
 	int ch, sum = 0;
 	struct JSON_Item *iter;
 
@@ -909,7 +911,7 @@ void setObjectContent(struct JSON *json, const char *name, struct JSON *j) {
 	iter->next = json->hash[sum];
 	json->hash[sum] = iter;
 }
-void setArrayContent(struct JSON *json, const char *name, struct JSON *j) {
+void setArrayContent(struct JSON *json, SGtext name, struct JSON *j) {
 	int ch, sum = 0;
 	struct JSON_Item *iter;
 
