@@ -67,7 +67,8 @@ int createWindow(int width, int height, SGtext title, int mode, vect setup, vect
 	wc.hInstance = NULL;
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-	wc.lpszClassName = _widen((string("SubClass") + std::to_string(_windowList.size()*2)).data());
+	String className = String((string("SubClass") + std::to_string(_windowList.size())).data());
+	wc.lpszClassName = className.widen();
 	wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
 
 	if (!RegisterClassEx(&wc)) {
@@ -110,7 +111,8 @@ int createWindow(int width, int height, SGtext title, int mode, void(*setup)(voi
 	wc.hInstance = NULL;
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
-	wc.lpszClassName = _widen((string("SubClass") + std::to_string(_windowList.size() * 2)).data());
+	String className = String((string("SubClass") + std::to_string(_windowList.size())).data());
+	wc.lpszClassName = className.widen();
 	wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
 
 	if (!RegisterClassEx(&wc)) {
@@ -805,17 +807,18 @@ int delayEnd(int t) {
 int random(int n) {
 	return rand() % n;
 }
-int selectFile(char name[], char start[], char format[], int idx) {
+int selectFile(char name[], SGWINSTR start, SGWINSTR format, int idx) {
 	OPENFILENAME ofn = { 0 };
 	SGWINSTR strFilename = (SGWINSTR)malloc(MAX_PATH);
+	memset(strFilename, 0, MAX_PATH);
 
 	ofn.lStructSize = sizeof(OPENFILENAME);
 	ofn.hwndOwner = NULL;
-	ofn.lpstrFilter = _widen(format);
+	ofn.lpstrFilter = format;
 	ofn.nFilterIndex = idx;
 	ofn.lpstrFile = strFilename;
-	ofn.nMaxFile = sizeof(strFilename);
-	ofn.lpstrInitialDir = _widen(start);
+	ofn.nMaxFile = MAX_PATH;
+	ofn.lpstrInitialDir = start;
 	ofn.lpstrTitle = TEXT("请选择一个文件");
 	ofn.Flags = OFN_FILEMUSTEXIST | OFN_PATHMUSTEXIST | OFN_HIDEREADONLY;
 	GetOpenFileName(&ofn);
@@ -829,21 +832,22 @@ int selectFile(char name[], char start[], char format[], int idx) {
 		return SG_OBJECT_NOT_FOUND;
 	}
 }
-int selectSave(char name[], char start[], char format[], char def[], int idx) {
+int selectSave(char name[], SGWINSTR start, SGWINSTR format, SGWINSTR def, int idx) {
 	OPENFILENAME ofn = { 0 };
 	SGWINSTR strFilename = (SGWINSTR)malloc(MAX_PATH);
+	memset(strFilename, 0, MAX_PATH);
 
 	ofn.lStructSize = sizeof(OPENFILENAME);
 	ofn.hwndOwner = NULL;
-	ofn.lpstrFilter = _widen(format);
+	ofn.lpstrFilter = format;
 	ofn.nFilterIndex = idx;
 	ofn.lpstrFile = strFilename;
-	ofn.nMaxFile = sizeof(strFilename);
-	ofn.lpstrInitialDir = _widen(start);
+	ofn.nMaxFile = MAX_PATH;
+	ofn.lpstrInitialDir = start;
 	ofn.lpstrTitle = TEXT("请选择一个文件");
 	ofn.Flags = OFN_PATHMUSTEXIST | OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT;
 	ofn.lpstrTitle = TEXT("保存到");
-	ofn.lpstrDefExt = _widen(def);
+	ofn.lpstrDefExt = def;
 	GetSaveFileName(&ofn);
 	if (strFilename[0]) {
 		strcpy(name, _shorten(strFilename));

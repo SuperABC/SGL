@@ -39,9 +39,6 @@
     <ClInclude Include="winsgl.h">
       <Filter>头文件\pack</Filter>
     </ClInclude>
-    <ClInclude Include="imfile.cpp">
-      <Filter>源文件</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="frame.cpp">
@@ -57,6 +54,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="encryption.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="imfile.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

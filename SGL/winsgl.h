@@ -544,7 +544,7 @@ extern "C" {
 	* with \0, and it's set to NULL as default as well.
 	* @Param idx is the default format index which is usually set to 1.
 	*/
-	SGint selectFile(char name[], char start[], char format[], int idx);
+	SGint selectFile(char name[], SGWINSTR start, SGWINSTR format, int idx);
 
 	/**
 	* Use Win API Graphic mode to let user input the file name that they
@@ -556,7 +556,7 @@ extern "C" {
 	* @Param def is the default format to append if no format is input. 
 	* @Param idx is the default format index which is usually set to 1.
 	*/
-	SGint selectSave(char name[], char start[], char format[], char def[], int idx);
+	SGint selectSave(char name[], SGWINSTR start, SGWINSTR format, SGWINSTR def, int idx);
 
 	/**
 	* Use Win API Graphic mode to choose one directory.

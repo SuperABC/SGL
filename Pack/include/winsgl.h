@@ -34,7 +34,7 @@
 #endif
 #define SG_A(name) name ".a"
 
-//#pragma comment(lib, SG_LIB("winsgl"))
+#pragma comment(lib, SG_LIB("winsgl"))
 #pragma comment(lib, "winmm.lib")
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "shlwapi.lib")
@@ -328,7 +328,7 @@ typedef struct {
 	SGWINSTR name;
 	int coeff;
 }font;
-typedef struct _w{
+typedef struct _w {
 	enum _control type;
 
 	vec2i pos;
@@ -537,7 +537,7 @@ extern "C" {
 	SGint random(int n);
 
 	/**
-	* Use Win API Graphic mode to choose one file. 
+	* Use Win API Graphic mode to choose one file.
 	* @Param name name is used to receive the selected file name with its path.
 	* @Param start is the path to begin with so set it to NULL as default.
 	* @Param format is the probable file format and each format is seperated
@@ -553,7 +553,7 @@ extern "C" {
 	* @Param start is the path to begin with so set it to NULL as default.
 	* @Param format is the probable file format and each format is seperated
 	* with \0, and it's set to NULL as default as well.
-	* @Param def is the default format to append if no format is input. 
+	* @Param def is the default format to append if no format is input.
 	* @Param idx is the default format index which is usually set to 1.
 	*/
 	SGint selectSave(char name[], char start[], char format[], char def[], int idx);
@@ -646,7 +646,7 @@ extern "C" {
 	/**
 	* Set up a client and connect to server(localhost is "127.0.0.1").
 	* @Param port is the port number. the port should be equal to the one
-	* set by server. 
+	* set by server.
 	* @Return the socket of the client.
 	*/
 	SOCKET createClient(SGtext server, int port);
@@ -1121,8 +1121,8 @@ extern "C" {
 	* intersect function, hit function and shadow function.
 	* @Param id is the graph id.
 	* @Param data is the triangle vertices sequence.
-	* @Param length is the num of elements. 
-	* @Param vertices is the vertex num of one element. 
+	* @Param length is the num of elements.
+	* @Param vertices is the vertex num of one element.
 	* @Param intersect is called to judge if current ray intersect with one element.
 	* @Param hit is called to calculate the color to be shown.
 	* @Param shadow is called to judge if current hit point is in shadow.
@@ -1619,7 +1619,7 @@ extern "C" {
 	SGvoid refreshWidget(SGtext name);
 
 	/**
-	* Judge if coordinate (x, y) is in widget obj. 
+	* Judge if coordinate (x, y) is in widget obj.
 	* @Param obj is the mid-object of widget.
 	* @Param x and y is the position to be judged.
 	*/

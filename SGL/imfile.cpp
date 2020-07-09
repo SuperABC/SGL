@@ -83,7 +83,7 @@ void saveBmp(SGtext filename, bitMap bmp) {
 //PNG
 
 bitMap loadPng(SGtext filename) {
-	
+	return bitMap();
 }
 void savePng(SGtext filename, bitMap png) {
 

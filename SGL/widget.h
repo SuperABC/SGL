@@ -919,7 +919,7 @@ public:
 class Pic :public Widget {
 public:
 	Pic(widget w, int window, string p = "") :Widget(w, window, p) {
-		obj->bgImg = bgImg = loadBmp((char *)w.content);
+		obj->bgImg = bgImg = loadBmp((SGtext)w.content);
 	}
 
 	virtual void draw(int id) {

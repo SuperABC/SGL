@@ -149,7 +149,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="geometry.h" />
-    <ClInclude Include="imfile.cpp" />
     <ClInclude Include="inner.h" />
     <ClInclude Include="users.h" />
     <ClInclude Include="util.h" />
@@ -163,6 +162,7 @@
     <ClCompile Include="frame.cpp" />
     <ClCompile Include="geometry.cpp" />
     <ClCompile Include="graph.cpp" />
+    <ClCompile Include="imfile.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
