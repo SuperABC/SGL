@@ -1009,19 +1009,45 @@ void createThread(thread func, void *param) {
 	threads.push_back(CreateThread(NULL, 0, func, param, 0, NULL));
 }
 int copyText(SGtext src) {
-	HGLOBAL hg;
-	char *pt;
+	//HGLOBAL hg;
+	//char *pt;
 
-	hg = GlobalAlloc(GHND | GMEM_SHARE,
-		(strlen(src) + 1) * sizeof(TCHAR));
-	pt = (char *)GlobalLock(hg);
-	strcpy(pt, src);
-	GlobalUnlock(hg);
+	//hg = GlobalAlloc(GHND | GMEM_SHARE,
+	//	(strlen(src) + 1) * sizeof(TCHAR));
+	//pt = (char *)GlobalLock(hg);
+	//strcpy(pt, src);
+	//GlobalUnlock(hg);
 
-	OpenClipboard(_windowList[_currentWindow]->getHwnd());
-	EmptyClipboard();
-	SetClipboardData(CF_TEXT, hg);
-	CloseClipboard();
+	//OpenClipboard(_windowList[_currentWindow]->getHwnd());
+	//EmptyClipboard();
+	//SetClipboardData(CF_TEXT, hg);
+	//CloseClipboard();
+	if (OpenClipboard(_windowList[_currentWindow]->getHwnd()))
+	{
+		HGLOBAL hClip;
+		TCHAR *pBuf;
+		TCHAR szHardWareID[1024] = L"this is a sample!";
+		//清空剪切板内容
+		EmptyClipboard();
+		//分配新全局内存空间
+		hClip = GlobalAlloc(GHND, 1024);
+		//锁住全局内存空间
+		pBuf = (TCHAR *)GlobalLock(hClip);
+		//将内容写入全局内存空间
+		memcpy(pBuf, szHardWareID, wcslen(szHardWareID));
+		//将空间中的内容写入剪切板
+#ifndef UNICODE
+		SetClipboardData(CF_TEXT, hClip);         //设置数据
+#else
+		SetClipboardData(CF_UNICODETEXT, hClip);         //设置数据
+#endif
+														 //解锁全局内存空间
+		GlobalUnlock(hClip);         //解锁
+									 //释放全局内存空间
+		GlobalFree(hClip);
+		//关闭剪切板
+		CloseClipboard();
+	}
 
 	return SG_NO_ERORR;
 }

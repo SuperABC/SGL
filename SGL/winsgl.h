@@ -584,7 +584,8 @@ extern "C" {
 	SGvoid initMci();
 
 	/**
-	* Load the mp3 file to memory,
+	* Load the mp3 file to memory. The mp3 file should not be downloaded
+	* from netease music.
 	* @Param filename is the mp3 file name.
 	* @Return the identifier of this mci.
 	*/
