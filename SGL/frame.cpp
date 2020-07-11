@@ -55,6 +55,23 @@ void initWindow(int width, int height, SGtext title, int mode) {
 	if(_windowList.empty())
 		_windowList.push_back(new Window(width, height, title, mode));
 }
+void initPolarWindow(int rx, int ry) {
+	if (rx == 0) {
+		rx = GetSystemMetrics(SM_CXFULLSCREEN)/2;
+	}
+	if (ry == 0) {
+		ry = GetSystemMetrics(SM_CYFULLSCREEN)/2;
+	}
+	if (_windowList.empty()) {
+		_windowList.push_back(new Window(rx * 2, ry * 2));
+		_windowList.back()->sglCircle = 1;
+		_windowList.back()->sglCircleCx = rx;
+		_windowList.back()->sglCircleCy = ry;
+		_windowList.back()->sglCircleRx = rx;
+		_windowList.back()->sglCircleRy = ry;
+		strcpy(_windowList.back()->winName, "");
+	}
+}
 int createWindow(int width, int height, SGtext title, int mode, vect setup, vect loop) {
 	WNDCLASSEX wc;
 
@@ -139,6 +156,71 @@ int createWindow(int width, int height, SGtext title, int mode, void(*setup)(voi
 	_endSubWindow();
 	_startSubWindow(_windowList.size() - 1);
 	_sgSubInit(setup, init);
+	_endSubWindow();
+	_startSubWindow(tmp);
+	return _windowList.size() - 1;
+}
+int createPolarWindow(int rx, int ry, vect setup, vect loop) {
+	if (rx == 0) {
+		rx = GetSystemMetrics(SM_CXFULLSCREEN) / 2;
+	}
+	if (ry == 0) {
+		ry = GetSystemMetrics(SM_CYFULLSCREEN) / 2;
+	}
+
+	WNDCLASSEX wc;
+
+	if (!_baseWindow)return SG_OBJECT_NOT_FOUND;
+	Window *sub = new Window(rx * 2, ry * 2);
+	sub->sglCircle = 1;
+	sub->sglCircleCx = rx;
+	sub->sglCircleCy = ry;
+	sub->sglCircleRx = rx;
+	sub->sglCircleRy = ry;
+	strcpy(sub->winName, "");
+
+	memset(&wc, 0, sizeof(wc));
+	wc.cbSize = sizeof(WNDCLASSEX);
+	wc.lpfnWndProc = SubWndProc;
+	wc.hInstance = NULL;
+	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+	wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+	String className = String((string("SubClass") + std::to_string(_windowList.size())).data());
+	wc.lpszClassName = className.widen();
+	wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+
+	if (!RegisterClassEx(&wc)) {
+		MessageBox(NULL, TEXT("Window Registration Failed!"), TEXT("Error!"), MB_ICONEXCLAMATION | MB_OK);
+
+		delete sub;
+		return SG_IO_ERROR;
+	}
+
+	sub->loop = loop;
+	sub->createWindow(NULL, wc, _baseWindow->getHwnd());
+	if (sub->sglCircle) {
+		SetWindowRgn(sub->getHwnd(),
+			CreateEllipticRgn(sub->sglCircleCx - sub->sglCircleRx,
+				sub->sglCircleCy - sub->sglCircleRy,
+				sub->sglCircleCx + sub->sglCircleRx,
+				sub->sglCircleCy + sub->sglCircleRy), TRUE);
+		//hideCaption();
+	}
+
+	ShowWindow(sub->getHwnd(), SW_SHOWDEFAULT);
+
+	/*for (unsigned int i = 0; i < _windowList.size(); i++) {
+	if (_windowList[i] == NULL) {
+	_windowList[i] = sub;
+	return i;
+	}
+	}*/
+	_windowList.push_back(sub);
+
+	int tmp = _currentWindow;
+	_endSubWindow();
+	_startSubWindow(_windowList.size() - 1);
+	_sgSubInit(setup);
 	_endSubWindow();
 	_startSubWindow(tmp);
 	return _windowList.size() - 1;
@@ -1009,45 +1091,19 @@ void createThread(thread func, void *param) {
 	threads.push_back(CreateThread(NULL, 0, func, param, 0, NULL));
 }
 int copyText(SGtext src) {
-	//HGLOBAL hg;
-	//char *pt;
+	HGLOBAL hg;
+	char *pt;
 
-	//hg = GlobalAlloc(GHND | GMEM_SHARE,
-	//	(strlen(src) + 1) * sizeof(TCHAR));
-	//pt = (char *)GlobalLock(hg);
-	//strcpy(pt, src);
-	//GlobalUnlock(hg);
+	hg = GlobalAlloc(GHND | GMEM_SHARE,
+		(strlen(src) + 1) * sizeof(TCHAR));
+	pt = (char *)GlobalLock(hg);
+	strcpy(pt, src);
+	GlobalUnlock(hg);
 
-	//OpenClipboard(_windowList[_currentWindow]->getHwnd());
-	//EmptyClipboard();
-	//SetClipboardData(CF_TEXT, hg);
-	//CloseClipboard();
-	if (OpenClipboard(_windowList[_currentWindow]->getHwnd()))
-	{
-		HGLOBAL hClip;
-		TCHAR *pBuf;
-		TCHAR szHardWareID[1024] = L"this is a sample!";
-		//清空剪切板内容
-		EmptyClipboard();
-		//分配新全局内存空间
-		hClip = GlobalAlloc(GHND, 1024);
-		//锁住全局内存空间
-		pBuf = (TCHAR *)GlobalLock(hClip);
-		//将内容写入全局内存空间
-		memcpy(pBuf, szHardWareID, wcslen(szHardWareID));
-		//将空间中的内容写入剪切板
-#ifndef UNICODE
-		SetClipboardData(CF_TEXT, hClip);         //设置数据
-#else
-		SetClipboardData(CF_UNICODETEXT, hClip);         //设置数据
-#endif
-														 //解锁全局内存空间
-		GlobalUnlock(hClip);         //解锁
-									 //释放全局内存空间
-		GlobalFree(hClip);
-		//关闭剪切板
-		CloseClipboard();
-	}
+	OpenClipboard(_windowList[_currentWindow]->getHwnd());
+	EmptyClipboard();
+	SetClipboardData(CF_TEXT, hg);
+	CloseClipboard();
 
 	return SG_NO_ERORR;
 }
@@ -2652,15 +2708,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam) 
 			_createMenu(MT_MAIN, NULL, _baseWindow->_mainMenuInfo.hm);
 			SetMenu(hwnd, _baseWindow->_mainMenuInfo.hm);
 		}
-
-		if (_baseWindow->sglCircle) {
-			SetWindowRgn(_baseWindow->getHwnd(),
-				CreateEllipticRgn(_baseWindow->sglCircleCx - _baseWindow->sglCircleR + 8,
-					_baseWindow->sglCircleCy - _baseWindow->sglCircleR + 8,
-					_baseWindow->sglCircleCx + _baseWindow->sglCircleR + 8,
-					_baseWindow->sglCircleCy + _baseWindow->sglCircleR + 8), TRUE);
-			hideCaption();
-		}
 		break;
 
 	case WM_COMMAND:
@@ -2837,10 +2884,10 @@ LRESULT CALLBACK SubWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
 
 		if (_windowList[index]->sglCircle) {
 			SetWindowRgn(_windowList[index]->getHwnd(),
-				CreateEllipticRgn(_windowList[index]->sglCircleCx - _windowList[index]->sglCircleR + 8,
-					_windowList[index]->sglCircleCy - _windowList[index]->sglCircleR + 8,
-					_windowList[index]->sglCircleCx + _windowList[index]->sglCircleR + 8,
-					_windowList[index]->sglCircleCy + _windowList[index]->sglCircleR + 8), TRUE);
+				CreateEllipticRgn(_windowList[index]->sglCircleCx - _windowList[index]->sglCircleRx + 8,
+					_windowList[index]->sglCircleCy - _windowList[index]->sglCircleRy + 8,
+					_windowList[index]->sglCircleCx + _windowList[index]->sglCircleRx + 8,
+					_windowList[index]->sglCircleCy + _windowList[index]->sglCircleRy + 8), TRUE);
 			hideCaption();
 		}
 		break;
@@ -3017,6 +3064,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 	}
 
 	_baseWindow->createWindow(hInstance, wc);
+	if (_baseWindow->sglCircle) {
+		SetWindowRgn(_baseWindow->getHwnd(),
+			CreateEllipticRgn(_baseWindow->sglCircleCx - _baseWindow->sglCircleRx,
+				_baseWindow->sglCircleCy - _baseWindow->sglCircleRy,
+				_baseWindow->sglCircleCx + _baseWindow->sglCircleRx,
+				_baseWindow->sglCircleCy + _baseWindow->sglCircleRy), TRUE);
+		//hideCaption();
+	}
 
 	ShowWindow(_baseWindow->getHwnd(), nCmdShow);
 

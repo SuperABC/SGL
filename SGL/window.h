@@ -311,7 +311,6 @@ class Window {
 private:
 	HWND hwnd;
 	HICON hIcon = NULL;
-	char *winName;
 	int winWidth, winHeight;
 	int txtWidth, txtHeight;
 	int posLeft, posUp;
@@ -672,9 +671,10 @@ private:
 	}
 	
 public:
+	char *winName;
 	int sglMode = BIT_MAP, fps = 0;
 	void(*resize)(int w, int h) = NULL;
-	int sglCircle = 0, sglCircleCx, sglCircleCy, sglCircleR;
+	int sglCircle = 0, sglCircleCx, sglCircleCy, sglCircleRx, sglCircleRy;
 
 	vect loop, finish = NULL;
 	int inLoop = 0;

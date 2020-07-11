@@ -19,8 +19,8 @@
 
 //SGL standard macros.
 
-#define _SGL_V502
-#define _SGL_VERSION_STRING "v5.0.2"
+#define _SGL_V503
+#define _SGL_VERSION_STRING "v5.0.3"
 #define _CRT_SECURE_NO_WARNINGS
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
@@ -418,10 +418,9 @@ extern "C" {
 
 	/**
 	* Used in sgSetup, to set the parameters of the circular graphic window.
-	* @Param cx and cy is the centre of the window.
 	* @Param rx and ry is the x radius and y radius of the window.
 	*/
-	SGvoid initPolarWindow(int cx, int cy, int rx, int ry);
+	SGvoid initPolarWindow(int rx, int ry);
 
 	/**
 	* Create a new window with SGL canvas.
@@ -432,6 +431,12 @@ extern "C" {
 	* @Return returns the id of the window created.
 	*/
 	SGint createWindow(int width, int height, SGtext title, int mode, vect setup, vect loop);
+
+	/**
+	* Create a new window with SGL canvas.
+	* @Param rx and ry is the x radius and y radius of the window.
+	*/
+	SGint createPolarWindow(int rx, int ry, vect setup, vect loop);
 
 	/**
 	* Used in setup or loop function to define what to do when
