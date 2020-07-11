@@ -1,8 +1,8 @@
-#include "../../winsgl.h"
+#include "winsgl.h"
 
 int value = -1;
 
-void callback() {
+void callback(widget *obj) {
 
 }
 void background(int left, int top, int right, int bottom) {
@@ -13,10 +13,10 @@ void background(int left, int top, int right, int bottom) {
 void sgSetup() {
 	initWindow(640, 480, "Drag", BIT_MAP);
 
-	easyWidget(SG_DRAG, "drag", 0, 0, 640, 20, "", NULL);
-	easyWidget(SG_PROCESS, "process", 100, 100, 400, 200, "loading", NULL);
-	easyWidget(SG_SCROLLVERT, "vert", 620, 100, 20, 380, "", NULL);
-	easyWidget(SG_SCROLLHORIZ, "horizon", 0, 460, 620, 20, "", NULL);
+	registerWidget(easyWidget(SG_DRAG, "drag", 0, 0, 640, 20, "", NULL));
+	registerWidget(easyWidget(SG_PROCESS, "process", 100, 100, 400, 200, "loading", NULL));
+	registerWidget(easyWidget(SG_SCROLLVERT, "vert", 620, 100, 20, 360, "", NULL));
+	registerWidget(easyWidget(SG_SCROLLHORIZ, "horizon", 0, 460, 620, 20, "", NULL));
 	setBackgroundRefresh(background);
 	showWidget("process");
 	getWidgetByName("process")->value = 0;

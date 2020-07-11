@@ -828,10 +828,10 @@ public:
 					status &= 0xFF ^ WIDGET_PASS;
 					valid = 0;
 
-					useBackgroundRefresh(
-						pos.x, pos.y, pos.x + size.x, pos.y + size.y);
 					size.y -= extra *SG_LINE_DELTA_DEFAULT;
 					obj->size.y -= extra * SG_LINE_DELTA_DEFAULT;
+					useBackgroundRefresh(
+						pos.x, pos.y, pos.x + size.x, pos.y + size.y + extra * SG_LINE_DELTA_DEFAULT);
 				}
 			}
 			else if (button == (SG_BUTTON_DOWN | SG_LEFT_BUTTON)) {
@@ -839,10 +839,10 @@ public:
 				status &= 0xFF ^ WIDGET_PASS;
 				valid = 0;
 
-				useBackgroundRefresh(
-					pos.x, pos.y, pos.x + size.x, pos.y + size.y);
 				size.y -= extra *SG_LINE_DELTA_DEFAULT;
 				obj->size.y -= extra * SG_LINE_DELTA_DEFAULT;
+				useBackgroundRefresh(
+					pos.x, pos.y, pos.x + size.x, pos.y + size.y + extra * SG_LINE_DELTA_DEFAULT);
 			}
 		}
 		else {

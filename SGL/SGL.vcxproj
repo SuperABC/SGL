@@ -75,20 +75,24 @@
     <TargetName>winsgld</TargetName>
     <OutDir>$(SolutionDir)\Pack\lib\</OutDir>
     <IntDir>$(Configuration)\</IntDir>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../Pack/include</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../Pack/include</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <IntDir>$(Configuration)\</IntDir>
     <TargetName>winsgl</TargetName>
     <OutDir>$(SolutionDir)\Pack\lib\x86\</OutDir>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../Pack/include</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)\Pack\lib\x64\</OutDir>
     <TargetName>winsgl</TargetName>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../Pack/include</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -148,13 +152,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="geometry.h" />
+    <ClInclude Include="..\Pack\include\geometry.h" />
+    <ClInclude Include="..\Pack\include\winsgl.h" />
     <ClInclude Include="inner.h" />
     <ClInclude Include="users.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="widget.h" />
     <ClInclude Include="window.h" />
-    <ClInclude Include="winsgl.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="data.cpp" />

@@ -9,9 +9,10 @@
 using std::exception;
 using std::string;
 
+
 /*
-* SG data interfaces
-* These functions are used to deal with big data.
+* SG json interfaces
+* These functions are used to deal with json data.
 */
 
 int subObjectCont(struct JSON *obj, char *name, SGtext json, int i);
@@ -1224,3 +1225,25 @@ void setArrayElement(struct JSON *json, int idx, struct JSON *j) {
 		json->list = iter;
 	}
 }
+
+
+/*
+* SG zip interfaces
+* These functions are used to deal with zip data.
+*/
+
+DECLARE_HANDLE(HZIP);
+typedef DWORD ZRESULT;
+
+HZIP createZip(SGtext filename);
+ZRESULT addZipFile(HZIP hz, SGtext filename);
+ZRESULT addZipFile(HZIP hz, void *data);
+ZRESULT addZipFolder(HZIP hz, SGtext filename);
+
+HZIP openZip(SGtext filename);
+ZRESULT getZipFile(HZIP hz, SGtext filename);
+ZRESULT getZipFile(HZIP hz, void *data);
+
+ZRESULT closeZip(HZIP hz);
+
+
