@@ -1233,100 +1233,24 @@ void setArrayElement(struct JSON *json, int idx, struct JSON *j) {
 * These functions are used to deal with zip data.
 */
 
+DECLARE_HANDLE(HZIP);
+
 #ifndef _zip_H
 #define _zip_H
 
-
-// ZIP functions -- for creating zip files
-// This file is a repackaged form of the Info-Zip source code available
-// at www.info-zip.org. The original copyright notice may be found in
-// zip.cpp. The repackaging was done by Lucian Wischik to simplify and
-// extend its use in Windows/C++. Also to add encryption and unicode.
-
-
-#ifndef _unzip_H
-DECLARE_HANDLE(HZIP);
-#endif
-// An HZIP identifies a zip file that is being created
-
 typedef DWORD ZRESULT;
-// return codes from any of the zip functions. Listed later.
-
-
-
 HZIP CreateZip(const TCHAR *fn, const char *password);
 HZIP CreateZip(void *buf, unsigned int len, const char *password);
 HZIP CreateZipHandle(HANDLE h, const char *password);
-// CreateZip - call this to start the creation of a zip file.
-// As the zip is being created, it will be stored somewhere:
-// to a pipe:              CreateZipHandle(hpipe_write);
-// in a file (by handle):  CreateZipHandle(hfile);
-// in a file (by name):    CreateZip("c:\\test.zip");
-// in memory:              CreateZip(buf, len);
-// or in pagefile memory:  CreateZip(0, len);
-// The final case stores it in memory backed by the system paging file,
-// where the zip may not exceed len bytes. This is a bit friendlier than
-// allocating memory with new[]: it won't lead to fragmentation, and the
-// memory won't be touched unless needed. That means you can give very
-// large estimates of the maximum-size without too much worry.
-// As for the password, it lets you encrypt every file in the archive.
-// (This api doesn't support per-file encryption.)
-// Note: because pipes don't allow random access, the structure of a zipfile
-// created into a pipe is slightly different from that created into a file
-// or memory. In particular, the compressed-size of the item cannot be
-// stored in the zipfile until after the item itself. (Also, for an item added
-// itself via a pipe, the uncompressed-size might not either be known until
-// after.) This is not normally a problem. But if you try to unzip via a pipe
-// as well, then the unzipper will not know these things about the item until
-// after it has been unzipped. Therefore: for unzippers which don't just write
-// each item to disk or to a pipe, but instead pre-allocate memory space into
-// which to unzip them, then either you have to create the zip not to a pipe,
-// or you have to add items not from a pipe, or at least when adding items
-// from a pipe you have to specify the length.
-// Note: for windows-ce, you cannot close the handle until after CloseZip.
-// but for real windows, the zip makes its own copy of your handle, so you
-// can close yours anytime.
-
-
 ZRESULT ZipAdd(HZIP hz, const TCHAR *dstzn, const TCHAR *fn);
 ZRESULT ZipAdd(HZIP hz, const TCHAR *dstzn, void *src, unsigned int len);
 ZRESULT ZipAddHandle(HZIP hz, const TCHAR *dstzn, HANDLE h);
 ZRESULT ZipAddHandle(HZIP hz, const TCHAR *dstzn, HANDLE h, unsigned int len);
 ZRESULT ZipAddFolder(HZIP hz, const TCHAR *dstzn);
-// ZipAdd - call this for each file to be added to the zip.
-// dstzn is the name that the file will be stored as in the zip file.
-// The file to be added to the zip can come
-// from a pipe:  ZipAddHandle(hz,"file.dat", hpipe_read);
-// from a file:  ZipAddHandle(hz,"file.dat", hfile);
-// from a filen: ZipAdd(hz,"file.dat", "c:\\docs\\origfile.dat");
-// from memory:  ZipAdd(hz,"subdir\\file.dat", buf,len);
-// (folder):     ZipAddFolder(hz,"subdir");
-// Note: if adding an item from a pipe, and if also creating the zip file itself
-// to a pipe, then you might wish to pass a non-zero length to the ZipAddHandle
-// function. This will let the zipfile store the item's size ahead of the
-// compressed item itself, which in turn makes it easier when unzipping the
-// zipfile from a pipe.
-
 ZRESULT ZipGetMemory(HZIP hz, void **buf, unsigned long *len);
-// ZipGetMemory - If the zip was created in memory, via ZipCreate(0,len),
-// then this function will return information about that memory block.
-// buf will receive a pointer to its start, and len its length.
-// Note: you can't add any more after calling this.
 
-ZRESULT CloseZip(HZIP hz);
-// CloseZip - the zip handle must be closed with this function.
-
-unsigned int FormatZipMessage(ZRESULT code, TCHAR *buf, unsigned int len);
-// FormatZipMessage - given an error code, formats it as a string.
-// It returns the length of the error message. If buf/len points
-// to a real buffer, then it also writes as much as possible into there.
-
-
-
-// These are the result codes:
 #define ZR_OK         0x00000000     // nb. the pseudo-code zr-recent is never returned,
 #define ZR_RECENT     0x00000001     // but can be passed to FormatZipMessage.
-// The following come from general system stuff (e.g. files not openable)
 #define ZR_GENMASK    0x0000FF00
 #define ZR_NODUPH     0x00000100     // couldn't duplicate the handle
 #define ZR_NOFILE     0x00000200     // couldn't create/open the file
@@ -1336,7 +1260,6 @@ unsigned int FormatZipMessage(ZRESULT code, TCHAR *buf, unsigned int len);
 #define ZR_MORE       0x00000600     // there's still more data to be unzipped
 #define ZR_CORRUPT    0x00000700     // the zipfile is corrupt or not a zipfile
 #define ZR_READ       0x00000800     // a general error reading the file
-// The following come from mistakes on the part of the caller
 #define ZR_CALLERMASK 0x00FF0000
 #define ZR_ARGS       0x00010000     // general mistake with the arguments
 #define ZR_NOTMMAP    0x00020000     // tried to ZipGetMemory, but that only works on mmap zipfiles, which yours wasn't
@@ -1346,162 +1269,19 @@ unsigned int FormatZipMessage(ZRESULT code, TCHAR *buf, unsigned int len);
 #define ZR_MISSIZE    0x00060000     // the indicated input file size turned out mistaken
 #define ZR_PARTIALUNZ 0x00070000     // the file had already been partially unzipped
 #define ZR_ZMODE      0x00080000     // tried to mix creating/opening a zip 
-// The following come from bugs within the zip library itself
 #define ZR_BUGMASK    0xFF000000
 #define ZR_NOTINITED  0x01000000     // initialisation didn't work
 #define ZR_SEEK       0x02000000     // trying to seek in an unseekable file
 #define ZR_NOCHANGE   0x04000000     // changed its mind on storage, but not allowed
 #define ZR_FLATE      0x05000000     // an internal error in the de/inflation code
 
-
-
-
-
-
-// e.g.
-//
-// (1) Traditional use, creating a zipfile from existing files
-//     HZIP hz = CreateZip("c:\\simple1.zip",0);
-//     ZipAdd(hz,"znsimple.bmp", "c:\\simple.bmp");
-//     ZipAdd(hz,"znsimple.txt", "c:\\simple.txt");
-//     CloseZip(hz);
-//
-// (2) Memory use, creating an auto-allocated mem-based zip file from various sources
-//     HZIP hz = CreateZip(0,100000, 0);
-//     // adding a conventional file...
-//     ZipAdd(hz,"src1.txt",  "c:\\src1.txt");
-//     // adding something from memory...
-//     char buf[1000]; for (int i=0; i<1000; i++) buf[i]=(char)(i&0x7F);
-//     ZipAdd(hz,"file.dat",  buf,1000);
-//     // adding something from a pipe...
-//     HANDLE hread,hwrite; CreatePipe(&hread,&hwrite,NULL,0);
-//     HANDLE hthread = CreateThread(0,0,ThreadFunc,(void*)hwrite,0,0);
-//     ZipAdd(hz,"unz3.dat",  hread,1000);  // the '1000' is optional.
-//     WaitForSingleObject(hthread,INFINITE);
-//     CloseHandle(hthread); CloseHandle(hread);
-//     ... meanwhile DWORD WINAPI ThreadFunc(void *dat)
-//                   { HANDLE hwrite = (HANDLE)dat;
-//                     char buf[1000]={17};
-//                     DWORD writ; WriteFile(hwrite,buf,1000,&writ,NULL);
-//                     CloseHandle(hwrite);
-//                     return 0;
-//                   }
-//     // and now that the zip is created, let's do something with it:
-//     void *zbuf; unsigned long zlen; ZipGetMemory(hz,&zbuf,&zlen);
-//     HANDLE hfz = CreateFile("test2.zip",GENERIC_WRITE,0,0,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,0);
-//     DWORD writ; WriteFile(hfz,zbuf,zlen,&writ,NULL);
-//     CloseHandle(hfz);
-//     CloseZip(hz);
-//
-// (3) Handle use, for file handles and pipes
-//     HANDLE hzread,hzwrite; CreatePipe(&hzread,&hzwrite,0,0);
-//     HANDLE hthread = CreateThread(0,0,ZipReceiverThread,(void*)hzread,0,0);
-//     HZIP hz = CreateZipHandle(hzwrite,0);
-//     // ... add to it
-//     CloseZip(hz);
-//     CloseHandle(hzwrite);
-//     WaitForSingleObject(hthread,INFINITE);
-//     CloseHandle(hthread);
-//     ... meanwhile DWORD WINAPI ZipReceiverThread(void *dat)
-//                   { HANDLE hread = (HANDLE)dat;
-//                     char buf[1000];
-//                     while (true)
-//                     { DWORD red; ReadFile(hread,buf,1000,&red,NULL);
-//                       // ... and do something with this zip data we're receiving
-//                       if (red==0) break;
-//                     }
-//                     CloseHandle(hread);
-//                     return 0;
-//                   }
-
-
-
-// Now we indulge in a little skullduggery so that the code works whether
-// the user has included just zip or both zip and unzip.
-// Idea: if header files for both zip and unzip are present, then presumably
-// the cpp files for zip and unzip are both present, so we will call
-// one or the other of them based on a dynamic choice. If the header file
-// for only one is present, then we will bind to that particular one.
 ZRESULT CloseZipZ(HZIP hz);
 unsigned int FormatZipMessageZ(ZRESULT code, char *buf, unsigned int len);
 bool IsZipHandleZ(HZIP hz);
-#ifdef _unzip_H
-#undef CloseZip
-#define CloseZip(hz) (IsZipHandleZ(hz)?CloseZipZ(hz):CloseZipU(hz))
-#else
+
 #define CloseZip CloseZipZ
 #define FormatZipMessage FormatZipMessageZ
 #endif
-
-
-
-#endif
-#include <windows.h>
-#include <stdio.h>
-#include <tchar.h>
-#include "zip.h"
-
-
-// THIS FILE is almost entirely based upon code by info-zip.
-// It has been modified by Lucian Wischik. The modifications
-// were a complete rewrite of the bit of code that generates the
-// layout of the zipfile, and support for zipping to/from memory
-// or handles or pipes or pagefile or diskfiles, encryption, unicode.
-// The original code may be found at http://www.info-zip.org
-// The original copyright text follows.
-//
-//
-//
-// This is version 1999-Oct-05 of the Info-ZIP copyright and license.
-// The definitive version of this document should be available at
-// ftp://ftp.cdrom.com/pub/infozip/license.html indefinitely.
-//
-// Copyright (c) 1990-1999 Info-ZIP.  All rights reserved.
-//
-// For the purposes of this copyright and license, "Info-ZIP" is defined as
-// the following set of individuals:
-//
-//   Mark Adler, John Bush, Karl Davis, Harald Denker, Jean-Michel Dubois,
-//   Jean-loup Gailly, Hunter Goatley, Ian Gorman, Chris Herborth, Dirk Haase,
-//   Greg Hartwig, Robert Heath, Jonathan Hudson, Paul Kienitz, David Kirschbaum,
-//   Johnny Lee, Onno van der Linden, Igor Mandrichenko, Steve P. Miller,
-//   Sergio Monesi, Keith Owens, George Petrov, Greg Roelofs, Kai Uwe Rommel,
-//   Steve Salisbury, Dave Smith, Christian Spieler, Antoine Verheijen,
-//   Paul von Behren, Rich Wales, Mike White
-//
-// This software is provided "as is," without warranty of any kind, express
-// or implied.  In no event shall Info-ZIP or its contributors be held liable
-// for any direct, indirect, incidental, special or consequential damages
-// arising out of the use of or inability to use this software.
-//
-// Permission is granted to anyone to use this software for any purpose,
-// including commercial applications, and to alter it and redistribute it
-// freely, subject to the following restrictions:
-//
-//    1. Redistributions of source code must retain the above copyright notice,
-//       definition, disclaimer, and this list of conditions.
-//
-//    2. Redistributions in binary form must reproduce the above copyright
-//       notice, definition, disclaimer, and this list of conditions in
-//       documentation and/or other materials provided with the distribution.
-//
-//    3. Altered versions--including, but not limited to, ports to new operating
-//       systems, existing ports with new graphical interfaces, and dynamic,
-//       shared, or static library versions--must be plainly marked as such
-//       and must not be misrepresented as being the original source.  Such
-//       altered versions also must not be misrepresented as being Info-ZIP
-//       releases--including, but not limited to, labeling of the altered
-//       versions with the names "Info-ZIP" (or any variation thereof, including,
-//       but not limited to, different capitalizations), "Pocket UnZip," "WiZ"
-//       or "MacZip" without the explicit permission of Info-ZIP.  Such altered
-//       versions are further prohibited from misrepresentative use of the
-//       Zip-Bugs or Info-ZIP e-mail addresses or of the Info-ZIP URL(s).
-//
-//    4. Info-ZIP retains the right to use the names "Info-ZIP," "Zip," "UnZip,"
-//       "WiZ," "Pocket UnZip," "Pocket Zip," and "MacZip" for its own source and
-//       binary releases.
-//
-
 
 typedef unsigned char uch;      // unsigned 8-bit value
 typedef unsigned short ush;     // unsigned 16-bit value
@@ -1514,10 +1294,6 @@ typedef unsigned IPos; // A Pos is an index in the character window. Pos is used
 #define EOF (-1)
 #endif
 
-
-					   // Error return values.  The values 0..4 and 12..18 follow the conventions
-					   // of PKZIP.   The values 4..10 are all assigned to "insufficient memory"
-					   // by PKZIP, so the codes 5..10 are used here for other purposes.
 #define ZE_MISS         -1      // used by procname(), zipbare()
 #define ZE_OK           0       // success
 #define ZE_EOF          2       // unexpected end of zip file
@@ -1537,29 +1313,18 @@ typedef unsigned IPos; // A Pos is an index in the character window. Pos is used
 #define ZE_PARMS        16      // bad command line
 #define ZE_OPEN         18      // could not open a specified file to read
 #define ZE_MAXERR       18      // the highest error number
-
-
-					   // internal file attribute
 #define UNKNOWN (-1)
 #define BINARY  0
 #define ASCII   1
-
 #define BEST -1                 // Use best method (deflation or store)
 #define STORE 0                 // Store method
 #define DEFLATE 8               // Deflation method
-
 #define CRCVAL_INITIAL  0L
-
-					   // MSDOS file or directory attributes
 #define MSDOS_HIDDEN_ATTR 0x02
 #define MSDOS_DIR_ATTR 0x10
-
-					   // Lengths of headers after signatures in bytes
 #define LOCHEAD 26
 #define CENHEAD 42
 #define ENDHEAD 18
-
-					   // Definitions for extra field handling:
 #define EB_HEADSIZE       4     /* length of a extra field block header */
 #define EB_LEN            2     /* offset of data length field in header */
 #define EB_UT_MINLEN      1     /* minimal UT field contains Flags byte */
@@ -1571,129 +1336,44 @@ typedef unsigned IPos; // A Pos is an index in the character window. Pos is used
 #define EB_UT_LEN(n)      (EB_UT_MINLEN + 4 * (n))
 #define EB_L_UT_SIZE    (EB_HEADSIZE + EB_UT_LEN(3))
 #define EB_C_UT_SIZE    (EB_HEADSIZE + EB_UT_LEN(1))
-
-
-					   // Macros for writing machine integers to little-endian format
 #define PUTSH(a,f) {char _putsh_c=(char)((a)&0xff); wfunc(param,&_putsh_c,1); _putsh_c=(char)((a)>>8); wfunc(param,&_putsh_c,1);}
 #define PUTLG(a,f) {PUTSH((a) & 0xffff,(f)) PUTSH((a) >> 16,(f))}
-
-
-					   // -- Structure of a ZIP file --
-					   // Signatures for zip file information headers
 #define LOCSIG     0x04034b50L
 #define CENSIG     0x02014b50L
 #define ENDSIG     0x06054b50L
 #define EXTLOCSIG  0x08074b50L
 
-
 #define MIN_MATCH  3
 #define MAX_MATCH  258
-					   // The minimum and maximum match lengths
-
 
 #define WSIZE  (0x8000)
-					   // Maximum window size = 32K. If you are really short of memory, compile
-					   // with a smaller WSIZE but this reduces the compression ratio for files
-					   // of size > WSIZE. WSIZE must be a power of two in the current implementation.
-					   //
-
 #define MIN_LOOKAHEAD (MAX_MATCH+MIN_MATCH+1)
-					   // Minimum amount of lookahead, except at the end of the input file.
-					   // See deflate.c for comments about the MIN_MATCH+1.
-					   //
-
 #define MAX_DIST  (WSIZE-MIN_LOOKAHEAD)
-					   // In order to simplify the code, particularly on 16 bit machines, match
-					   // distances are limited to MAX_DIST instead of WSIZE.
-					   //
-
 
 #define ZIP_HANDLE   1
 #define ZIP_FILENAME 2
 #define ZIP_MEMORY   3
 #define ZIP_FOLDER   4
 
-
-
-					   // ===========================================================================
-					   // Constants
-					   //
-
 #define MAX_BITS 15
-					   // All codes must not exceed MAX_BITS bits
-
 #define MAX_BL_BITS 7
-					   // Bit length codes must not exceed MAX_BL_BITS bits
-
 #define LENGTH_CODES 29
-					   // number of length codes, not counting the special END_BLOCK code
-
 #define LITERALS  256
-					   // number of literal bytes 0..255
-
 #define END_BLOCK 256
-					   // end of block literal code
-
 #define L_CODES (LITERALS+1+LENGTH_CODES)
-					   // number of Literal or Length codes, including the END_BLOCK code
-
 #define D_CODES   30
-					   // number of distance codes
-
 #define BL_CODES  19
-					   // number of codes used to transfer the bit lengths
-
 
 #define STORED_BLOCK 0
 #define STATIC_TREES 1
 #define DYN_TREES    2
-					   // The three kinds of block type
-
 #define LIT_BUFSIZE  0x8000
 #define DIST_BUFSIZE  LIT_BUFSIZE
-					   // Sizes of match buffers for literals/lengths and distances.  There are
-					   // 4 reasons for limiting LIT_BUFSIZE to 64K:
-					   //   - frequencies can be kept in 16 bit counters
-					   //   - if compression is not successful for the first block, all input data is
-					   //     still in the window so we can still emit a stored block even when input
-					   //     comes from standard input.  (This can also be done for all blocks if
-					   //     LIT_BUFSIZE is not greater than 32K.)
-					   //   - if compression is not successful for a file smaller than 64K, we can
-					   //     even emit a stored file instead of a stored block (saving 5 bytes).
-					   //   - creating new Huffman trees less frequently may not provide fast
-					   //     adaptation to changes in the input data statistics. (Take for
-					   //     example a binary file with poorly compressible code followed by
-					   //     a highly compressible string table.) Smaller buffer sizes give
-					   //     fast adaptation but have of course the overhead of transmitting trees
-					   //     more frequently.
-					   //   - I can't count above 4
-					   // The current code is general and allows DIST_BUFSIZE < LIT_BUFSIZE (to save
-					   // memory at the expense of compression). Some optimizations would be possible
-					   // if we rely on DIST_BUFSIZE == LIT_BUFSIZE.
-					   //
-
 #define REP_3_6      16
-					   // repeat previous bit length 3-6 times (2 bits of repeat count)
-
 #define REPZ_3_10    17
-					   // repeat a zero length 3-10 times  (3 bits of repeat count)
-
 #define REPZ_11_138  18
-					   // repeat a zero length 11-138 times  (7 bits of repeat count)
-
 #define HEAP_SIZE (2*L_CODES+1)
-					   // maximum heap size
-
-
-					   // ===========================================================================
-					   // Local data used by the "bit string" routines.
-					   //
-
 #define Buf_size (8 * 2*sizeof(char))
-					   // Number of bits used within bi_buf. (bi_buf may be implemented on
-					   // more than 16 bits on some systems.)
-
-					   // Output a 16 bit value to the bit stream, lower (oldest) byte first
 #define PUTSHORT(state,w) \
 { if (state.bs.out_offset >= state.bs.out_size-1) \
     state.flush_outbuf(state.param,state.bs.out_buf, &state.bs.out_offset); \
@@ -1707,61 +1387,25 @@ typedef unsigned IPos; // A Pos is an index in the character window. Pos is used
   state.bs.out_buf[state.bs.out_offset++] = (char) (b); \
 }
 
-					   // DEFLATE.CPP HEADER
-
 #define HASH_BITS  15
-					   // For portability to 16 bit machines, do not use values above 15.
-
 #define HASH_SIZE (unsigned)(1<<HASH_BITS)
 #define HASH_MASK (HASH_SIZE-1)
 #define WMASK     (WSIZE-1)
-					   // HASH_SIZE and WSIZE must be powers of two
-
 #define NIL 0
-					   // Tail of hash chains
-
 #define FAST 4
 #define SLOW 2
-					   // speed options for the general purpose bit flag
-
 #define TOO_FAR 4096
-					   // Matches of length 3 are discarded if their distance exceeds TOO_FAR
-
-
-
 #define EQUAL 0
-					   // result of memcmp for equal strings
-
-
-					   // ===========================================================================
-					   // Local data used by the "longest match" routines.
-
 #define H_SHIFT  ((HASH_BITS+MIN_MATCH-1)/MIN_MATCH)
-					   // Number of bits by which ins_h and del_h must be shifted at each
-					   // input step. It must be such that after MIN_MATCH steps, the oldest
-					   // byte no longer takes part in the hash key, that is:
-					   //   H_SHIFT * MIN_MATCH >= HASH_BITS
-
 #define max_insert_length  max_lazy_match
-					   // Insert new strings in the hash table only if the match length
-					   // is not greater than this length. This saves time but degrades compression.
-					   // max_insert_length is used only for compression levels <= 3.
-
-
 
 const int extra_lbits[LENGTH_CODES] // extra bits for each length code
 = { 0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0 };
-
 const int extra_dbits[D_CODES] // extra bits for each distance code
 = { 0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13 };
-
 const int extra_blbits[BL_CODES]// extra bits for each bit length code
 = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,3,7 };
-
 const uch bl_order[BL_CODES] = { 16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15 };
-// The lengths of the bit length codes are sent in order of decreasing
-// probability, to avoid transmitting the lengths for unused bit length codes.
-
 
 typedef struct config {
 	ush good_length; // reduce lazy search above this match length
@@ -1769,12 +1413,6 @@ typedef struct config {
 	ush nice_length; // quit search above this match length
 	ush max_chain;
 } config;
-
-// Values for max_lazy_match, good_match, nice_match and max_chain_length,
-// depending on the desired pack level (0..9). The values given below have
-// been tuned to exclude worst case performance for pathological files.
-// Better values may be found for specific files.
-//
 
 const config configuration_table[10] = {
 	//  good lazy nice chain
@@ -1789,16 +1427,6 @@ const config configuration_table[10] = {
 { 32, 128, 258, 1024 }, // 8
 { 32, 258, 258, 4096 } };// 9 maximum compression */
 
-						 // Note: the deflate() code requires max_lazy >= MIN_MATCH and max_chain >= 4
-						 // For deflate_fast() (levels <= 3) good is ignored and lazy has a different meaning.
-
-
-
-
-
-
-
-						 // Data structure describing a single value and its code string.
 typedef struct ct_data {
 	union {
 		ush  freq;       // frequency count
@@ -1819,9 +1447,6 @@ typedef struct tree_desc {
 	int     max_length;     // max bit length for the codes
 	int     max_code;       // largest code with non zero frequency
 } tree_desc;
-
-
-
 
 class TTreeState
 {
@@ -1906,8 +1531,6 @@ TTreeState::TTreeState()
 	last_flags = 0;
 }
 
-
-
 class TBitState
 {
 public:
@@ -1930,69 +1553,28 @@ public:
 	ulg bits_sent;   // bit length of the compressed data  only needed for debugging???
 };
 
-
-
-
-
-
-
 class TDeflateState
 {
 public:
 	TDeflateState() { window_size = 0; }
 
 	uch    window[2L * WSIZE];
-	// Sliding window. Input bytes are read into the second half of the window,
-	// and move to the first half later to keep a dictionary of at least WSIZE
-	// bytes. With this organization, matches are limited to a distance of
-	// WSIZE-MAX_MATCH bytes, but this ensures that IO is always
-	// performed with a length multiple of the block size. Also, it limits
-	// the window size to 64K, which is quite useful on MSDOS.
-	// To do: limit the window size to WSIZE+CBSZ if SMALL_MEM (the code would
-	// be less efficient since the data would have to be copied WSIZE/CBSZ times)
 	Pos    prev[WSIZE];
-	// Link to older string with same hash index. To limit the size of this
-	// array to 64K, this link is maintained only for the last 32K strings.
-	// An index in this array is thus a window index modulo 32K.
 	Pos    head[HASH_SIZE];
-	// Heads of the hash chains or NIL. If your compiler thinks that
-	// HASH_SIZE is a dynamic value, recompile with -DDYN_ALLOC.
-
 	ulg window_size;
-	// window size, 2*WSIZE except for MMAP or BIG_MEM, where it is the
-	// input file length plus MIN_LOOKAHEAD.
-
 	long block_start;
-	// window position at the beginning of the current output block. Gets
-	// negative when the window is moved backwards.
-
 	int sliding;
-	// Set to false when the input file is already in memory
-
-	unsigned ins_h;  // hash index of string to be inserted
-
+	unsigned ins_h;
 	unsigned int prev_length;
-	// Length of the best match at previous step. Matches not greater than this
-	// are discarded. This is used in the lazy match evaluation.
-
 	unsigned strstart;         // start of string to insert
 	unsigned match_start; // start of matching string
 	int      eofile;           // flag set at end of input file
 	unsigned lookahead;        // number of valid bytes ahead in window
 
 	unsigned max_chain_length;
-	// To speed up deflation, hash chains are never searched beyond this length.
-	// A higher limit improves compression ratio but degrades the speed.
-
 	unsigned int max_lazy_match;
-	// Attempt to find a better match only when the current match is strictly
-	// smaller than this value. This mechanism is used only for compression
-	// levels >= 4.
-
 	unsigned good_match;
-	// Use a faster search when the previous match is longer than this
-
-	int nice_match; // Stop searching when current match exceeds this
+	int nice_match;
 };
 
 typedef __int64 lutime_t;       // define it ourselves since we don't include time.h
@@ -2033,14 +1615,6 @@ struct TState
 	const char *err;
 };
 
-
-
-
-
-
-
-
-
 void Assert(TState &state, bool cond, const char *msg)
 {
 	if (cond) return;
@@ -2048,12 +1622,6 @@ void Assert(TState &state, bool cond, const char *msg)
 }
 void __cdecl Trace(const char *x, ...) { va_list paramList; va_start(paramList, x); paramList; va_end(paramList); }
 void __cdecl Tracec(bool, const char *x, ...) { va_list paramList; va_start(paramList, x); paramList; va_end(paramList); }
-
-
-
-// ===========================================================================
-// Local (static) routines in this file.
-//
 
 void init_block(TState &);
 void pqdownheap(TState &, ct_data *tree, int k);
@@ -2073,25 +1641,11 @@ void copy_block(TState &state, char *buf, unsigned len, int header);
 
 
 #define send_code(state, c, tree) send_bits(state, tree[c].fc.code, tree[c].dl.len)
-// Send a code of the given tree. c and tree must not have side effects
-
-// alternatively...
-//#define send_code(state, c, tree)
-//     { if (state.verbose>1) fprintf(stderr,"\ncd %3d ",(c));
-//       send_bits(state, tree[c].fc.code, tree[c].dl.len); }
 
 #define d_code(dist) ((dist) < 256 ? state.ts.dist_code[dist] : state.ts.dist_code[256+((dist)>>7)])
-// Mapping from a distance to a distance code. dist is the distance - 1 and
-// must not have side effects. dist_code[256] and dist_code[257] are never used.
 
 #define Max(a,b) (a >= b ? a : b)
-/* the arguments must not have side effects */
 
-/* ===========================================================================
-* Allocate the match buffer, initialize the various tables and save the
-* location of the internal file attribute (ascii/binary) and method
-* (DEFLATE/STORE).
-*/
 void ct_init(TState &state, ush *attr)
 {
 	int n;        /* iterates over tree elements */
@@ -2163,9 +1717,6 @@ void ct_init(TState &state, ush *attr)
 	init_block(state);
 }
 
-/* ===========================================================================
-* Initialize a new block.
-*/
 void init_block(TState &state)
 {
 	int n; /* iterates over tree elements */
@@ -2182,13 +1733,6 @@ void init_block(TState &state)
 }
 
 #define SMALLEST 1
-/* Index within the heap array of least frequent node in the Huffman tree */
-
-
-/* ===========================================================================
-* Remove the smallest element from the heap and recreate the heap with
-* one less element. Updates heap and heap_len.
-*/
 #define pqremove(tree, top) \
 {\
     top = state.ts.heap[SMALLEST]; \
@@ -2196,20 +1740,10 @@ void init_block(TState &state)
     pqdownheap(state,tree, SMALLEST); \
 }
 
-/* ===========================================================================
-* Compares to subtrees, using the tree depth as tie breaker when
-* the subtrees have equal frequency. This minimizes the worst case length.
-*/
 #define smaller(tree, n, m) \
    (tree[n].fc.freq < tree[m].fc.freq || \
    (tree[n].fc.freq == tree[m].fc.freq && state.ts.depth[n] <= state.ts.depth[m]))
 
-/* ===========================================================================
-* Restore the heap property by moving down the tree starting at node k,
-* exchanging a node with the smallest of its two sons if necessary, stopping
-* when the heap property is re-established (each father smaller than its
-* two sons).
-*/
 void pqdownheap(TState &state, ct_data *tree, int k)
 {
 	int v = state.ts.heap[k];
@@ -2234,16 +1768,6 @@ void pqdownheap(TState &state, ct_data *tree, int k)
 	state.ts.heap[k] = v;
 }
 
-/* ===========================================================================
-* Compute the optimal bit lengths for a tree and update the total bit length
-* for the current block.
-* IN assertion: the fields freq and dad are set, heap[heap_max] and
-*    above are the tree nodes sorted by increasing frequency.
-* OUT assertions: the field len is set to the optimal bit length, the
-*     array bl_count contains the frequencies for each bit length.
-*     The length opt_len is updated; static_len is also updated if stree is
-*     not null.
-*/
 void gen_bitlen(TState &state, tree_desc *desc)
 {
 	ct_data *tree = desc->dyn_tree;
@@ -2320,14 +1844,6 @@ void gen_bitlen(TState &state, tree_desc *desc)
 	}
 }
 
-/* ===========================================================================
-* Generate the codes for a given tree and bit counts (which need not be
-* optimal).
-* IN assertion: the array bl_count contains the bit length statistics for
-* the given tree and the field len is set for all tree elements.
-* OUT assertion: the field code is set for all tree elements of non
-*     zero code length.
-*/
 void gen_codes(TState &state, ct_data *tree, int max_code)
 {
 	ush next_code[MAX_BITS + 1]; /* next code value for each bit length */
@@ -2358,14 +1874,6 @@ void gen_codes(TState &state, ct_data *tree, int max_code)
 	}
 }
 
-/* ===========================================================================
-* Construct one Huffman tree and assigns the code bit strings and lengths.
-* Update the total bit length for the current block.
-* IN assertion: the field freq is set for all tree elements.
-* OUT assertions: the fields len and code are set to the optimal bit length
-*     and corresponding code. The length opt_len is updated; static_len is
-*     also updated if stree is not null. The field max_code is set.
-*/
 void build_tree(TState &state, tree_desc *desc)
 {
 	ct_data *tree = desc->dyn_tree;
@@ -2441,12 +1949,6 @@ void build_tree(TState &state, tree_desc *desc)
 	gen_codes(state, (ct_data *)tree, max_code);
 }
 
-/* ===========================================================================
-* Scan a literal or distance tree to determine the frequencies of the codes
-* in the bit length tree. Updates opt_len to take into account the repeat
-* counts. (The contribution of the bit length codes will be added later
-* during the construction of bl_tree.)
-*/
 void scan_tree(TState &state, ct_data *tree, int max_code)
 {
 	int n;                     /* iterates over all tree elements */
@@ -2491,10 +1993,6 @@ void scan_tree(TState &state, ct_data *tree, int max_code)
 	}
 }
 
-/* ===========================================================================
-* Send a literal or distance tree in compressed form, using the codes in
-* bl_tree.
-*/
 void send_tree(TState &state, ct_data *tree, int max_code)
 {
 	int n;                     /* iterates over all tree elements */
@@ -2545,10 +2043,6 @@ void send_tree(TState &state, ct_data *tree, int max_code)
 	}
 }
 
-/* ===========================================================================
-* Construct the Huffman tree for the bit lengths and return the index in
-* bl_order of the last bit length code to send.
-*/
 int build_bl_tree(TState &state)
 {
 	int max_blindex;  /* index of last bit length code of non zero freq */
@@ -2577,11 +2071,6 @@ int build_bl_tree(TState &state)
 	return max_blindex;
 }
 
-/* ===========================================================================
-* Send the header for a block using dynamic Huffman trees: the counts, the
-* lengths of the bit length codes, the literal tree and the distance tree.
-* IN assertion: lcodes >= 257, dcodes >= 1, blcodes >= 4.
-*/
 void send_all_trees(TState &state, int lcodes, int dcodes, int blcodes)
 {
 	int rank;                    /* index in bl_order */
@@ -2607,11 +2096,6 @@ void send_all_trees(TState &state, int lcodes, int dcodes, int blcodes)
 	Trace("\ndist tree: sent %ld", state.bs.bits_sent);
 }
 
-/* ===========================================================================
-* Determine the best encoding for the current block: dynamic trees, static
-* trees or store, and output the encoded block to the zip file. This function
-* returns the total compressed length (in bytes) for the file so far.
-*/
 ulg flush_block(TState &state, char *buf, ulg stored_len, int eof)
 {
 	ulg opt_lenb, static_lenb; /* opt_len and static_len in bytes */
@@ -2705,10 +2189,6 @@ ulg flush_block(TState &state, char *buf, ulg stored_len, int eof)
 	return state.ts.cmpr_bytelen + (state.ts.cmpr_len_bits >> 3);
 }
 
-/* ===========================================================================
-* Save the match info and tally the frequency counts. Return true if
-* the current block must be flushed.
-*/
 int ct_tally(TState &state, int dist, int lc)
 {
 	state.ts.l_buf[state.ts.last_lit++] = (uch)lc;
@@ -2758,9 +2238,6 @@ int ct_tally(TState &state, int dist, int lc)
 	*/
 }
 
-/* ===========================================================================
-* Send the block data compressed using the given Huffman trees
-*/
 void compress_block(TState &state, ct_data *ltree, ct_data *dtree)
 {
 	unsigned dist;      /* distance of matched string */
@@ -2805,12 +2282,6 @@ void compress_block(TState &state, ct_data *ltree, ct_data *dtree)
 	send_code(state, END_BLOCK, ltree);
 }
 
-/* ===========================================================================
-* Set the file type to ASCII or BINARY, using a crude approximation:
-* binary if more than 20% of the bytes are <= 6 or >= 128, ascii otherwise.
-* IN assertion: the fields freq of dyn_ltree are set and the total of all
-* frequencies does not exceed 64K (to fit in an int on 16 bit machines).
-*/
 void set_file_type(TState &state)
 {
 	int n = 0;
@@ -2822,10 +2293,6 @@ void set_file_type(TState &state)
 	*state.ts.file_type = (ush)(bin_freq >(ascii_freq >> 2) ? BINARY : ASCII);
 }
 
-
-/* ===========================================================================
-* Initialize the bit string routines.
-*/
 void bi_init(TState &state, char *tgt_buf, unsigned tgt_size, int flsh_allowed)
 {
 	state.bs.out_buf = tgt_buf;
@@ -2838,10 +2305,6 @@ void bi_init(TState &state, char *tgt_buf, unsigned tgt_size, int flsh_allowed)
 	state.bs.bits_sent = 0L;
 }
 
-/* ===========================================================================
-* Send a value on a given number of bits.
-* IN assertion: length <= 16 and value fits in length bits.
-*/
 void send_bits(TState &state, int value, int length)
 {
 	Assert(state, length > 0 && length <= 15, "invalid length");
@@ -2860,11 +2323,6 @@ void send_bits(TState &state, int value, int length)
 	}
 }
 
-/* ===========================================================================
-* Reverse the first len bits of a code, using straightforward code (a faster
-* method would use a table)
-* IN assertion: 1 <= len <= 15
-*/
 unsigned bi_reverse(unsigned code, int len)
 {
 	register unsigned res = 0;
@@ -2875,9 +2333,6 @@ unsigned bi_reverse(unsigned code, int len)
 	return res >> 1;
 }
 
-/* ===========================================================================
-* Write out any remaining bits in an incomplete byte.
-*/
 void bi_windup(TState &state)
 {
 	if (state.bs.bi_valid > 8) {
@@ -2894,10 +2349,6 @@ void bi_windup(TState &state)
 	state.bs.bits_sent = (state.bs.bits_sent + 7) & ~7;
 }
 
-/* ===========================================================================
-* Copy a stored block to the zip file, storing first the length and its
-* one's complement if requested.
-*/
 void copy_block(TState &state, char *block, unsigned len, int header)
 {
 	bi_windup(state);              /* align on byte boundary */
@@ -2922,53 +2373,18 @@ void copy_block(TState &state, char *block, unsigned len, int header)
 	state.bs.bits_sent += (ulg)len << 3;
 }
 
-
-
-
-
-
-
-
-/* ===========================================================================
-*  Prototypes for functions.
-*/
-
 void fill_window(TState &state);
 ulg deflate_fast(TState &state);
 
 int  longest_match(TState &state, IPos cur_match);
 
-
-/* ===========================================================================
-* Update a hash value with the given input byte
-* IN  assertion: all calls to to UPDATE_HASH are made with consecutive
-*    input characters, so that a running hash key can be computed from the
-*    previous key instead of complete recalculation each time.
-*/
 #define UPDATE_HASH(h,c) (h = (((h)<<H_SHIFT) ^ (c)) & HASH_MASK)
 
-/* ===========================================================================
-* Insert string s in the dictionary and set match_head to the previous head
-* of the hash chain (the most recent string with same hash key). Return
-* the previous length of the hash chain.
-* IN  assertion: all calls to to INSERT_STRING are made with consecutive
-*    input characters and the first MIN_MATCH bytes of s are valid
-*    (except for the last MIN_MATCH-1 bytes of the input file).
-*/
 #define INSERT_STRING(s, match_head) \
    (UPDATE_HASH(state.ds.ins_h, state.ds.window[(s) + (MIN_MATCH-1)]), \
     state.ds.prev[(s) & WMASK] = match_head = state.ds.head[state.ds.ins_h], \
     state.ds.head[state.ds.ins_h] = (s))
 
-/* ===========================================================================
-* Initialize the "longest match" routines for a new file
-*
-* IN assertion: window_size is > 0 if the input file is already read or
-*    mmap'ed in the window[] array, 0 otherwise. In the first case,
-*    window_size is sufficient to contain the whole input file plus
-*    MIN_LOOKAHEAD bytes (to avoid referencing memory beyond the end
-*    of window[] when looking for matches towards the end).
-*/
 void lm_init(TState &state, int pack_level, ush *flags)
 {
 	register unsigned j;
@@ -3028,18 +2444,6 @@ void lm_init(TState &state, int pack_level, ush *flags)
 	*/
 }
 
-
-/* ===========================================================================
-* Set match_start to the longest match starting at the given string and
-* return its length. Matches shorter or equal to prev_length are discarded,
-* in which case the result is equal to prev_length and match_start is
-* garbage.
-* IN assertions: cur_match is the head of the hash chain for the current
-*   string (strstart) and its distance is <= MAX_DIST, and prev_length >= 1
-*/
-// For 80x86 and 680x0 and ARM, an optimized version is in match.asm or
-// match.S. The code is functionally equivalent, so you can use the C version
-// if desired. Which I do so desire!
 int longest_match(TState &state, IPos cur_match)
 {
 	unsigned chain_length = state.ds.max_chain_length;   /* max hash chain length */
@@ -3118,34 +2522,8 @@ int longest_match(TState &state, IPos cur_match)
 	return best_len;
 }
 
-
-
 #define check_match(state,start, match, length)
-// or alternatively...
-//void check_match(TState &state,IPos start, IPos match, int length)
-//{ // check that the match is indeed a match
-//    if (memcmp((char*)state.ds.window + match,
-//                (char*)state.ds.window + start, length) != EQUAL) {
-//        fprintf(stderr,
-//            " start %d, match %d, length %d\n",
-//            start, match, length);
-//        error("invalid match");
-//    }
-//    if (state.verbose > 1) {
-//        fprintf(stderr,"\\[%d,%d]", start-match, length);
-//        do { fprintf(stdout,"%c",state.ds.window[start++]); } while (--length != 0);
-//    }
-//}
 
-/* ===========================================================================
-* Fill the window when the lookahead becomes insufficient.
-* Updates strstart and lookahead, and sets eofile if end of input file.
-*
-* IN assertion: lookahead < MIN_LOOKAHEAD && strstart + lookahead > 0
-* OUT assertions: strstart <= window_size-MIN_LOOKAHEAD
-*    At least one byte has been read, or eofile is set; file reads are
-*    performed for at least two bytes (required for the translate_eol option).
-*/
 void fill_window(TState &state)
 {
 	register unsigned n, m;
@@ -3218,20 +2596,10 @@ void fill_window(TState &state)
 	} while (state.ds.lookahead < MIN_LOOKAHEAD && !state.ds.eofile);
 }
 
-/* ===========================================================================
-* Flush the current block, with given end-of-file flag.
-* IN assertion: strstart is set to the end of the current match.
-*/
 #define FLUSH_BLOCK(state,eof) \
    flush_block(state,state.ds.block_start >= 0L ? (char*)&state.ds.window[(unsigned)state.ds.block_start] : \
                 (char*)NULL, (long)state.ds.strstart - state.ds.block_start, (eof))
 
-/* ===========================================================================
-* Processes a new input file and return its compressed length. This
-* function does not perform lazy evaluation of matches and inserts
-* new strings in the dictionary only for unmatched strings or for short
-* matches. It is used only for the fast compression options.
-*/
 ulg deflate_fast(TState &state)
 {
 	IPos hash_head = NIL;       /* head of the hash chain */
@@ -3310,11 +2678,6 @@ ulg deflate_fast(TState &state)
 	return FLUSH_BLOCK(state, 1); /* eof */
 }
 
-/* ===========================================================================
-* Same as above, but achieves better compression. We use a lazy
-* evaluation for matches: a match is finally adopted only if there is
-* no better match at the next window position.
-*/
 ulg deflate(TState &state)
 {
 	IPos hash_head = NIL;       /* head of hash chain */
@@ -3421,17 +2784,6 @@ ulg deflate(TState &state)
 	return FLUSH_BLOCK(state, 1); /* eof */
 }
 
-
-
-
-
-
-
-
-
-
-
-
 int putlocal(struct zlist far *z, WRITEFUNC wfunc, void *param)
 { // Write a local header described by *z to file *f.  Return a ZE_ error code.
 	PUTLG(LOCSIG, f);
@@ -3488,7 +2840,6 @@ int putcentral(struct zlist far *z, WRITEFUNC wfunc, void *param)
 	return ZE_OK;
 }
 
-
 int putend(int n, ulg s, ulg c, extent m, char *z, WRITEFUNC wfunc, void *param)
 { // write the end of the central-directory-data to file *f.
 	PUTLG(ENDSIG, f);
@@ -3503,11 +2854,6 @@ int putend(int n, ulg s, ulg c, extent m, char *z, WRITEFUNC wfunc, void *param)
 	if (m && wfunc(param, z, (unsigned int)m) != m) return ZE_TEMP;
 	return ZE_OK;
 }
-
-
-
-
-
 
 const ulg crc_table[256] = {
 	0x00000000L, 0x77073096L, 0xee0e612cL, 0x990951baL, 0x076dc419L,
@@ -3579,7 +2925,6 @@ ulg crc32(ulg crc, const uch *buf, extent len)
 	return crc ^ 0xffffffffL;  // (instead of ~c for 64-bit machines)
 }
 
-
 void update_keys(unsigned long *keys, char c)
 {
 	keys[0] = CRC32(keys[0], c);
@@ -3599,12 +2944,6 @@ char zencode(unsigned long *keys, char c)
 	return (char)(t^c);
 }
 
-
-
-
-
-
-
 bool HasZipSuffix(const TCHAR *fn)
 {
 	const TCHAR *ext = fn + _tcslen(fn);
@@ -3620,7 +2959,6 @@ bool HasZipSuffix(const TCHAR *fn)
 	if (_tcsicmp(ext, _T(".tgz")) == 0) return true;
 	return false;
 }
-
 
 lutime_t filetime2timet(const FILETIME ft)
 {
@@ -3639,7 +2977,6 @@ void filetime2dosdatetime(const FILETIME ft, WORD *dosdate, WORD *dostime)
 	*dostime |= (WORD)((st.wMinute & 0x3f) << 5);
 	*dostime |= (WORD)((st.wSecond * 2) & 0x1f);
 }
-
 
 ZRESULT GetFileInfo(HANDLE hf, ulg *attr, long *size, iztimes *times, ulg *timestamp)
 { // The handle must be a handle to a file
@@ -3696,13 +3033,6 @@ ZRESULT GetFileInfo(HANDLE hf, ulg *attr, long *size, iztimes *times, ulg *times
 	}
 	return ZR_OK;
 }
-
-
-
-
-
-
-
 
 class TZip
 {
@@ -3769,8 +3099,6 @@ public:
 	ZRESULT AddCentral();
 
 };
-
-
 
 ZRESULT TZip::Create(void *z, unsigned int len, DWORD flags)
 {
@@ -3897,9 +3225,6 @@ ZRESULT TZip::Close()
 	return res;
 }
 
-
-
-
 ZRESULT TZip::open_file(const TCHAR *fn)
 {
 	hfin = 0; bufin = 0; selfclosehf = false; crc = CRCVAL_INITIAL; isize = 0; csize = 0; ired = 0;
@@ -4014,8 +3339,6 @@ ZRESULT TZip::iclose()
 	else return ZR_OK;
 }
 
-
-
 ZRESULT TZip::ideflate(TZipFileInfo *zfi)
 {
 	if (state == 0) state = new TState();
@@ -4051,10 +3374,6 @@ ZRESULT TZip::istore()
 	csize = size;
 	return ZR_OK;
 }
-
-
-
-
 
 bool has_seeded = false;
 ZRESULT TZip::Add(const TCHAR *odstzn, void *src, unsigned int len, DWORD flags)
@@ -4239,10 +3558,6 @@ ZRESULT TZip::AddCentral()
 	return ZR_OK;
 }
 
-
-
-
-
 ZRESULT lasterrorZ = ZR_OK;
 
 unsigned int FormatZipMessageZ(ZRESULT code, char *buf, unsigned int len)
@@ -4280,14 +3595,11 @@ unsigned int FormatZipMessageZ(ZRESULT code, char *buf, unsigned int len)
 	return mlen;
 }
 
-
-
 typedef struct
 {
 	DWORD flag;
 	TZip *zip;
 } TZipHandleData;
-
 
 HZIP CreateZipInternal(void *z, unsigned int len, DWORD flags, const char *password)
 {
@@ -4300,7 +3612,6 @@ HZIP CreateZipInternal(void *z, unsigned int len, DWORD flags, const char *passw
 HZIP CreateZipHandle(HANDLE h, const char *password) { return CreateZipInternal(h, 0, ZIP_HANDLE, password); }
 HZIP CreateZip(const TCHAR *fn, const char *password) { return CreateZipInternal((void*)fn, 0, ZIP_FILENAME, password); }
 HZIP CreateZip(void *z, unsigned int len, const char *password) { return CreateZipInternal(z, len, ZIP_MEMORY, password); }
-
 
 ZRESULT ZipAddInternal(HZIP hz, const TCHAR *dstzn, void *src, unsigned int len, DWORD flags)
 {
@@ -4316,8 +3627,6 @@ ZRESULT ZipAdd(HZIP hz, const TCHAR *dstzn, void *src, unsigned int len) { retur
 ZRESULT ZipAddHandle(HZIP hz, const TCHAR *dstzn, HANDLE h) { return ZipAddInternal(hz, dstzn, h, 0, ZIP_HANDLE); }
 ZRESULT ZipAddHandle(HZIP hz, const TCHAR *dstzn, HANDLE h, unsigned int len) { return ZipAddInternal(hz, dstzn, h, len, ZIP_HANDLE); }
 ZRESULT ZipAddFolder(HZIP hz, const TCHAR *dstzn) { return ZipAddInternal(hz, dstzn, 0, 0, ZIP_FOLDER); }
-
-
 
 ZRESULT ZipGetMemory(HZIP hz, void **buf, unsigned long *len)
 {
@@ -4351,21 +3660,7 @@ bool IsZipHandleZ(HZIP hz)
 #ifndef _unzip_H
 #define _unzip_H
 
-// UNZIPPING functions -- for unzipping.
-// This file is a repackaged form of extracts from the zlib code available
-// at www.gzip.org/zlib, by Jean-Loup Gailly and Mark Adler. The original
-// copyright notice may be found in unzip.cpp. The repackaging was done
-// by Lucian Wischik to simplify and extend its use in Windows/C++. Also
-// encryption and unicode filenames have been added.
-
-
-#ifndef _zip_H
-DECLARE_HANDLE(HZIP);
-#endif
-// An HZIP identifies a zip file that has been opened
-
 typedef DWORD ZRESULT;
-// return codes from any of the zip functions. Listed later.
 
 typedef struct
 {
@@ -4377,83 +3672,18 @@ typedef struct
 	long unc_size;             // may be -1 if not yet known (e.g. being streamed in)
 } ZIPENTRY;
 
-
 HZIP OpenZip(const TCHAR *fn, const char *password);
 HZIP OpenZip(void *z, unsigned int len, const char *password);
 HZIP OpenZipHandle(HANDLE h, const char *password);
-// OpenZip - opens a zip file and returns a handle with which you can
-// subsequently examine its contents. You can open a zip file from:
-// from a pipe:             OpenZipHandle(hpipe_read,0);
-// from a file (by handle): OpenZipHandle(hfile,0);
-// from a file (by name):   OpenZip("c:\\test.zip","password");
-// from a memory block:     OpenZip(bufstart, buflen,0);
-// If the file is opened through a pipe, then items may only be
-// accessed in increasing order, and an item may only be unzipped once,
-// although GetZipItem can be called immediately before and after unzipping
-// it. If it's opened in any other way, then full random access is possible.
-// Note: pipe input is not yet implemented.
-// Note: zip passwords are ascii, not unicode.
-// Note: for windows-ce, you cannot close the handle until after CloseZip.
-// but for real windows, the zip makes its own copy of your handle, so you
-// can close yours anytime.
-
 ZRESULT GetZipItem(HZIP hz, int index, ZIPENTRY *ze);
-// GetZipItem - call this to get information about an item in the zip.
-// If index is -1 and the file wasn't opened through a pipe,
-// then it returns information about the whole zipfile
-// (and in particular ze.index returns the number of index items).
-// Note: the item might be a directory (ze.attr & FILE_ATTRIBUTE_DIRECTORY)
-// See below for notes on what happens when you unzip such an item.
-// Note: if you are opening the zip through a pipe, then random access
-// is not possible and GetZipItem(-1) fails and you can't discover the number
-// of items except by calling GetZipItem on each one of them in turn,
-// starting at 0, until eventually the call fails. Also, in the event that
-// you are opening through a pipe and the zip was itself created into a pipe,
-// then then comp_size and sometimes unc_size as well may not be known until
-// after the item has been unzipped.
-
 ZRESULT FindZipItem(HZIP hz, const TCHAR *name, bool ic, int *index, ZIPENTRY *ze);
-// FindZipItem - finds an item by name. ic means 'insensitive to case'.
-// It returns the index of the item, and returns information about it.
-// If nothing was found, then index is set to -1 and the function returns
-// an error code.
-
 ZRESULT UnzipItem(HZIP hz, int index, const TCHAR *fn);
 ZRESULT UnzipItem(HZIP hz, int index, void *z, unsigned int len);
 ZRESULT UnzipItemHandle(HZIP hz, int index, HANDLE h);
-// UnzipItem - given an index to an item, unzips it. You can unzip to:
-// to a pipe:             UnzipItemHandle(hz,i, hpipe_write);
-// to a file (by handle): UnzipItemHandle(hz,i, hfile);
-// to a file (by name):   UnzipItem(hz,i, ze.name);
-// to a memory block:     UnzipItem(hz,i, buf,buflen);
-// In the final case, if the buffer isn't large enough to hold it all,
-// then the return code indicates that more is yet to come. If it was
-// large enough, and you want to know precisely how big, GetZipItem.
-// Note: zip files are normally stored with relative pathnames. If you
-// unzip with ZIP_FILENAME a relative pathname then the item gets created
-// relative to the current directory - it first ensures that all necessary
-// subdirectories have been created. Also, the item may itself be a directory.
-// If you unzip a directory with ZIP_FILENAME, then the directory gets created.
-// If you unzip it to a handle or a memory block, then nothing gets created
-// and it emits 0 bytes.
 ZRESULT SetUnzipBaseDir(HZIP hz, const TCHAR *dir);
-// if unzipping to a filename, and it's a relative filename, then it will be relative to here.
-// (defaults to current-directory).
 
-
-ZRESULT CloseZip(HZIP hz);
-// CloseZip - the zip handle must be closed with this function.
-
-unsigned int FormatZipMessage(ZRESULT code, TCHAR *buf, unsigned int len);
-// FormatZipMessage - given an error code, formats it as a string.
-// It returns the length of the error message. If buf/len points
-// to a real buffer, then it also writes as much as possible into there.
-
-
-// These are the result codes:
 #define ZR_OK         0x00000000     // nb. the pseudo-code zr-recent is never returned,
 #define ZR_RECENT     0x00000001     // but can be passed to FormatZipMessage.
-// The following come from general system stuff (e.g. files not openable)
 #define ZR_GENMASK    0x0000FF00
 #define ZR_NODUPH     0x00000100     // couldn't duplicate the handle
 #define ZR_NOFILE     0x00000200     // couldn't create/open the file
@@ -4464,7 +3694,6 @@ unsigned int FormatZipMessage(ZRESULT code, TCHAR *buf, unsigned int len);
 #define ZR_CORRUPT    0x00000700     // the zipfile is corrupt or not a zipfile
 #define ZR_READ       0x00000800     // a general error reading the file
 #define ZR_PASSWORD   0x00001000     // we didn't get the right password to unzip the file
-// The following come from mistakes on the part of the caller
 #define ZR_CALLERMASK 0x00FF0000
 #define ZR_ARGS       0x00010000     // general mistake with the arguments
 #define ZR_NOTMMAP    0x00020000     // tried to ZipGetMemory, but that only works on mmap zipfiles, which yours wasn't
@@ -4474,81 +3703,12 @@ unsigned int FormatZipMessage(ZRESULT code, TCHAR *buf, unsigned int len);
 #define ZR_MISSIZE    0x00060000     // the indicated input file size turned out mistaken
 #define ZR_PARTIALUNZ 0x00070000     // the file had already been partially unzipped
 #define ZR_ZMODE      0x00080000     // tried to mix creating/opening a zip 
-// The following come from bugs within the zip library itself
 #define ZR_BUGMASK    0xFF000000
 #define ZR_NOTINITED  0x01000000     // initialisation didn't work
 #define ZR_SEEK       0x02000000     // trying to seek in an unseekable file
 #define ZR_NOCHANGE   0x04000000     // changed its mind on storage, but not allowed
 #define ZR_FLATE      0x05000000     // an internal error in the de/inflation code
 
-
-
-
-
-// e.g.
-//
-// SetCurrentDirectory("c:\\docs\\stuff");
-// HZIP hz = OpenZip("c:\\stuff.zip",0);
-// ZIPENTRY ze; GetZipItem(hz,-1,&ze); int numitems=ze.index;
-// for (int i=0; i<numitems; i++)
-// { GetZipItem(hz,i,&ze);
-//   UnzipItem(hz,i,ze.name);
-// }
-// CloseZip(hz);
-//
-//
-// HRSRC hrsrc = FindResource(hInstance,MAKEINTRESOURCE(1),RT_RCDATA);
-// HANDLE hglob = LoadResource(hInstance,hrsrc);
-// void *zipbuf=LockResource(hglob);
-// unsigned int ziplen=SizeofResource(hInstance,hrsrc);
-// HZIP hz = OpenZip(zipbuf, ziplen, 0);
-//   - unzip to a membuffer -
-// ZIPENTRY ze; int i; FindZipItem(hz,"file.dat",true,&i,&ze);
-// char *ibuf = new char[ze.unc_size];
-// UnzipItem(hz,i, ibuf, ze.unc_size);
-// delete[] ibuf;
-//   - unzip to a fixed membuff -
-// ZIPENTRY ze; int i; FindZipItem(hz,"file.dat",true,&i,&ze);
-// char ibuf[1024]; ZRESULT zr=ZR_MORE; unsigned long totsize=0;
-// while (zr==ZR_MORE)
-// { zr = UnzipItem(hz,i, ibuf,1024);
-//   unsigned long bufsize=1024; if (zr==ZR_OK) bufsize=ze.unc_size-totsize;
-//   totsize+=bufsize;
-// }
-//   - unzip to a pipe -
-// HANDLE hwrite; HANDLE hthread=CreateWavReaderThread(&hwrite);
-// int i; ZIPENTRY ze; FindZipItem(hz,"sound.wav",true,&i,&ze);
-// UnzipItemHandle(hz,i, hwrite);
-// CloseHandle(hwrite);
-// WaitForSingleObject(hthread,INFINITE);
-// CloseHandle(hwrite); CloseHandle(hthread);
-//   - finished -
-// CloseZip(hz);
-// // note: no need to free resources obtained through Find/Load/LockResource
-//
-//
-// SetCurrentDirectory("c:\\docs\\pipedzipstuff");
-// HANDLE hread,hwrite; CreatePipe(&hread,&hwrite,0,0);
-// CreateZipWriterThread(hwrite);
-// HZIP hz = OpenZipHandle(hread,0);
-// for (int i=0; ; i++)
-// { ZIPENTRY ze;
-//   ZRESULT zr=GetZipItem(hz,i,&ze); if (zr!=ZR_OK) break; // no more
-//   UnzipItem(hz,i, ze.name);
-// }
-// CloseZip(hz);
-//
-//
-
-
-
-
-// Now we indulge in a little skullduggery so that the code works whether
-// the user has included just zip or both zip and unzip.
-// Idea: if header files for both zip and unzip are present, then presumably
-// the cpp files for zip and unzip are both present, so we will call
-// one or the other of them based on a dynamic choice. If the header file
-// for only one is present, then we will bind to that particular one.
 ZRESULT CloseZipU(HZIP hz);
 unsigned int FormatZipMessageU(ZRESULT code, TCHAR *buf, unsigned int len);
 bool IsZipHandleU(HZIP hz);
@@ -4559,119 +3719,14 @@ bool IsZipHandleU(HZIP hz);
 #define CloseZip CloseZipU
 #define FormatZipMessage FormatZipMessageU
 #endif
-
-
-
-#endif // _unzip_H
-#include <windows.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <tchar.h>
-#include "unzip.h"
-
-// THIS FILE is almost entirely based upon code by Jean-loup Gailly
-// and Mark Adler. It has been modified by Lucian Wischik.
-// The modifications were: incorporate the bugfixes of 1.1.4, allow
-// unzipping to/from handles/pipes/files/memory, encryption, unicode,
-// a windowsish api, and putting everything into a single .cpp file.
-// The original code may be found at http://www.gzip.org/zlib/
-// The original copyright text follows.
-//
-//
-//
-// zlib.h -- interface of the 'zlib' general purpose compression library
-//  version 1.1.3, July 9th, 1998
-//
-//  Copyright (C) 1995-1998 Jean-loup Gailly and Mark Adler
-//
-//  This software is provided 'as-is', without any express or implied
-//  warranty.  In no event will the authors be held liable for any damages
-//  arising from the use of this software.
-//
-//  Permission is granted to anyone to use this software for any purpose,
-//  including commercial applications, and to alter it and redistribute it
-//  freely, subject to the following restrictions:
-//
-//  1. The origin of this software must not be misrepresented; you must not
-//     claim that you wrote the original software. If you use this software
-//     in a product, an acknowledgment in the product documentation would be
-//     appreciated but is not required.
-//  2. Altered source versions must be plainly marked as such, and must not be
-//     misrepresented as being the original software.
-//  3. This notice may not be removed or altered from any source distribution.
-//
-//  Jean-loup Gailly        Mark Adler
-//  jloup@gzip.org          madler@alumni.caltech.edu
-//
-//
-//  The data format used by the zlib library is described by RFCs (Request for
-//  Comments) 1950 to 1952 in the files ftp://ds.internic.net/rfc/rfc1950.txt
-//  (zlib format), rfc1951.txt (deflate format) and rfc1952.txt (gzip format).
-//
-//
-//     The 'zlib' compression library provides in-memory compression and
-//  decompression functions, including integrity checks of the uncompressed
-//  data.  This version of the library supports only one compression method
-//  (deflation) but other algorithms will be added later and will have the same
-//  stream interface.
-//
-//     Compression can be done in a single step if the buffers are large
-//  enough (for example if an input file is mmap'ed), or can be done by
-//  repeated calls of the compression function.  In the latter case, the
-//  application must provide more input and/or consume the output
-//  (providing more output space) before each call.
-//
-//     The library also supports reading and writing files in gzip (.gz) format
-//  with an interface similar to that of stdio.
-//
-//     The library does not install any signal handler. The decoder checks
-//  the consistency of the compressed data, so the library should never
-//  crash even in case of corrupted input.
-//
-// for more info about .ZIP format, see ftp://ftp.cdrom.com/pub/infozip/doc/appnote-970311-iz.zip
-//   PkWare has also a specification at ftp://ftp.pkware.com/probdesc.zip
+#endif
 
 #define ZIP_HANDLE   1
 #define ZIP_FILENAME 2
 #define ZIP_MEMORY   3
 
-
 #define zmalloc(len) malloc(len)
-
 #define zfree(p) free(p)
-
-/*
-void *zmalloc(unsigned int len)
-{ char *buf = new char[len+32];
-for (int i=0; i<16; i++)
-{ buf[i]=i;
-buf[len+31-i]=i;
-}
-*((unsigned int*)buf) = len;
-char c[1000]; wsprintf(c,"malloc 0x%lx  - %lu",buf+16,len);
-OutputDebugString(c);
-return buf+16;
-}
-
-void zfree(void *buf)
-{ char c[1000]; wsprintf(c,"free   0x%lx",buf);
-OutputDebugString(c);
-char *p = ((char*)buf)-16;
-unsigned int len = *((unsigned int*)p);
-bool blown=false;
-for (int i=0; i<16; i++)
-{ char lo = p[i];
-char hi = p[len+31-i];
-if (hi!=i || (lo!=i && i>4)) blown=true;
-}
-if (blown)
-{ OutputDebugString("BLOWN!!!");
-}
-delete[] p;
-}
-*/
-
 
 typedef struct tm_unz_s
 {
@@ -4683,15 +3738,12 @@ typedef struct tm_unz_s
 	unsigned int tm_year;           // years - [1980..2044]
 } tm_unz;
 
-
-// unz_global_info structure contain global data about the ZIPfile
 typedef struct unz_global_info_s
 {
 	unsigned long number_entry;         // total number of entries in the central dir on this disk
 	unsigned long size_comment;         // size of the global comment of the zipfile
 } unz_global_info;
 
-// unz_file_info contain information about a file in the zipfile
 typedef struct unz_file_info_s
 {
 	unsigned long version;              // version made by                 2 bytes
@@ -4711,7 +3763,6 @@ typedef struct unz_file_info_s
 	tm_unz tmu_date;
 } unz_file_info;
 
-
 #define UNZ_OK                  (0)
 #define UNZ_END_OF_LIST_OF_FILE (-100)
 #define UNZ_ERRNO               (Z_ERRNO)
@@ -4722,51 +3773,28 @@ typedef struct unz_file_info_s
 #define UNZ_CRCERROR            (-105)
 #define UNZ_PASSWORD            (-106)
 
-
-
-
-
-
-
-#define ZLIB_VERSION "1.1.3"
-
-
-// Allowed flush values; see deflate() for details
 #define Z_NO_FLUSH      0
 #define Z_SYNC_FLUSH    2
 #define Z_FULL_FLUSH    3
 #define Z_FINISH        4
 
-
-// compression levels
 #define Z_NO_COMPRESSION         0
 #define Z_BEST_SPEED             1
 #define Z_BEST_COMPRESSION       9
 #define Z_DEFAULT_COMPRESSION  (-1)
 
-// compression strategy; see deflateInit2() for details
 #define Z_FILTERED            1
 #define Z_HUFFMAN_ONLY        2
 #define Z_DEFAULT_STRATEGY    0
 
-// Possible values of the data_type field
 #define Z_BINARY   0
 #define Z_ASCII    1
 #define Z_UNKNOWN  2
 
-// The deflate compression method (the only one supported in this version)
 #define Z_DEFLATED   8
-
-// for initializing zalloc, zfree, opaque
 #define Z_NULL  0
-
-// case sensitivity when searching for filenames
 #define CASE_SENSITIVE 1
 #define CASE_INSENSITIVE 2
-
-
-// Return codes for the compression/decompression functions. Negative
-// values are errors, positive values are used for special but normal events.
 #define Z_OK            0
 #define Z_STREAM_END    1
 #define Z_NEED_DICT     2
@@ -4777,26 +3805,12 @@ typedef struct unz_file_info_s
 #define Z_BUF_ERROR    (-5)
 #define Z_VERSION_ERROR (-6)
 
-
-
-// Basic data types
 typedef unsigned char  Byte;  // 8 bits
 typedef unsigned int   uInt;  // 16 bits or more
 typedef unsigned long  uLong; // 32 bits or more
 typedef void *voidpf;
 typedef void     *voidp;
 typedef long z_off_t;
-
-
-
-
-
-
-
-
-
-
-
 
 typedef voidpf(*alloc_func) (voidpf opaque, uInt items, uInt size);
 typedef void(*free_func)  (voidpf opaque, voidpf address);
@@ -4826,223 +3840,25 @@ typedef struct z_stream_s {
 
 typedef z_stream *z_streamp;
 
-
-//   The application must update next_in and avail_in when avail_in has
-//   dropped to zero. It must update next_out and avail_out when avail_out
-//   has dropped to zero. The application must initialize zalloc, zfree and
-//   opaque before calling the init function. All other fields are set by the
-//   compression library and must not be updated by the application.
-//
-//   The opaque value provided by the application will be passed as the first
-//   parameter for calls of zalloc and zfree. This can be useful for custom
-//   memory management. The compression library attaches no meaning to the
-//   opaque value.
-//
-//   zalloc must return Z_NULL if there is not enough memory for the object.
-//   If zlib is used in a multi-threaded application, zalloc and zfree must be
-//   thread safe.
-//
-//   The fields total_in and total_out can be used for statistics or
-//   progress reports. After compression, total_in holds the total size of
-//   the uncompressed data and may be saved for use in the decompressor
-//   (particularly if the decompressor wants to decompress everything in
-//   a single step).
-//
-
-
-// basic functions
-
-const char *zlibVersion();
-// The application can compare zlibVersion and ZLIB_VERSION for consistency.
-// If the first character differs, the library code actually used is
-// not compatible with the zlib.h header file used by the application.
-// This check is automatically made by inflateInit.
-
-
-
-
-
-
 int inflate(z_streamp strm, int flush);
-//
-//    inflate decompresses as much data as possible, and stops when the input
-//  buffer becomes empty or the output buffer becomes full. It may some
-//  introduce some output latency (reading input without producing any output)
-//  except when forced to flush.
-//
-//  The detailed semantics are as follows. inflate performs one or both of the
-//  following actions:
-//
-//  - Decompress more input starting at next_in and update next_in and avail_in
-//    accordingly. If not all input can be processed (because there is not
-//    enough room in the output buffer), next_in is updated and processing
-//    will resume at this point for the next call of inflate().
-//
-//  - Provide more output starting at next_out and update next_out and avail_out
-//    accordingly.  inflate() provides as much output as possible, until there
-//    is no more input data or no more space in the output buffer (see below
-//    about the flush parameter).
-//
-//  Before the call of inflate(), the application should ensure that at least
-//  one of the actions is possible, by providing more input and/or consuming
-//  more output, and updating the next_* and avail_* values accordingly.
-//  The application can consume the uncompressed output when it wants, for
-//  example when the output buffer is full (avail_out == 0), or after each
-//  call of inflate(). If inflate returns Z_OK and with zero avail_out, it
-//  must be called again after making room in the output buffer because there
-//  might be more output pending.
-//
-//    If the parameter flush is set to Z_SYNC_FLUSH, inflate flushes as much
-//  output as possible to the output buffer. The flushing behavior of inflate is
-//  not specified for values of the flush parameter other than Z_SYNC_FLUSH
-//  and Z_FINISH, but the current implementation actually flushes as much output
-//  as possible anyway.
-//
-//    inflate() should normally be called until it returns Z_STREAM_END or an
-//  error. However if all decompression is to be performed in a single step
-//  (a single call of inflate), the parameter flush should be set to
-//  Z_FINISH. In this case all pending input is processed and all pending
-//  output is flushed; avail_out must be large enough to hold all the
-//  uncompressed data. (The size of the uncompressed data may have been saved
-//  by the compressor for this purpose.) The next operation on this stream must
-//  be inflateEnd to deallocate the decompression state. The use of Z_FINISH
-//  is never required, but can be used to inform inflate that a faster routine
-//  may be used for the single inflate() call.
-//
-//     If a preset dictionary is needed at this point (see inflateSetDictionary
-//  below), inflate sets strm-adler to the adler32 checksum of the
-//  dictionary chosen by the compressor and returns Z_NEED_DICT; otherwise
-//  it sets strm->adler to the adler32 checksum of all output produced
-//  so far (that is, total_out bytes) and returns Z_OK, Z_STREAM_END or
-//  an error code as described below. At the end of the stream, inflate()
-//  checks that its computed adler32 checksum is equal to that saved by the
-//  compressor and returns Z_STREAM_END only if the checksum is correct.
-//
-//    inflate() returns Z_OK if some progress has been made (more input processed
-//  or more output produced), Z_STREAM_END if the end of the compressed data has
-//  been reached and all uncompressed output has been produced, Z_NEED_DICT if a
-//  preset dictionary is needed at this point, Z_DATA_ERROR if the input data was
-//  corrupted (input stream not conforming to the zlib format or incorrect
-//  adler32 checksum), Z_STREAM_ERROR if the stream structure was inconsistent
-//  (for example if next_in or next_out was NULL), Z_MEM_ERROR if there was not
-//  enough memory, Z_BUF_ERROR if no progress is possible or if there was not
-//  enough room in the output buffer when Z_FINISH is used. In the Z_DATA_ERROR
-//  case, the application may then call inflateSync to look for a good
-//  compression block.
-//
-
 
 int inflateEnd(z_streamp strm);
-//
-//     All dynamically allocated data structures for this stream are freed.
-//   This function discards any unprocessed input and does not flush any
-//   pending output.
-//
-//     inflateEnd returns Z_OK if success, Z_STREAM_ERROR if the stream state
-//   was inconsistent. In the error case, msg may be set but then points to a
-//   static string (which must not be deallocated).
-
-// Advanced functions 
-
-//  The following functions are needed only in some special applications.
-
-
-
-
-
-int inflateSetDictionary(z_streamp strm,
-	const Byte *dictionary,
-	uInt  dictLength);
-//
-//     Initializes the decompression dictionary from the given uncompressed byte
-//   sequence. This function must be called immediately after a call of inflate
-//   if this call returned Z_NEED_DICT. The dictionary chosen by the compressor
-//   can be determined from the Adler32 value returned by this call of
-//   inflate. The compressor and decompressor must use exactly the same
-//   dictionary. 
-//
-//     inflateSetDictionary returns Z_OK if success, Z_STREAM_ERROR if a
-//   parameter is invalid (such as NULL dictionary) or the stream state is
-//   inconsistent, Z_DATA_ERROR if the given dictionary doesn't match the
-//   expected one (incorrect Adler32 value). inflateSetDictionary does not
-//   perform any decompression: this will be done by subsequent calls of
-//   inflate().
-
-
-int inflateSync(z_streamp strm);
-// 
-//    Skips invalid compressed data until a full flush point can be found, or until all
-//  available input is skipped. No output is provided.
-//
-//    inflateSync returns Z_OK if a full flush point has been found, Z_BUF_ERROR
-//  if no more input was provided, Z_DATA_ERROR if no flush point has been found,
-//  or Z_STREAM_ERROR if the stream structure was inconsistent. In the success
-//  case, the application may save the current current value of total_in which
-//  indicates where valid compressed data was found. In the error case, the
-//  application may repeatedly call inflateSync, providing more input each time,
-//  until success or end of the input data.
-
 
 int inflateReset(z_streamp strm);
-//     This function is equivalent to inflateEnd followed by inflateInit,
-//   but does not free and reallocate all the internal decompression state.
-//   The stream will keep attributes that may have been set by inflateInit2.
-//
-//      inflateReset returns Z_OK if success, or Z_STREAM_ERROR if the source
-//   stream state was inconsistent (such as zalloc or state being NULL).
-//
-
-
-
-// checksum functions
-// These functions are not related to compression but are exported
-// anyway because they might be useful in applications using the
-// compression library.
 
 uLong adler32(uLong adler, const Byte *buf, uInt len);
-//     Update a running Adler-32 checksum with the bytes buf[0..len-1] and
-//   return the updated checksum. If buf is NULL, this function returns
-//   the required initial value for the checksum.
-//   An Adler-32 checksum is almost as reliable as a CRC32 but can be computed
-//   much faster. Usage example:
-//
-//     uLong adler = adler32(0L, Z_NULL, 0);
-//
-//     while (read_buffer(buffer, length) != EOF) {
-//       adler = adler32(adler, buffer, length);
-//     }
-//     if (adler != original_adler) error();
 
 uLong ucrc32(uLong crc, const Byte *buf, uInt len);
-//     Update a running crc with the bytes buf[0..len-1] and return the updated
-//   crc. If buf is NULL, this function returns the required initial value
-//   for the crc. Pre- and post-conditioning (one's complement) is performed
-//   within this function so it shouldn't be done by the application.
-//   Usage example:
-//
-//     uLong crc = crc32(0L, Z_NULL, 0);
-//
-//     while (read_buffer(buffer, length) != EOF) {
-//       crc = crc32(crc, buffer, length);
-//     }
-//     if (crc != original_crc) error();
-
-
-
 
 const char   *zError(int err);
 int           inflateSyncPoint(z_streamp z);
 const uLong *get_crc_table(void);
-
-
 
 typedef unsigned char  uch;
 typedef uch uchf;
 typedef unsigned short ush;
 typedef ush ushf;
 typedef unsigned long  ulg;
-
-
 
 const char * const z_errmsg[10] = { // indexed by 2-zlib_error
 	"need dictionary",     // Z_NEED_DICT       2
@@ -5056,45 +3872,29 @@ const char * const z_errmsg[10] = { // indexed by 2-zlib_error
 	"incompatible version",// Z_VERSION_ERROR (-6)
 	"" };
 
-
 #define ERR_MSG(err) z_errmsg[Z_NEED_DICT-(err)]
 
 #define ERR_RETURN(strm,err) \
   return (strm->msg = (char*)ERR_MSG(err), (err))
-// To be used only when the state is known to be valid 
-
-// common constants
-
 
 #define STORED_BLOCK 0
 #define STATIC_TREES 1
 #define DYN_TREES    2
-// The three kinds of block type 
-
 #define MIN_MATCH  3
 #define MAX_MATCH  258
-// The minimum and maximum match lengths 
 
-#define PRESET_DICT 0x20 // preset dictionary flag in zlib header 
+#define PRESET_DICT 0x20
 
-// target dependencies 
-
-#define OS_CODE  0x0b  // Window 95 & Windows NT
-
-
-
-// functions 
+#define OS_CODE  0x0b
 
 #define zmemzero(dest, len) memset(dest, 0, len)
 
-// Diagnostic functions
 #define LuAssert(cond,msg)
 #define LuTrace(x)
 #define LuTracev(x)
 #define LuTracevv(x)
 #define LuTracec(c,x)
 #define LuTracecv(c,x)
-
 
 typedef uLong(*check_func) (uLong check, const Byte *buf, uInt len);
 voidpf zcalloc(voidpf opaque, unsigned items, unsigned size);
@@ -5104,18 +3904,7 @@ void   zcfree(voidpf opaque, voidpf ptr);
            (*((strm)->zalloc))((strm)->opaque, (items), (size))
 #define ZFREE(strm, addr)  (*((strm)->zfree))((strm)->opaque, (voidpf)(addr))
 
-//void ZFREE(z_streamp strm,voidpf addr)
-//{ *((strm)->zfree))((strm)->opaque, addr);
-//}
-
 #define TRY_FREE(s, p) {if (p) ZFREE(s, p);}
-
-
-
-
-// Huffman code lookup table entry--this entry is four bytes for machines
-// that have 16-bit pointers (e.g. PC's in the small or medium model).
-
 
 typedef struct inflate_huft_s inflate_huft;
 
@@ -5130,11 +3919,6 @@ struct inflate_huft_s {
 	uInt base;            // literal, length base, distance base, or table offset
 };
 
-// Maximum size of dynamic tree.  The maximum found in a long but non-
-//   exhaustive search was 1004 huft structures (850 for length/literals
-//   and 154 for distances, the latter actually the result of an
-//   exhaustive search).  The actual maximum is not known, but the
-//   value below is more than safe.
 #define MANY 1440
 
 int inflate_trees_bits(
@@ -5162,10 +3946,6 @@ int inflate_trees_fixed(
 	const inflate_huft * *,       // distance tree result
 	z_streamp);                // for memory allocation
 
-
-
-
-
 struct inflate_blocks_state;
 typedef struct inflate_blocks_state inflate_blocks_statef;
 
@@ -5173,11 +3953,6 @@ inflate_blocks_statef * inflate_blocks_new(
 	z_streamp z,
 	check_func c,               // check function
 	uInt w);                   // window size
-
-int inflate_blocks(
-	inflate_blocks_statef *,
-	z_streamp,
-	int);                      // initial return code
 
 void inflate_blocks_reset(
 	inflate_blocks_statef *,
@@ -5188,17 +3963,6 @@ int inflate_blocks_free(
 	inflate_blocks_statef *,
 	z_streamp);
 
-void inflate_set_dictionary(
-	inflate_blocks_statef *s,
-	const Byte *d,  // dictionary
-	uInt  n);       // dictionary length
-
-int inflate_blocks_sync_point(
-	inflate_blocks_statef *s);
-
-
-
-
 struct inflate_codes_state;
 typedef struct inflate_codes_state inflate_codes_statef;
 
@@ -5207,17 +3971,9 @@ inflate_codes_statef *inflate_codes_new(
 	const inflate_huft *, const inflate_huft *,
 	z_streamp);
 
-int inflate_codes(
-	inflate_blocks_statef *,
-	z_streamp,
-	int);
-
 void inflate_codes_free(
 	inflate_codes_statef *,
 	z_streamp);
-
-
-
 
 typedef enum {
 	IBM_TYPE,     // get type bits (3, including end bit)
@@ -5233,7 +3989,6 @@ typedef enum {
 }      // got a data error--stuck here 
 inflate_block_mode;
 
-// inflate blocks semi-private state 
 struct inflate_blocks_state {
 
 	// mode 
@@ -5269,44 +4024,32 @@ struct inflate_blocks_state {
 
 };
 
-
-// defines for inflate input/output
-//   update pointers and return 
 #define UPDBITS {s->bitb=b;s->bitk=k;}
 #define UPDIN {z->avail_in=n;z->total_in+=(uLong)(p-z->next_in);z->next_in=p;}
 #define UPDOUT {s->write=q;}
 #define UPDATE {UPDBITS UPDIN UPDOUT}
 #define LEAVE {UPDATE return inflate_flush(s,z,r);}
-//   get bytes and bits 
 #define LOADIN {p=z->next_in;n=z->avail_in;b=s->bitb;k=s->bitk;}
 #define NEEDBYTE {if(n)r=Z_OK;else LEAVE}
 #define NEXTBYTE (n--,*p++)
 #define NEEDBITS(j) {while(k<(j)){NEEDBYTE;b|=((uLong)NEXTBYTE)<<k;k+=8;}}
 #define DUMPBITS(j) {b>>=(j);k-=(j);}
-//   output bytes 
 #define WAVAIL (uInt)(q<s->read?s->read-q-1:s->end-q)
 #define LOADOUT {q=s->write;m=(uInt)WAVAIL;m;}
 #define WRAP {if(q==s->end&&s->read!=s->window){q=s->window;m=(uInt)WAVAIL;}}
 #define FLUSH {UPDOUT r=inflate_flush(s,z,r); LOADOUT}
 #define NEEDOUT {if(m==0){WRAP if(m==0){FLUSH WRAP if(m==0) LEAVE}}r=Z_OK;}
 #define OUTBYTE(a) {*q++=(Byte)(a);m--;}
-//   load local pointers 
 #define LOAD {LOADIN LOADOUT}
 
-// masks for lower bits (size given to avoid silly warnings with Visual C++) 
-// And'ing with mask[n] masks the lower n bits
 const uInt inflate_mask[17] = {
 	0x0000,
 	0x0001, 0x0003, 0x0007, 0x000f, 0x001f, 0x003f, 0x007f, 0x00ff,
 	0x01ff, 0x03ff, 0x07ff, 0x0fff, 0x1fff, 0x3fff, 0x7fff, 0xffff
 };
 
-// copy as much as possible from the sliding window to the output area
 int inflate_flush(inflate_blocks_statef *, z_streamp, int);
-
 int inflate_fast(uInt, uInt, const inflate_huft *, const inflate_huft *, inflate_blocks_statef *, z_streamp);
-
-
 
 const uInt fixed_bl = 9;
 const uInt fixed_bd = 5;
@@ -5451,13 +4194,6 @@ const inflate_huft fixed_td[] = {
 { { { 82,5 } },13 },{ { { 90,5 } },3073 },{ { { 86,5 } },193 },{ { { 192,5 } },24577 }
 };
 
-
-
-
-
-
-
-// copy as much as possible from the sliding window to the output area
 int inflate_flush(inflate_blocks_statef *s, z_streamp z, int r)
 {
 	uInt n;
@@ -5522,12 +4258,6 @@ int inflate_flush(inflate_blocks_statef *s, z_streamp z, int r)
 	return r;
 }
 
-
-
-
-
-
-// simplify the use of the inflate_huft type with some defines
 #define exop word.what.Exop
 #define bits word.what.Bits
 
@@ -5545,7 +4275,6 @@ typedef enum {        // waiting for "i:"=input, "o:"=output, "x:"=nothing
 }  // x: got error 
 inflate_codes_mode;
 
-// inflate codes private state
 struct inflate_codes_state {
 
 	// mode 
@@ -5573,7 +4302,6 @@ struct inflate_codes_state {
 
 };
 
-
 inflate_codes_statef *inflate_codes_new(
 	uInt bl, uInt bd,
 	const inflate_huft *tl,
@@ -5594,7 +4322,6 @@ inflate_codes_statef *inflate_codes_new(
 	}
 	return c;
 }
-
 
 int inflate_codes(inflate_blocks_statef *s, z_streamp z, int r)
 {
@@ -5753,70 +4480,14 @@ int inflate_codes(inflate_blocks_statef *s, z_streamp z, int r)
 		}
 }
 
-
 void inflate_codes_free(inflate_codes_statef *c, z_streamp z)
 {
 	ZFREE(z, c);
 	LuTracev((stderr, "inflate:       codes free\n"));
 }
 
-
-
-// infblock.c -- interpret and process block types to last block
-// Copyright (C) 1995-1998 Mark Adler
-// For conditions of distribution and use, see copyright notice in zlib.h
-
-//struct inflate_codes_state {int dummy;}; // for buggy compilers 
-
-
-
-// Table for deflate from PKZIP's appnote.txt.
 const uInt border[] = { // Order of the bit length code lengths
 	16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 };
-
-//
-// Notes beyond the 1.93a appnote.txt:
-//
-// 1. Distance pointers never point before the beginning of the output stream.
-// 2. Distance pointers can point back across blocks, up to 32k away.
-// 3. There is an implied maximum of 7 bits for the bit length table and
-//    15 bits for the actual data.
-// 4. If only one code exists, then it is encoded using one bit.  (Zero
-//    would be more efficient, but perhaps a little confusing.)  If two
-//    codes exist, they are coded using one bit each (0 and 1).
-// 5. There is no way of sending zero distance codes--a dummy must be
-//    sent if there are none.  (History: a pre 2.0 version of PKZIP would
-//    store blocks with no distance codes, but this was discovered to be
-//    too harsh a criterion.)  Valid only for 1.93a.  2.04c does allow
-//    zero distance codes, which is sent as one code of zero bits in
-//    length.
-// 6. There are up to 286 literal/length codes.  Code 256 represents the
-//    end-of-block.  Note however that the static length tree defines
-//    288 codes just to fill out the Huffman codes.  Codes 286 and 287
-//    cannot be used though, since there is no length base or extra bits
-//    defined for them.  Similarily, there are up to 30 distance codes.
-//    However, static trees define 32 codes (all 5 bits) to fill out the
-//    Huffman codes, but the last two had better not show up in the data.
-// 7. Unzip can check dynamic Huffman blocks for complete code sets.
-//    The exception is that a single code would not be complete (see #4).
-// 8. The five bits following the block type is really the number of
-//    literal codes sent minus 257.
-// 9. Length codes 8,16,16 are interpreted as 13 length codes of 8 bits
-//    (1+6+6).  Therefore, to output three times the length, you output
-//    three codes (1+1+1), whereas to output four times the same length,
-//    you only need two codes (1+3).  Hmm.
-//10. In the tree reconstruction algorithm, Code = Code + Increment
-//    only if BitLength(i) is not zero.  (Pretty obvious.)
-//11. Correction: 4 Bits: # of Bit Length codes - 4     (4 - 19)
-//12. Note: length code 284 can represent 227-258, but length code 285
-//    really is 258.  The last length deserves its own, short code
-//    since it gets used a lot in very redundant files.  The length
-//    258 is special since 258 - 3 (the min match length) is 255.
-//13. The literal/length and distance code bit lengths are read as a
-//    single stream of lengths.  It is possible (and advantageous) for
-//    a repeat code (16, 17, or 18) to go across the boundary between
-//    the two sets of lengths.
-
 
 void inflate_blocks_reset(inflate_blocks_statef *s, z_streamp z, uLong *c)
 {
@@ -5834,7 +4505,6 @@ void inflate_blocks_reset(inflate_blocks_statef *s, z_streamp z, uLong *c)
 		z->adler = s->check = (*s->checkfn)(0L, (const Byte *)Z_NULL, 0);
 	LuTracev((stderr, "inflate:   blocks reset\n"));
 }
-
 
 inflate_blocks_statef *inflate_blocks_new(z_streamp z, check_func c, uInt w)
 {
@@ -5862,7 +4532,6 @@ inflate_blocks_statef *inflate_blocks_new(z_streamp z, check_func c, uInt w)
 	inflate_blocks_reset(s, z, Z_NULL);
 	return s;
 }
-
 
 int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r)
 {
@@ -6112,7 +4781,6 @@ int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r)
 		}
 }
 
-
 int inflate_blocks_free(inflate_blocks_statef *s, z_streamp z)
 {
 	inflate_blocks_reset(s, z, Z_NULL);
@@ -6122,24 +4790,6 @@ int inflate_blocks_free(inflate_blocks_statef *s, z_streamp z)
 	LuTracev((stderr, "inflate:   blocks freed\n"));
 	return Z_OK;
 }
-
-
-
-// inftrees.c -- generate Huffman trees for efficient decoding
-// Copyright (C) 1995-1998 Mark Adler
-// For conditions of distribution and use, see copyright notice in zlib.h
-//
-
-
-
-extern const char inflate_copyright[] =
-" inflate 1.1.3 Copyright 1995-1998 Mark Adler ";
-// If you use the zlib library in a product, an acknowledgment is welcome
-// in the documentation of your product. If for some reason you cannot
-// include such an acknowledgment, I would appreciate that you keep this
-// copyright string in the executable of your product.
-
-
 
 int huft_build(
 	uInt *,            // code lengths in bits
@@ -6153,11 +4803,9 @@ int huft_build(
 	uInt *,             // hufts used in space 
 	uInt *);         // space for values 
 
-					 // Tables for deflate from PKZIP's appnote.txt. 
 const uInt cplens[31] = { // Copy lengths for literal codes 257..285
 	3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
 	35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0 };
-// see note #13 above about 258
 const uInt cplext[31] = { // Extra bits for literal codes 257..285
 	0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2,
 	3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, 112, 112 }; // 112==invalid
@@ -6170,41 +4818,7 @@ const uInt cpdext[30] = { // Extra bits for distance codes
 	7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
 	12, 12, 13, 13 };
 
-//
-//   Huffman code decoding is performed using a multi-level table lookup.
-//   The fastest way to decode is to simply build a lookup table whose
-//   size is determined by the longest code.  However, the time it takes
-//   to build this table can also be a factor if the data being decoded
-//   is not very long.  The most common codes are necessarily the
-//   shortest codes, so those codes dominate the decoding time, and hence
-//   the speed.  The idea is you can have a shorter table that decodes the
-//   shorter, more probable codes, and then point to subsidiary tables for
-//   the longer codes.  The time it costs to decode the longer codes is
-//   then traded against the time it takes to make longer tables.
-//
-//   This results of this trade are in the variables lbits and dbits
-//   below.  lbits is the number of bits the first level table for literal/
-//   length codes can decode in one step, and dbits is the same thing for
-//   the distance codes.  Subsequent tables are also less than or equal to
-//   those sizes.  These values may be adjusted either when all of the
-//   codes are shorter than that, in which case the longest code length in
-//   bits is used, or when the shortest code is *longer* than the requested
-//   table size, in which case the length of the shortest code in bits is
-//   used.
-//
-//   There are two different values for the two tables, since they code a
-//   different number of possibilities each.  The literal/length table
-//   codes 286 possible values, or in a flat code, a little over eight
-//   bits.  The distance table codes 30 possible values, or a little less
-//   than five bits, flat.  The optimum values for speed end up being
-//   about one bit more than those, so lbits is 8+1 and dbits is 5+1.
-//   The optimum values may differ though from machine to machine, and
-//   possibly even between compilers.  Your mileage may vary.
-//
-
-
-// If BMAX needs to be larger than 16, then h and x[] should be uLong. 
-#define BMAX 15         // maximum bit length of any code
+#define BMAX 15
 
 int huft_build(
 	uInt *b,               // code lengths in bits (all assumed <= BMAX)
@@ -6217,10 +4831,6 @@ int huft_build(
 	inflate_huft *hp,       // space for trees
 	uInt *hn,               // hufts used in space
 	uInt *v)               // working area: values in order of bit length
-						   // Given a list of code lengths and a maximum table size, make a set of
-						   // tables to decode that set of codes.  Return Z_OK on success, Z_BUF_ERROR
-						   // if the given code set is incomplete (the tables are still built in this
-						   // case), or Z_DATA_ERROR if the input is invalid.
 {
 
 	uInt a;                       // counter for codes of length k
@@ -6509,24 +5119,8 @@ int inflate_trees_fixed(
 	return Z_OK;
 }
 
-
-// inffast.c -- process literals and length/distance pairs fast
-// Copyright (C) 1995-1998 Mark Adler
-// For conditions of distribution and use, see copyright notice in zlib.h
-//
-
-
-//struct inflate_codes_state {int dummy;}; // for buggy compilers 
-
-
-// macros for bit input with no checking and for returning unused bytes 
 #define GRABBITS(j) {while(k<(j)){b|=((uLong)NEXTBYTE)<<k;k+=8;}}
 #define UNGRAB {c=z->avail_in-n;c=(k>>3)<c?k>>3:c;n+=c;p-=c;k-=c<<3;}
-
-// Called with number of bytes left to write in window at least 258
-// (the maximum string length) and number of input bytes available
-// at least ten.  The ten bytes are six bytes for the longest length/
-// distance pair plus four bytes for overloading the bit buffer. 
 
 int inflate_fast(
 	uInt bl, uInt bd,
@@ -6685,22 +5279,6 @@ int inflate_fast(
 		return Z_OK;
 }
 
-
-
-
-
-
-// crc32.c -- compute the CRC-32 of a data stream
-// Copyright (C) 1995-1998 Mark Adler
-// For conditions of distribution and use, see copyright notice in zlib.h
-
-// @(#) $Id$
-
-
-
-
-
-
 const uLong * get_crc_table()
 {
 	return (const uLong *)crc_table;
@@ -6720,10 +5298,6 @@ uLong ucrc32(uLong crc, const Byte *buf, uInt len)
 	return crc ^ 0xffffffffL;
 }
 
-
-
-// =============================================================
-// some decryption routines
 #define CRC32(c, b) (crc_table[((int)(c)^(b))&0xff]^((c)>>8))
 void Uupdate_keys(unsigned long *keys, char c)
 {
@@ -6744,18 +5318,8 @@ char zdecode(unsigned long *keys, char c)
 	return c;
 }
 
-
-
-// adler32.c -- compute the Adler-32 checksum of a data stream
-// Copyright (C) 1995-1998 Mark Adler
-// For conditions of distribution and use, see copyright notice in zlib.h
-
-// @(#) $Id$
-
-
 #define BASE 65521L // largest prime smaller than 65536
 #define NMAX 5552
-// NMAX is the largest n such that 255n(n+1)/2 + (n+1)(BASE-1) <= 2^32-1
 
 #define AD_DO1(buf,i)  {s1 += buf[i]; s2 += s1;}
 #define AD_DO2(buf,i)  AD_DO1(buf,i); AD_DO1(buf,i+1);
@@ -6763,7 +5327,6 @@ char zdecode(unsigned long *keys, char c)
 #define AD_DO8(buf,i)  AD_DO4(buf,i); AD_DO4(buf,i+4);
 #define AD_DO16(buf)   AD_DO8(buf,0); AD_DO8(buf,8);
 
-// =========================================================================
 uLong adler32(uLong adler, const Byte *buf, uInt len)
 {
 	unsigned long s1 = adler & 0xffff;
@@ -6790,32 +5353,10 @@ uLong adler32(uLong adler, const Byte *buf, uInt len)
 	return (s2 << 16) | s1;
 }
 
-
-
-// zutil.c -- target dependent utility functions for the compression library
-// Copyright (C) 1995-1998 Jean-loup Gailly.
-// For conditions of distribution and use, see copyright notice in zlib.h
-// @(#) $Id$
-
-
-
-
-
-
-const char * zlibVersion()
-{
-	return ZLIB_VERSION;
-}
-
-// exported to allow conversion of error code to string for compress() and
-// uncompress()
 const char * zError(int err)
 {
 	return ERR_MSG(err);
 }
-
-
-
 
 voidpf zcalloc(voidpf opaque, unsigned items, unsigned size)
 {
@@ -6828,14 +5369,6 @@ void  zcfree(voidpf opaque, voidpf ptr)
 	zfree(ptr);
 	if (opaque) return; // make compiler happy
 }
-
-
-
-// inflate.c -- zlib interface to inflate modules
-// Copyright (C) 1995-1998 Mark Adler
-// For conditions of distribution and use, see copyright notice in zlib.h
-
-//struct inflate_blocks_state {int dummy;}; // for buggy compilers
 
 typedef enum {
 	IM_METHOD,   // waiting for method byte
@@ -6855,7 +5388,6 @@ typedef enum {
 }      // got an error--stay here
 inflate_mode;
 
-// inflate private state
 struct internal_state {
 
 	// mode
@@ -6890,7 +5422,6 @@ int inflateReset(z_streamp z)
 	LuTracev((stderr, "inflate: reset\n"));
 	return Z_OK;
 }
-
 int inflateEnd(z_streamp z)
 {
 	if (z == Z_NULL || z->state == Z_NULL || z->zfree == Z_NULL)
@@ -6902,12 +5433,9 @@ int inflateEnd(z_streamp z)
 	LuTracev((stderr, "inflate: end\n"));
 	return Z_OK;
 }
-
-
 int inflateInit2(z_streamp z)
 {
-	const char *version = ZLIB_VERSION; int stream_size = sizeof(z_stream);
-	if (version == Z_NULL || version[0] != ZLIB_VERSION[0] || stream_size != sizeof(z_stream)) return Z_VERSION_ERROR;
+	int stream_size = sizeof(z_stream);
 
 	int w = -15; // MAX_WBITS: 32K LZ77 window.
 				 // Warning: reducing MAX_WBITS makes minigzip unable to extract .gz files created by gzip.
@@ -6967,8 +5495,6 @@ int inflateInit2(z_streamp z)
 	inflateReset(z);
 	return Z_OK;
 }
-
-
 
 #define IM_NEEDBYTE {if(z->avail_in==0)return r;r=f;}
 #define IM_NEXTBYTE (z->avail_in--,z->total_in++,*z->next_in++)
@@ -7095,33 +5621,15 @@ int inflate(z_streamp z, int f)
 	}
 }
 
-
-
-
-
-// unzip.c -- IO on .zip files using zlib
-// Version 0.15 beta, Mar 19th, 1998,
-// Read unzip.h for more info
-
-
-
-
 #define UNZ_BUFSIZE (16384)
 #define UNZ_MAXFILENAMEINZIP (256)
 #define SIZECENTRALDIRITEM (0x2e)
 #define SIZEZIPLOCALHEADER (0x1e)
 
-
-
-
-const char unz_copyright[] = " unzip 0.15 Copyright 1998 Gilles Vollant ";
-
-// unz_file_info_interntal contain internal info about a file in zipfile
 typedef struct unz_file_info_internal_s
 {
 	uLong offset_curfile;// relative offset of local header 4 bytes
 } unz_file_info_internal;
-
 
 typedef struct
 {
@@ -7132,7 +5640,6 @@ typedef struct
 	// for memory:
 	void *buf; unsigned int len, pos; // if it's a memory block
 } LUFILE;
-
 
 LUFILE *lufopen(void *z, unsigned int len, DWORD flags, ZRESULT *err)
 {
@@ -7181,7 +5688,6 @@ LUFILE *lufopen(void *z, unsigned int len, DWORD flags, ZRESULT *err)
 	return lf;
 }
 
-
 int lufclose(LUFILE *stream)
 {
 	if (stream == NULL) return EOF;
@@ -7223,7 +5729,6 @@ int lufseek(LUFILE *stream, long offset, int whence)
 	}
 }
 
-
 size_t lufread(void *ptr, size_t size, size_t n, LUFILE *stream)
 {
 	unsigned int toread = (unsigned int)(size*n);
@@ -7239,11 +5744,6 @@ size_t lufread(void *ptr, size_t size, size_t n, LUFILE *stream)
 	return red / size;
 }
 
-
-
-
-// file_in_zip_read_info_s contain internal information about a file in zipfile,
-//  when reading and decompress it
 typedef struct
 {
 	char  *read_buffer;         // internal buffer for compressed data
@@ -7269,8 +5769,6 @@ typedef struct
 	char crcenctest;              // if encrypted, we'll check the encryption buffer against this
 } file_in_zip_read_info_s;
 
-
-// unz_s contain internal information about the zipfile
 typedef struct
 {
 	LUFILE* file;               // io structore of the zipfile
@@ -7289,35 +5787,10 @@ typedef struct
 	file_in_zip_read_info_s* pfile_in_zip_read; // structure about the current file if we are decompressing it
 } unz_s, *unzFile;
 
-
 int unzStringFileNameCompare(const char* fileName1, const char* fileName2, int iCaseSensitivity);
-//   Compare two filename (fileName1,fileName2).
-
 z_off_t unztell(unzFile file);
-//  Give the current position in uncompressed data
-
 int unzeof(unzFile file);
-//  return 1 if the end of file was reached, 0 elsewhere
-
 int unzGetLocalExtrafield(unzFile file, voidp buf, unsigned len);
-//  Read extra field from the current file (opened by unzOpenCurrentFile)
-//  This is the local-header version of the extra field (sometimes, there is
-//    more info in the local-header version than in the central-header)
-//
-//  if buf==NULL, it return the size of the local extra field
-//
-//  if buf!=NULL, len is the size of the buffer, the extra header is copied in
-//	buf.
-//  the return value is the number of bytes copied in buf, or (if <0)
-//	the error code
-
-
-
-// ===========================================================================
-//   Read a byte from a gz_stream; update next_in and avail_in. Return EOF
-// for end of file.
-// IN assertion: the stream s has been sucessfully opened for reading.
-
 int unzlocal_getByte(LUFILE *fin, int *pi)
 {
 	unsigned char c;
@@ -7333,10 +5806,6 @@ int unzlocal_getByte(LUFILE *fin, int *pi)
 		else return UNZ_EOF;
 	}
 }
-
-
-// ===========================================================================
-// Reads a long in LSB order from the given gz_stream. Sets
 int unzlocal_getShort(LUFILE *fin, uLong *pX)
 {
 	uLong x;
@@ -7356,7 +5825,6 @@ int unzlocal_getShort(LUFILE *fin, uLong *pX)
 		*pX = 0;
 	return err;
 }
-
 int unzlocal_getLong(LUFILE *fin, uLong *pX)
 {
 	uLong x;
@@ -7384,9 +5852,6 @@ int unzlocal_getLong(LUFILE *fin, uLong *pX)
 		*pX = 0;
 	return err;
 }
-
-
-// My own strcmpi / strcasecmp 
 int strcmpcasenosensitive_internal(const char* fileName1, const char *fileName2)
 {
 	for (;;)
@@ -7407,15 +5872,6 @@ int strcmpcasenosensitive_internal(const char* fileName1, const char *fileName2)
 			return 1;
 	}
 }
-
-
-
-
-//
-// Compare two filename (fileName1,fileName2).
-// If iCaseSenisivity = 1, comparision is case sensitivity (like strcmp)
-// If iCaseSenisivity = 2, comparision is not case sensitivity (like strcmpi or strcasecmp)
-//
 int unzStringFileNameCompare(const char*fileName1, const char*fileName2, int iCaseSensitivity)
 {
 	if (iCaseSensitivity == 1) return strcmp(fileName1, fileName2);
@@ -7424,10 +5880,6 @@ int unzStringFileNameCompare(const char*fileName1, const char*fileName2, int iCa
 
 #define BUFREADCOMMENT (0x400)
 
-
-//  Locate the Central directory of a zipfile (at the end, just before
-// the global comment). Lu bugfix 2005.07.26 - returns 0xFFFFFFFF if not found,
-// rather than 0, since 0 is a valid central-dir-location for an empty zipfile.
 uLong unzlocal_SearchCentralDir(LUFILE *fin)
 {
 	if (lufseek(fin, 0, SEEK_END) != 0) return 0xFFFFFFFF;
@@ -7464,17 +5916,12 @@ uLong unzlocal_SearchCentralDir(LUFILE *fin)
 	return uPosFound;
 }
 
-
 int unzGoToFirstFile(unzFile file);
 int unzCloseCurrentFile(unzFile file);
 
-// Open a Zip file.
-// If the zipfile cannot be opened (file don't exist or in not valid), return NULL.
-// Otherwise, the return value is a unzFile Handle, usable with other unzip functions
 unzFile unzOpenInternal(LUFILE *fin)
 {
 	if (fin == NULL) return NULL;
-	if (unz_copyright[0] != ' ') { lufclose(fin); return NULL; }
 
 	int err = UNZ_OK;
 	unz_s us;
@@ -7517,12 +5964,6 @@ unzFile unzOpenInternal(LUFILE *fin)
 	return (unzFile)s;
 }
 
-
-
-//  Close a ZipFile opened with unzipOpen.
-//  If there is files inside the .Zip opened with unzipOpenCurrentFile (see later),
-//    these files MUST be closed with unzipCloseCurrentFile before call unzipClose.
-//  return UNZ_OK if there is no problem.
 int unzClose(unzFile file)
 {
 	unz_s* s;
@@ -7538,10 +5979,6 @@ int unzClose(unzFile file)
 	return UNZ_OK;
 }
 
-
-//  Write info about the ZipFile in the *pglobal_info structure.
-//  No preparation of the structure is needed
-//  return UNZ_OK if there is no problem. 
 int unzGetGlobalInfo(unzFile file, unz_global_info *pglobal_info)
 {
 	unz_s* s;
@@ -7552,8 +5989,6 @@ int unzGetGlobalInfo(unzFile file, unz_global_info *pglobal_info)
 	return UNZ_OK;
 }
 
-
-//   Translate date/time from Dos format to tm_unz (readable more easilty)
 void unzlocal_DosDateToTmuDate(uLong ulDosDate, tm_unz* ptm)
 {
 	uLong uDate;
@@ -7567,7 +6002,6 @@ void unzlocal_DosDateToTmuDate(uLong ulDosDate, tm_unz* ptm)
 	ptm->tm_sec = (uInt)(2 * (ulDosDate & 0x1f));
 }
 
-//  Get Info about the current file in the zipfile, with internal only info
 int unzlocal_GetCurrentFileInfoInternal(unzFile file,
 	unz_file_info *pfile_info,
 	unz_file_info_internal
@@ -7726,11 +6160,6 @@ int unzlocal_GetCurrentFileInfoInternal(unzFile file, unz_file_info *pfile_info,
 	return err;
 }
 
-
-
-//  Write info about the ZipFile in the *pglobal_info structure.
-//  No preparation of the structure is needed
-//  return UNZ_OK if there is no problem.
 int unzGetCurrentFileInfo(unzFile file, unz_file_info *pfile_info,
 	char *szFileName, uLong fileNameBufferSize, void *extraField, uLong extraFieldBufferSize,
 	char *szComment, uLong commentBufferSize)
@@ -7739,9 +6168,6 @@ int unzGetCurrentFileInfo(unzFile file, unz_file_info *pfile_info,
 		extraField, extraFieldBufferSize, szComment, commentBufferSize);
 }
 
-
-//  Set the current file of the zipfile to the first file.
-//  return UNZ_OK if there is no problem
 int unzGoToFirstFile(unzFile file)
 {
 	int err;
@@ -7757,10 +6183,6 @@ int unzGoToFirstFile(unzFile file)
 	return err;
 }
 
-
-//  Set the current file of the zipfile to the next file.
-//  return UNZ_OK if there is no problem
-//  return UNZ_END_OF_LIST_OF_FILE if the actual file was the latest.
 int unzGoToNextFile(unzFile file)
 {
 	unz_s* s;
@@ -7784,12 +6206,6 @@ int unzGoToNextFile(unzFile file)
 	return err;
 }
 
-
-//  Try locate the file szFileName in the zipfile.
-//  For the iCaseSensitivity signification, see unzStringFileNameCompare
-//  return value :
-//  UNZ_OK if the file is found. It becomes the current file.
-//  UNZ_END_OF_LIST_OF_FILE if the file is not found
 int unzLocateFile(unzFile file, const char *szFileName, int iCaseSensitivity)
 {
 	unz_s* s;
@@ -7831,12 +6247,6 @@ int unzLocateFile(unzFile file, const char *szFileName, int iCaseSensitivity)
 	return err;
 }
 
-
-//  Read the local header of the current zipfile
-//  Check the coherency of the local header and info in the end of central
-//        directory about this file
-//  store in *piSizeVar the size of extra info in local header
-//        (filename and size of extra field data)
 int unzlocal_CheckCurrentFileCoherencyHeader(unz_s *s, uInt *piSizeVar,
 	uLong *poffset_local_extrafield, uInt  *psize_local_extrafield)
 {
@@ -7915,12 +6325,6 @@ int unzlocal_CheckCurrentFileCoherencyHeader(unz_s *s, uInt *piSizeVar,
 	return err;
 }
 
-
-
-
-
-//  Open for reading data the current file in the zipfile.
-//  If there is no error and the file is opened, the return value is UNZ_OK.
 int unzOpenCurrentFile(unzFile file, const char *password)
 {
 	int err;
@@ -8013,14 +6417,6 @@ int unzOpenCurrentFile(unzFile file, const char *password)
 	return UNZ_OK;
 }
 
-
-//  Read bytes from the current file.
-//  buf contain buffer where data must be copied
-//  len the size of buf.
-//  return the number of byte copied if somes bytes are copied (and also sets *reached_eof)
-//  return 0 if the end of file was reached. (and also sets *reached_eof).
-//  return <0 with error code if there is an error. (in which case *reached_eof is meaningless)
-//    (UNZ_ERRNO for IO error, or zLib error for uncompress error)
 int unzReadCurrentFile(unzFile file, voidp buf, unsigned len, bool *reached_eof)
 {
 	int err = UNZ_OK;
@@ -8130,8 +6526,6 @@ int unzReadCurrentFile(unzFile file, voidp buf, unsigned len, bool *reached_eof)
 	return err;
 }
 
-
-//  Give the current position in uncompressed data
 z_off_t unztell(unzFile file)
 {
 	unz_s* s;
@@ -8147,8 +6541,6 @@ z_off_t unztell(unzFile file)
 	return (z_off_t)pfile_in_zip_read_info->stream.total_out;
 }
 
-
-//  return 1 if the end of file was reached, 0 elsewhere
 int unzeof(unzFile file)
 {
 	unz_s* s;
@@ -8167,14 +6559,6 @@ int unzeof(unzFile file)
 		return 0;
 }
 
-
-
-//  Read extra field from the current file (opened by unzOpenCurrentFile)
-//  This is the local-header version of the extra field (sometimes, there is
-//    more info in the local-header version than in the central-header)
-//  if buf==NULL, it return the size of the local extra field that can be read
-//  if buf!=NULL, len is the size of the buffer, the extra header is copied in buf.
-//  the return value is the number of bytes copied in buf, or (if <0) the error code
 int unzGetLocalExtrafield(unzFile file, voidp buf, unsigned len)
 {
 	unz_s* s;
@@ -8213,8 +6597,6 @@ int unzGetLocalExtrafield(unzFile file, voidp buf, unsigned len)
 	return (int)read_now;
 }
 
-//  Close the file in zip opened with unzipOpenCurrentFile
-//  Return UNZ_CRCERROR if all the file was read but the CRC is not good
 int unzCloseCurrentFile(unzFile file)
 {
 	int err = UNZ_OK;
@@ -8255,10 +6637,6 @@ int unzCloseCurrentFile(unzFile file)
 	return err;
 }
 
-
-//  Get the global comment string of the ZipFile, in the szComment buffer.
-//  uSizeBuf is the size of the szComment buffer.
-//  return the number of byte copied or an error code <0
 int unzGetGlobalComment(unzFile file, char *szComment, uLong uSizeBuf)
 { //int err=UNZ_OK;
 	unz_s* s;
@@ -8277,14 +6655,8 @@ int unzGetGlobalComment(unzFile file, char *szComment, uLong uSizeBuf)
 	return (int)uReadThis;
 }
 
-
-
-
-
 int unzOpenCurrentFile(unzFile file, const char *password);
-int unzReadCurrentFile(unzFile file, void *buf, unsigned len);
 int unzCloseCurrentFile(unzFile file);
-
 
 FILETIME timet2filetime(const lutime_t t)
 {
@@ -8310,8 +6682,6 @@ FILETIME dosdatetime2filetime(WORD dosdate, WORD dostime)
 	return ft;
 }
 
-
-
 class TUnzip
 {
 public:
@@ -8330,7 +6700,6 @@ public:
 	ZRESULT SetUnzipBaseDir(const TCHAR *dir);
 	ZRESULT Close();
 };
-
 
 ZRESULT TUnzip::Open(void *z, unsigned int len, DWORD flags)
 {
@@ -8540,8 +6909,6 @@ void EnsureDirectory(const TCHAR *rootdir, const TCHAR *dir)
 	if (GetFileAttributes(cd) == 0xFFFFFFFF) CreateDirectory(cd, NULL);
 }
 
-
-
 ZRESULT TUnzip::Unzip(int index, void *dst, unsigned int len, DWORD flags)
 {
 	if (flags != ZIP_MEMORY && flags != ZIP_FILENAME && flags != ZIP_HANDLE) return ZR_ARGS;
@@ -8629,10 +6996,6 @@ ZRESULT TUnzip::Close()
 	return ZR_OK;
 }
 
-
-
-
-
 ZRESULT lasterrorU = ZR_OK;
 
 unsigned int FormatZipMessageU(ZRESULT code, TCHAR *buf, unsigned int len)
@@ -8671,7 +7034,6 @@ unsigned int FormatZipMessageU(ZRESULT code, TCHAR *buf, unsigned int len)
 	return mlen;
 }
 
-
 typedef struct
 {
 	DWORD flag;
@@ -8689,7 +7051,6 @@ HZIP OpenZipInternal(void *z, unsigned int len, DWORD flags, const char *passwor
 HZIP OpenZipHandle(HANDLE h, const char *password) { return OpenZipInternal((void*)h, 0, ZIP_HANDLE, password); }
 HZIP OpenZip(const TCHAR *fn, const char *password) { return OpenZipInternal((void*)fn, 0, ZIP_FILENAME, password); }
 HZIP OpenZip(void *z, unsigned int len, const char *password) { return OpenZipInternal(z, len, ZIP_MEMORY, password); }
-
 
 ZRESULT GetZipItem(HZIP hz, int index, ZIPENTRY *ze)
 {
@@ -8735,7 +7096,6 @@ ZRESULT SetUnzipBaseDir(HZIP hz, const TCHAR *dir)
 	return lasterrorU;
 }
 
-
 ZRESULT CloseZipU(HZIP hz)
 {
 	if (hz == 0) { lasterrorU = ZR_ARGS; return ZR_ARGS; }
@@ -8754,9 +7114,6 @@ bool IsZipHandleU(HZIP hz)
 	TUnzipHandleData *han = (TUnzipHandleData*)hz;
 	return (han->flag == 1);
 }
-
-
-
 
 HANDLE createZip(SGstring zip) {
 	if (!fileExist(zip)) return CreateZip(_widen(zip), "");
