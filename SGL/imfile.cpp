@@ -89,6 +89,17 @@ void savePng(SGtext filename, bitMap png) {
 
 }
 
+//JPG
+
+bitMap loadJpg(SGtext filename) {
+	return bitMap();
+}
+void saveJpg(SGtext filename, bitMap bmp) {
+
+}
+
+//Operation.
+
 bitMap copyPic(bitMap src) {
 	bitMap dst;
 	dst.data = (unsigned char *)malloc(src.sizeX*src.sizeY * 3 * sizeof(char));

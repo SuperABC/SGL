@@ -155,10 +155,12 @@
     <ClInclude Include="..\Pack\include\geometry.h" />
     <ClInclude Include="..\Pack\include\winsgl.h" />
     <ClInclude Include="inner.h" />
+    <ClInclude Include="unzip.h" />
     <ClInclude Include="users.h" />
     <ClInclude Include="util.h" />
     <ClInclude Include="widget.h" />
     <ClInclude Include="window.h" />
+    <ClInclude Include="zip.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="data.cpp" />
@@ -167,6 +169,8 @@
     <ClCompile Include="geometry.cpp" />
     <ClCompile Include="graph.cpp" />
     <ClCompile Include="imfile.cpp" />
+    <ClCompile Include="unzip.cpp" />
+    <ClCompile Include="zip.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

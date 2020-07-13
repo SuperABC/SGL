@@ -3,6 +3,8 @@
 #include "winsgl.h"
 #include "inner.h"
 #include "util.h"
+#include "zip.h"
+#include "unzip.h"
 #include <direct.h>
 #include <exception>
 
@@ -1232,18 +1234,38 @@ void setArrayElement(struct JSON *json, int idx, struct JSON *j) {
 * These functions are used to deal with zip data.
 */
 
-DECLARE_HANDLE(HZIP);
-typedef DWORD ZRESULT;
-
-HZIP createZip(SGtext filename);
-ZRESULT addZipFile(HZIP hz, SGtext filename);
-ZRESULT addZipFile(HZIP hz, void *data);
-ZRESULT addZipFolder(HZIP hz, SGtext filename);
-
-HZIP openZip(SGtext filename);
-ZRESULT getZipFile(HZIP hz, SGtext filename);
-ZRESULT getZipFile(HZIP hz, void *data);
-
-ZRESULT closeZip(HZIP hz);
+HANDLE createZip(SGstring zip) {
+	if (!fileExist(zip)) return CreateZip(_widen(zip), "");
+	else return NULL;
+}
+void zipFile(HANDLE h, SGstring src, SGstring dst) {
+	HZIP hz = (HZIP)h;
+	ZipAdd(hz, _widen(dst), _widen(src));
+}
+void zipFolder(HANDLE h, SGstring dst) {
+	HZIP hz = (HZIP)h;
+	ZipAddFolder(hz, _widen(dst));
+}
+void zipFinish(HANDLE h) {
+	HZIP hz = (HZIP)h;
+	CloseZip(hz);
+}
+HANDLE createUnzip(SGstring zip) {
+	if (fileExist(zip)) return OpenZip(_widen(zip), "");
+	else return NULL;
+}
+void readUnzip(HANDLE h, int idx, SGstring path) {
+	HZIP hz = (HZIP)h;
+	ZIPENTRY ze;
+	GetZipItem(hz, idx, &ze);
+	strcpy(path, _shorten(ze.name));
+}
+void unzipFile(HANDLE h, SGstring src, SGstring dst) {
+	HZIP hz = (HZIP)h;
+	int index;
+	ZIPENTRY ze;
+	FindZipItem(hz, _widen(src), 0, &index, &ze);
+	UnzipItem(hz, index, _widen(dst));
+}
 
 

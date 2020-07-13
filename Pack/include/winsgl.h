@@ -549,7 +549,7 @@ extern "C" {
 	* with \0, and it's set to NULL as default as well.
 	* @Param idx is the default format index which is usually set to 1.
 	*/
-	SGint selectFile(char name[], char start[], char format[], int idx);
+	SGint selectFile(char name[], SGWINSTR start, SGWINSTR format, int idx);
 
 	/**
 	* Use Win API Graphic mode to let user input the file name that they
@@ -561,7 +561,7 @@ extern "C" {
 	* @Param def is the default format to append if no format is input.
 	* @Param idx is the default format index which is usually set to 1.
 	*/
-	SGint selectSave(char name[], char start[], char format[], char def[], int idx);
+	SGint selectSave(char name[], SGWINSTR start, SGWINSTR format, SGWINSTR def, int idx);
 
 	/**
 	* Use Win API Graphic mode to choose one directory.
@@ -1720,10 +1720,6 @@ extern "C" {
 	* These functions are used to deal with big data.
 	*/
 
-	void zip(SGstring src, SGstring dst);
-
-	void unzip(SGstring src, SGstring dst);
-
 	/**
 	* Create an empty json object.
 	* @Return struct is an empty json object.
@@ -1810,17 +1806,69 @@ extern "C" {
 	void setObjectElement(struct JSON *json, int idx, struct JSON *j);
 	void setArrayElement(struct JSON *json, int idx, struct JSON *j);
 
+	/**
+	* Create zip file if the zip file isn't exist.
+	* @Param zip is the path of the zip file.
+	*/
+	HANDLE createZip(SGstring zip);
+
+	/**
+	* Add file into zip file.
+	* @Param h is the zip handle from createZip.
+	* @Param src is the path of the origin file.
+	* @Param dst is the path where origin file should be put in the zip file.
+	*/
+	void zipFile(HANDLE h, SGstring src, SGstring dst);
+
+	/**
+	* Create a folder in the zip file.
+	* @Param h is the zip handle from createZip.
+	* @Param dst is the folder in the zip file.
+	*/
+	void zipFolder(HANDLE h, SGstring dst);
+
+	/**
+	* Close zip file.
+	* @Param h is the zip handle from createZip.
+	*/
+	void zipFinish(HANDLE h);
+
+	/**
+	* Open zip file for unzip.
+	* @Param zip is the path of the zip file.
+	*/
+	HANDLE createUnzip(SGstring zip);
+
+	/**
+	* Read zip file and get the idxth file in the zip file.
+	* @Param h is the zip handle from createUnzip.
+	* @Param src is the idxth file in the zip file..
+	* @Param dst reveives the result and should be allocated first.
+	*/
+	void readUnzip(HANDLE h, int idx, SGstring path);
+
+	/**
+	* Open and unzip the file int the zip file.
+	* @Param h is the zip handle from createUnzip.
+	* @Param src is the path where the file is in the zip file.
+	* @Param dst is the path where the unzip file should be put.
+	*/
+	void unzipFile(HANDLE h, SGstring src, SGstring dst);
+
+
 	/*
 	* SG encryption interfaces
 	* These functions are used to encrypt and decrypt.
 	*/
 
+	/* DES key length 8. */
 	int DESEncrypt(const char *plain, int len, const char *key, char *cipher);
 	int DESDecrypt(const char *cipher, int len, const char *key, char *plain);
-	/* DES key length 8. */
+
+	/* AES key length 16. */
 	void AESEncrypt(const char *plain, int len, const char *key, char *cipher);
 	void AESDecrypt(const char *cipher, int len, const char *key, char *plain);
-	/* DES key length 16. */
+
 	void RSAProduceKey(unsigned int p, unsigned int q, unsigned int *e, unsigned int *d, unsigned int *n);
 	void RSAEncrypt(unsigned int plain, int key, int N, unsigned int *cipher);
 	void RSADecrypt(unsigned int cipher, int key, int N, unsigned int *plain);
