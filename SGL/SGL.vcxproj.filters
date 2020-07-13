@@ -39,12 +39,6 @@
     <ClInclude Include="..\Pack\include\winsgl.h">
       <Filter>头文件\pack</Filter>
     </ClInclude>
-    <ClInclude Include="unzip.h">
-      <Filter>源文件</Filter>
-    </ClInclude>
-    <ClInclude Include="zip.h">
-      <Filter>源文件</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="frame.cpp">
@@ -63,12 +57,6 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="imfile.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="unzip.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="zip.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

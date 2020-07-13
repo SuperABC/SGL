@@ -3,68 +3,6 @@
 #include <tchar.h>
 #include "zip.h"
 
-
-// THIS FILE is almost entirely based upon code by info-zip.
-// It has been modified by Lucian Wischik. The modifications
-// were a complete rewrite of the bit of code that generates the
-// layout of the zipfile, and support for zipping to/from memory
-// or handles or pipes or pagefile or diskfiles, encryption, unicode.
-// The original code may be found at http://www.info-zip.org
-// The original copyright text follows.
-//
-//
-//
-// This is version 1999-Oct-05 of the Info-ZIP copyright and license.
-// The definitive version of this document should be available at
-// ftp://ftp.cdrom.com/pub/infozip/license.html indefinitely.
-//
-// Copyright (c) 1990-1999 Info-ZIP.  All rights reserved.
-//
-// For the purposes of this copyright and license, "Info-ZIP" is defined as
-// the following set of individuals:
-//
-//   Mark Adler, John Bush, Karl Davis, Harald Denker, Jean-Michel Dubois,
-//   Jean-loup Gailly, Hunter Goatley, Ian Gorman, Chris Herborth, Dirk Haase,
-//   Greg Hartwig, Robert Heath, Jonathan Hudson, Paul Kienitz, David Kirschbaum,
-//   Johnny Lee, Onno van der Linden, Igor Mandrichenko, Steve P. Miller,
-//   Sergio Monesi, Keith Owens, George Petrov, Greg Roelofs, Kai Uwe Rommel,
-//   Steve Salisbury, Dave Smith, Christian Spieler, Antoine Verheijen,
-//   Paul von Behren, Rich Wales, Mike White
-//
-// This software is provided "as is," without warranty of any kind, express
-// or implied.  In no event shall Info-ZIP or its contributors be held liable
-// for any direct, indirect, incidental, special or consequential damages
-// arising out of the use of or inability to use this software.
-//
-// Permission is granted to anyone to use this software for any purpose,
-// including commercial applications, and to alter it and redistribute it
-// freely, subject to the following restrictions:
-//
-//    1. Redistributions of source code must retain the above copyright notice,
-//       definition, disclaimer, and this list of conditions.
-//
-//    2. Redistributions in binary form must reproduce the above copyright
-//       notice, definition, disclaimer, and this list of conditions in
-//       documentation and/or other materials provided with the distribution.
-//
-//    3. Altered versions--including, but not limited to, ports to new operating
-//       systems, existing ports with new graphical interfaces, and dynamic,
-//       shared, or static library versions--must be plainly marked as such
-//       and must not be misrepresented as being the original source.  Such
-//       altered versions also must not be misrepresented as being Info-ZIP
-//       releases--including, but not limited to, labeling of the altered
-//       versions with the names "Info-ZIP" (or any variation thereof, including,
-//       but not limited to, different capitalizations), "Pocket UnZip," "WiZ"
-//       or "MacZip" without the explicit permission of Info-ZIP.  Such altered
-//       versions are further prohibited from misrepresentative use of the
-//       Zip-Bugs or Info-ZIP e-mail addresses or of the Info-ZIP URL(s).
-//
-//    4. Info-ZIP retains the right to use the names "Info-ZIP," "Zip," "UnZip,"
-//       "WiZ," "Pocket UnZip," "Pocket Zip," and "MacZip" for its own source and
-//       binary releases.
-//
-
-
 typedef unsigned char uch;      // unsigned 8-bit value
 typedef unsigned short ush;     // unsigned 16-bit value
 typedef unsigned long ulg;      // unsigned 32-bit value
@@ -77,9 +15,6 @@ typedef unsigned IPos; // A Pos is an index in the character window. Pos is used
 #endif
 
 
-// Error return values.  The values 0..4 and 12..18 follow the conventions
-// of PKZIP.   The values 4..10 are all assigned to "insufficient memory"
-// by PKZIP, so the codes 5..10 are used here for other purposes.
 #define ZE_MISS         -1      // used by procname(), zipbare()
 #define ZE_OK           0       // success
 #define ZE_EOF          2       // unexpected end of zip file
@@ -150,24 +85,11 @@ typedef unsigned IPos; // A Pos is an index in the character window. Pos is used
 
 #define MIN_MATCH  3
 #define MAX_MATCH  258
-// The minimum and maximum match lengths
 
 
 #define WSIZE  (0x8000)
-// Maximum window size = 32K. If you are really short of memory, compile
-// with a smaller WSIZE but this reduces the compression ratio for files
-// of size > WSIZE. WSIZE must be a power of two in the current implementation.
-//
-
 #define MIN_LOOKAHEAD (MAX_MATCH+MIN_MATCH+1)
-// Minimum amount of lookahead, except at the end of the input file.
-// See deflate.c for comments about the MIN_MATCH+1.
-//
-
 #define MAX_DIST  (WSIZE-MIN_LOOKAHEAD)
-// In order to simplify the code, particularly on 16 bit machines, match
-// distances are limited to MAX_DIST instead of WSIZE.
-//
 
 
 #define ZIP_HANDLE   1
@@ -176,140 +98,56 @@ typedef unsigned IPos; // A Pos is an index in the character window. Pos is used
 #define ZIP_FOLDER   4
 
 
-
-// ===========================================================================
-// Constants
-//
-
 #define MAX_BITS 15
-// All codes must not exceed MAX_BITS bits
-
 #define MAX_BL_BITS 7
-// Bit length codes must not exceed MAX_BL_BITS bits
-
 #define LENGTH_CODES 29
-// number of length codes, not counting the special END_BLOCK code
-
 #define LITERALS  256
-// number of literal bytes 0..255
-
 #define END_BLOCK 256
-// end of block literal code
-
 #define L_CODES (LITERALS+1+LENGTH_CODES)
-// number of Literal or Length codes, including the END_BLOCK code
-
 #define D_CODES   30
-// number of distance codes
-
 #define BL_CODES  19
-// number of codes used to transfer the bit lengths
-
 
 #define STORED_BLOCK 0
 #define STATIC_TREES 1
-#define DYN_TREES    2
-// The three kinds of block type
-
+#define DYN_TREES 2
 #define LIT_BUFSIZE  0x8000
 #define DIST_BUFSIZE  LIT_BUFSIZE
-// Sizes of match buffers for literals/lengths and distances.  There are
-// 4 reasons for limiting LIT_BUFSIZE to 64K:
-//   - frequencies can be kept in 16 bit counters
-//   - if compression is not successful for the first block, all input data is
-//     still in the window so we can still emit a stored block even when input
-//     comes from standard input.  (This can also be done for all blocks if
-//     LIT_BUFSIZE is not greater than 32K.)
-//   - if compression is not successful for a file smaller than 64K, we can
-//     even emit a stored file instead of a stored block (saving 5 bytes).
-//   - creating new Huffman trees less frequently may not provide fast
-//     adaptation to changes in the input data statistics. (Take for
-//     example a binary file with poorly compressible code followed by
-//     a highly compressible string table.) Smaller buffer sizes give
-//     fast adaptation but have of course the overhead of transmitting trees
-//     more frequently.
-//   - I can't count above 4
-// The current code is general and allows DIST_BUFSIZE < LIT_BUFSIZE (to save
-// memory at the expense of compression). Some optimizations would be possible
-// if we rely on DIST_BUFSIZE == LIT_BUFSIZE.
-//
 
 #define REP_3_6      16
-// repeat previous bit length 3-6 times (2 bits of repeat count)
-
 #define REPZ_3_10    17
-// repeat a zero length 3-10 times  (3 bits of repeat count)
-
 #define REPZ_11_138  18
-// repeat a zero length 11-138 times  (7 bits of repeat count)
-
 #define HEAP_SIZE (2*L_CODES+1)
-// maximum heap size
-
-
-// ===========================================================================
-// Local data used by the "bit string" routines.
-//
 
 #define Buf_size (8 * 2*sizeof(char))
-// Number of bits used within bi_buf. (bi_buf may be implemented on
-// more than 16 bits on some systems.)
-
-// Output a 16 bit value to the bit stream, lower (oldest) byte first
 #define PUTSHORT(state,w) \
-{ if (state.bs.out_offset >= state.bs.out_size-1) \
-    state.flush_outbuf(state.param,state.bs.out_buf, &state.bs.out_offset); \
-  state.bs.out_buf[state.bs.out_offset++] = (char) ((w) & 0xff); \
-  state.bs.out_buf[state.bs.out_offset++] = (char) ((ush)(w) >> 8); \
+{\
+	if (state.bs.out_offset >= state.bs.out_size-1) \
+		state.flush_outbuf(state.param,state.bs.out_buf, &state.bs.out_offset); \
+		state.bs.out_buf[state.bs.out_offset++] = (char) ((w) & 0xff); \
+		state.bs.out_buf[state.bs.out_offset++] = (char) ((ush)(w) >> 8); \
 }
 
 #define PUTBYTE(state,b) \
-{ if (state.bs.out_offset >= state.bs.out_size) \
-    state.flush_outbuf(state.param,state.bs.out_buf, &state.bs.out_offset); \
-  state.bs.out_buf[state.bs.out_offset++] = (char) (b); \
+{\
+	if (state.bs.out_offset >= state.bs.out_size) \
+		state.flush_outbuf(state.param,state.bs.out_buf, &state.bs.out_offset); \
+		state.bs.out_buf[state.bs.out_offset++] = (char) (b); \
 }
 
-// DEFLATE.CPP HEADER
-
 #define HASH_BITS  15
-// For portability to 16 bit machines, do not use values above 15.
-
 #define HASH_SIZE (unsigned)(1<<HASH_BITS)
 #define HASH_MASK (HASH_SIZE-1)
 #define WMASK     (WSIZE-1)
-// HASH_SIZE and WSIZE must be powers of two
-
 #define NIL 0
-// Tail of hash chains
-
 #define FAST 4
 #define SLOW 2
-// speed options for the general purpose bit flag
-
 #define TOO_FAR 4096
-// Matches of length 3 are discarded if their distance exceeds TOO_FAR
-
-
 
 #define EQUAL 0
-// result of memcmp for equal strings
-
-
-// ===========================================================================
-// Local data used by the "longest match" routines.
 
 #define H_SHIFT  ((HASH_BITS+MIN_MATCH-1)/MIN_MATCH)
-// Number of bits by which ins_h and del_h must be shifted at each
-// input step. It must be such that after MIN_MATCH steps, the oldest
-// byte no longer takes part in the hash key, that is:
-//   H_SHIFT * MIN_MATCH >= HASH_BITS
 
 #define max_insert_length  max_lazy_match
-// Insert new strings in the hash table only if the match length
-// is not greater than this length. This saves time but degrades compression.
-// max_insert_length is used only for compression levels <= 3.
-
-
 
 const int extra_lbits[LENGTH_CODES] // extra bits for each length code
    = {0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0};
@@ -332,12 +170,6 @@ typedef struct config {
    ush max_chain;
 } config;
 
-// Values for max_lazy_match, good_match, nice_match and max_chain_length,
-// depending on the desired pack level (0..9). The values given below have
-// been tuned to exclude worst case performance for pathological files.
-// Better values may be found for specific files.
-//
-
 const config configuration_table[10] = {
 //  good lazy nice chain
     {0,    0,  0,    0},  // 0 store only
@@ -350,15 +182,6 @@ const config configuration_table[10] = {
     {8,   32, 128, 256},  // 7
     {32, 128, 258, 1024}, // 8
     {32, 258, 258, 4096}};// 9 maximum compression */
-
-// Note: the deflate() code requires max_lazy >= MIN_MATCH and max_chain >= 4
-// For deflate_fast() (levels <= 3) good is ignored and lazy has a different meaning.
-
-
-
-
-
-
 
 // Data structure describing a single value and its code string.
 typedef struct ct_data {
@@ -381,9 +204,6 @@ typedef struct tree_desc {
     int     max_length;     // max bit length for the codes
     int     max_code;       // largest code with non zero frequency
 } tree_desc;
-
-
-
 
 class TTreeState
 { public:
@@ -466,8 +286,6 @@ TTreeState::TTreeState()
   last_flags=0;
 }
 
-
-
 class TBitState
 { public:
 
@@ -488,12 +306,6 @@ class TBitState
   // Size of current output buffer
   ulg bits_sent;   // bit length of the compressed data  only needed for debugging???
 };
-
-
-
-
-
-
 
 class TDeflateState
 { public:
@@ -577,7 +389,6 @@ typedef struct zlist {
   struct zlist far *nxt;        // Pointer to next header in list
 } TZipFileInfo;
 
-
 struct TState;
 typedef unsigned (*READFUNC)(TState &state, char *buf,unsigned size);
 typedef unsigned (*FLUSHFUNC)(void *param, const char *buf, unsigned *size);
@@ -590,26 +401,12 @@ struct TState
   const char *err;
 };
 
-
-
-
-
-
-
-
-
 void Assert(TState &state,bool cond, const char *msg)
 { if (cond) return;
   state.err=msg;
 }
 void __cdecl Trace(const char *x, ...) {va_list paramList; va_start(paramList, x); paramList; va_end(paramList);}
 void __cdecl Tracec(bool ,const char *x, ...) {va_list paramList; va_start(paramList, x); paramList; va_end(paramList);}
-
-
-
-// ===========================================================================
-// Local (static) routines in this file.
-//
 
 void init_block     (TState &);
 void pqdownheap     (TState &,ct_data *tree, int k);
@@ -629,25 +426,11 @@ void copy_block     (TState &state,char *buf, unsigned len, int header);
 
 
 #define send_code(state, c, tree) send_bits(state, tree[c].fc.code, tree[c].dl.len)
-// Send a code of the given tree. c and tree must not have side effects
-
-// alternatively...
-//#define send_code(state, c, tree)
-//     { if (state.verbose>1) fprintf(stderr,"\ncd %3d ",(c));
-//       send_bits(state, tree[c].fc.code, tree[c].dl.len); }
 
 #define d_code(dist) ((dist) < 256 ? state.ts.dist_code[dist] : state.ts.dist_code[256+((dist)>>7)])
-// Mapping from a distance to a distance code. dist is the distance - 1 and
-// must not have side effects. dist_code[256] and dist_code[257] are never used.
 
 #define Max(a,b) (a >= b ? a : b)
-/* the arguments must not have side effects */
 
-/* ===========================================================================
- * Allocate the match buffer, initialize the various tables and save the
- * location of the internal file attribute (ascii/binary) and method
- * (DEFLATE/STORE).
- */
 void ct_init(TState &state, ush *attr)
 {
     int n;        /* iterates over tree elements */
@@ -719,9 +502,6 @@ void ct_init(TState &state, ush *attr)
     init_block(state);
 }
 
-/* ===========================================================================
- * Initialize a new block.
- */
 void init_block(TState &state)
 {
     int n; /* iterates over tree elements */
@@ -738,13 +518,6 @@ void init_block(TState &state)
 }
 
 #define SMALLEST 1
-/* Index within the heap array of least frequent node in the Huffman tree */
-
-
-/* ===========================================================================
- * Remove the smallest element from the heap and recreate the heap with
- * one less element. Updates heap and heap_len.
- */
 #define pqremove(tree, top) \
 {\
     top = state.ts.heap[SMALLEST]; \
@@ -752,20 +525,10 @@ void init_block(TState &state)
     pqdownheap(state,tree, SMALLEST); \
 }
 
-/* ===========================================================================
- * Compares to subtrees, using the tree depth as tie breaker when
- * the subtrees have equal frequency. This minimizes the worst case length.
- */
 #define smaller(tree, n, m) \
    (tree[n].fc.freq < tree[m].fc.freq || \
    (tree[n].fc.freq == tree[m].fc.freq && state.ts.depth[n] <= state.ts.depth[m]))
 
-/* ===========================================================================
- * Restore the heap property by moving down the tree starting at node k,
- * exchanging a node with the smallest of its two sons if necessary, stopping
- * when the heap property is re-established (each father smaller than its
- * two sons).
- */
 void pqdownheap(TState &state,ct_data *tree, int k)
 {
     int v = state.ts.heap[k];
@@ -790,16 +553,6 @@ void pqdownheap(TState &state,ct_data *tree, int k)
     state.ts.heap[k] = v;
 }
 
-/* ===========================================================================
- * Compute the optimal bit lengths for a tree and update the total bit length
- * for the current block.
- * IN assertion: the fields freq and dad are set, heap[heap_max] and
- *    above are the tree nodes sorted by increasing frequency.
- * OUT assertions: the field len is set to the optimal bit length, the
- *     array bl_count contains the frequencies for each bit length.
- *     The length opt_len is updated; static_len is also updated if stree is
- *     not null.
- */
 void gen_bitlen(TState &state,tree_desc *desc)
 {
     ct_data *tree  = desc->dyn_tree;
@@ -876,14 +629,6 @@ void gen_bitlen(TState &state,tree_desc *desc)
     }
 }
 
-/* ===========================================================================
- * Generate the codes for a given tree and bit counts (which need not be
- * optimal).
- * IN assertion: the array bl_count contains the bit length statistics for
- * the given tree and the field len is set for all tree elements.
- * OUT assertion: the field code is set for all tree elements of non
- *     zero code length.
- */
 void gen_codes (TState &state, ct_data *tree, int max_code)
 {
     ush next_code[MAX_BITS+1]; /* next code value for each bit length */
@@ -914,14 +659,6 @@ void gen_codes (TState &state, ct_data *tree, int max_code)
     }
 }
 
-/* ===========================================================================
- * Construct one Huffman tree and assigns the code bit strings and lengths.
- * Update the total bit length for the current block.
- * IN assertion: the field freq is set for all tree elements.
- * OUT assertions: the fields len and code are set to the optimal bit length
- *     and corresponding code. The length opt_len is updated; static_len is
- *     also updated if stree is not null. The field max_code is set.
- */
 void build_tree(TState &state,tree_desc *desc)
 {
     ct_data *tree   = desc->dyn_tree;
@@ -996,12 +733,6 @@ void build_tree(TState &state,tree_desc *desc)
     gen_codes (state,(ct_data *)tree, max_code);
 }
 
-/* ===========================================================================
- * Scan a literal or distance tree to determine the frequencies of the codes
- * in the bit length tree. Updates opt_len to take into account the repeat
- * counts. (The contribution of the bit length codes will be added later
- * during the construction of bl_tree.)
- */
 void scan_tree (TState &state,ct_data *tree, int max_code)
 {
     int n;                     /* iterates over all tree elements */
@@ -1040,10 +771,6 @@ void scan_tree (TState &state,ct_data *tree, int max_code)
     }
 }
 
-/* ===========================================================================
- * Send a literal or distance tree in compressed form, using the codes in
- * bl_tree.
- */
 void send_tree (TState &state, ct_data *tree, int max_code)
 {
     int n;                     /* iterates over all tree elements */
@@ -1088,10 +815,6 @@ void send_tree (TState &state, ct_data *tree, int max_code)
     }
 }
 
-/* ===========================================================================
- * Construct the Huffman tree for the bit lengths and return the index in
- * bl_order of the last bit length code to send.
- */
 int build_bl_tree(TState &state)
 {
     int max_blindex;  /* index of last bit length code of non zero freq */
@@ -1120,11 +843,6 @@ int build_bl_tree(TState &state)
     return max_blindex;
 }
 
-/* ===========================================================================
- * Send the header for a block using dynamic Huffman trees: the counts, the
- * lengths of the bit length codes, the literal tree and the distance tree.
- * IN assertion: lcodes >= 257, dcodes >= 1, blcodes >= 4.
- */
 void send_all_trees(TState &state,int lcodes, int dcodes, int blcodes)
 {
     int rank;                    /* index in bl_order */
@@ -1150,11 +868,6 @@ void send_all_trees(TState &state,int lcodes, int dcodes, int blcodes)
     Trace("\ndist tree: sent %ld", state.bs.bits_sent);
 }
 
-/* ===========================================================================
- * Determine the best encoding for the current block: dynamic trees, static
- * trees or store, and output the encoded block to the zip file. This function
- * returns the total compressed length (in bytes) for the file so far.
- */
 ulg flush_block(TState &state,char *buf, ulg stored_len, int eof)
 {
     ulg opt_lenb, static_lenb; /* opt_len and static_len in bytes */
@@ -1248,10 +961,6 @@ ulg flush_block(TState &state,char *buf, ulg stored_len, int eof)
     return state.ts.cmpr_bytelen + (state.ts.cmpr_len_bits >> 3);
 }
 
-/* ===========================================================================
- * Save the match info and tally the frequency counts. Return true if
- * the current block must be flushed.
- */
 int ct_tally (TState &state,int dist, int lc)
 {
     state.ts.l_buf[state.ts.last_lit++] = (uch)lc;
@@ -1300,9 +1009,6 @@ int ct_tally (TState &state,int dist, int lc)
      */
 }
 
-/* ===========================================================================
- * Send the block data compressed using the given Huffman trees
- */
 void compress_block(TState &state,ct_data *ltree, ct_data *dtree)
 {
     unsigned dist;      /* distance of matched string */
@@ -1346,12 +1052,6 @@ void compress_block(TState &state,ct_data *ltree, ct_data *dtree)
     send_code(state,END_BLOCK, ltree);
 }
 
-/* ===========================================================================
- * Set the file type to ASCII or BINARY, using a crude approximation:
- * binary if more than 20% of the bytes are <= 6 or >= 128, ascii otherwise.
- * IN assertion: the fields freq of dyn_ltree are set and the total of all
- * frequencies does not exceed 64K (to fit in an int on 16 bit machines).
- */
 void set_file_type(TState &state)
 {
     int n = 0;
@@ -1363,10 +1063,6 @@ void set_file_type(TState &state)
     *state.ts.file_type = (ush)(bin_freq > (ascii_freq >> 2) ? BINARY : ASCII);
 }
 
-
-/* ===========================================================================
- * Initialize the bit string routines.
- */
 void bi_init (TState &state,char *tgt_buf, unsigned tgt_size, int flsh_allowed)
 {
     state.bs.out_buf = tgt_buf;
@@ -1379,10 +1075,6 @@ void bi_init (TState &state,char *tgt_buf, unsigned tgt_size, int flsh_allowed)
     state.bs.bits_sent = 0L;
 }
 
-/* ===========================================================================
- * Send a value on a given number of bits.
- * IN assertion: length <= 16 and value fits in length bits.
- */
 void send_bits(TState &state,int value, int length)
 {
     Assert(state,length > 0 && length <= 15, "invalid length");
@@ -1401,11 +1093,6 @@ void send_bits(TState &state,int value, int length)
     }
 }
 
-/* ===========================================================================
- * Reverse the first len bits of a code, using straightforward code (a faster
- * method would use a table)
- * IN assertion: 1 <= len <= 15
- */
 unsigned bi_reverse(unsigned code, int len)
 {
     register unsigned res = 0;
@@ -1416,9 +1103,6 @@ unsigned bi_reverse(unsigned code, int len)
     return res >> 1;
 }
 
-/* ===========================================================================
- * Write out any remaining bits in an incomplete byte.
- */
 void bi_windup(TState &state)
 {
     if (state.bs.bi_valid > 8) {
@@ -1434,10 +1118,6 @@ void bi_windup(TState &state)
     state.bs.bits_sent = (state.bs.bits_sent+7) & ~7;
 }
 
-/* ===========================================================================
- * Copy a stored block to the zip file, storing first the length and its
- * one's complement if requested.
- */
 void copy_block(TState &state, char *block, unsigned len, int header)
 {
     bi_windup(state);              /* align on byte boundary */
@@ -1460,53 +1140,18 @@ void copy_block(TState &state, char *block, unsigned len, int header)
     state.bs.bits_sent += (ulg)len<<3;
 }
 
-
-
-
-
-
-
-
-/* ===========================================================================
- *  Prototypes for functions.
- */
-
 void fill_window  (TState &state);
 ulg deflate_fast  (TState &state);
 
 int  longest_match (TState &state,IPos cur_match);
 
-
-/* ===========================================================================
- * Update a hash value with the given input byte
- * IN  assertion: all calls to to UPDATE_HASH are made with consecutive
- *    input characters, so that a running hash key can be computed from the
- *    previous key instead of complete recalculation each time.
- */
 #define UPDATE_HASH(h,c) (h = (((h)<<H_SHIFT) ^ (c)) & HASH_MASK)
 
-/* ===========================================================================
- * Insert string s in the dictionary and set match_head to the previous head
- * of the hash chain (the most recent string with same hash key). Return
- * the previous length of the hash chain.
- * IN  assertion: all calls to to INSERT_STRING are made with consecutive
- *    input characters and the first MIN_MATCH bytes of s are valid
- *    (except for the last MIN_MATCH-1 bytes of the input file).
- */
 #define INSERT_STRING(s, match_head) \
    (UPDATE_HASH(state.ds.ins_h, state.ds.window[(s) + (MIN_MATCH-1)]), \
     state.ds.prev[(s) & WMASK] = match_head = state.ds.head[state.ds.ins_h], \
     state.ds.head[state.ds.ins_h] = (s))
 
-/* ===========================================================================
- * Initialize the "longest match" routines for a new file
- *
- * IN assertion: window_size is > 0 if the input file is already read or
- *    mmap'ed in the window[] array, 0 otherwise. In the first case,
- *    window_size is sufficient to contain the whole input file plus
- *    MIN_LOOKAHEAD bytes (to avoid referencing memory beyond the end
- *    of window[] when looking for matches towards the end).
- */
 void lm_init (TState &state, int pack_level, ush *flags)
 {
     register unsigned j;
@@ -1565,18 +1210,6 @@ void lm_init (TState &state, int pack_level, ush *flags)
      */
 }
 
-
-/* ===========================================================================
- * Set match_start to the longest match starting at the given string and
- * return its length. Matches shorter or equal to prev_length are discarded,
- * in which case the result is equal to prev_length and match_start is
- * garbage.
- * IN assertions: cur_match is the head of the hash chain for the current
- *   string (strstart) and its distance is <= MAX_DIST, and prev_length >= 1
- */
-// For 80x86 and 680x0 and ARM, an optimized version is in match.asm or
-// match.S. The code is functionally equivalent, so you can use the C version
-// if desired. Which I do so desire!
 int longest_match(TState &state,IPos cur_match)
 {
     unsigned chain_length = state.ds.max_chain_length;   /* max hash chain length */
@@ -1655,34 +1288,8 @@ int longest_match(TState &state,IPos cur_match)
     return best_len;
 }
 
-
-
 #define check_match(state,start, match, length)
-// or alternatively...
-//void check_match(TState &state,IPos start, IPos match, int length)
-//{ // check that the match is indeed a match
-//    if (memcmp((char*)state.ds.window + match,
-//                (char*)state.ds.window + start, length) != EQUAL) {
-//        fprintf(stderr,
-//            " start %d, match %d, length %d\n",
-//            start, match, length);
-//        error("invalid match");
-//    }
-//    if (state.verbose > 1) {
-//        fprintf(stderr,"\\[%d,%d]", start-match, length);
-//        do { fprintf(stdout,"%c",state.ds.window[start++]); } while (--length != 0);
-//    }
-//}
 
-/* ===========================================================================
- * Fill the window when the lookahead becomes insufficient.
- * Updates strstart and lookahead, and sets eofile if end of input file.
- *
- * IN assertion: lookahead < MIN_LOOKAHEAD && strstart + lookahead > 0
- * OUT assertions: strstart <= window_size-MIN_LOOKAHEAD
- *    At least one byte has been read, or eofile is set; file reads are
- *    performed for at least two bytes (required for the translate_eol option).
- */
 void fill_window(TState &state)
 {
     register unsigned n, m;
@@ -1753,20 +1360,10 @@ void fill_window(TState &state)
     } while (state.ds.lookahead < MIN_LOOKAHEAD && !state.ds.eofile);
 }
 
-/* ===========================================================================
- * Flush the current block, with given end-of-file flag.
- * IN assertion: strstart is set to the end of the current match.
- */
 #define FLUSH_BLOCK(state,eof) \
    flush_block(state,state.ds.block_start >= 0L ? (char*)&state.ds.window[(unsigned)state.ds.block_start] : \
                 (char*)NULL, (long)state.ds.strstart - state.ds.block_start, (eof))
 
-/* ===========================================================================
- * Processes a new input file and return its compressed length. This
- * function does not perform lazy evaluation of matches and inserts
- * new strings in the dictionary only for unmatched strings or for short
- * matches. It is used only for the fast compression options.
- */
 ulg deflate_fast(TState &state)
 {
     IPos hash_head = NIL;       /* head of the hash chain */
@@ -1843,11 +1440,6 @@ ulg deflate_fast(TState &state)
     return FLUSH_BLOCK(state,1); /* eof */
 }
 
-/* ===========================================================================
- * Same as above, but achieves better compression. We use a lazy
- * evaluation for matches: a match is finally adopted only if there is
- * no better match at the next window position.
- */
 ulg deflate(TState &state)
 {
     IPos hash_head = NIL;       /* head of hash chain */
@@ -1952,17 +1544,6 @@ ulg deflate(TState &state)
     return FLUSH_BLOCK(state,1); /* eof */
 }
 
-
-
-
-
-
-
-
-
-
-
-
 int putlocal(struct zlist far *z, WRITEFUNC wfunc,void *param)
 { // Write a local header described by *z to file *f.  Return a ZE_ error code.
   PUTLG(LOCSIG, f);
@@ -2018,7 +1599,6 @@ int putcentral(struct zlist far *z, WRITEFUNC wfunc, void *param)
   return ZE_OK;
 }
 
-
 int putend(int n, ulg s, ulg c, extent m, char *z, WRITEFUNC wfunc, void *param)
 { // write the end of the central-directory-data to file *f.
   PUTLG(ENDSIG, f);
@@ -2033,11 +1613,6 @@ int putend(int n, ulg s, ulg c, extent m, char *z, WRITEFUNC wfunc, void *param)
   if (m && wfunc(param, z, (unsigned int)m) != m) return ZE_TEMP;
   return ZE_OK;
 }
-
-
-
-
-
 
 const ulg crc_table[256] = {
   0x00000000L, 0x77073096L, 0xee0e612cL, 0x990951baL, 0x076dc419L,
@@ -2108,7 +1683,6 @@ ulg crc32(ulg crc, const uch *buf, extent len)
   return crc ^ 0xffffffffL;  // (instead of ~c for 64-bit machines)
 }
 
-
 void update_keys(unsigned long *keys, char c)
 { keys[0] = CRC32(keys[0],c);
   keys[1] += keys[0] & 0xFF;
@@ -2125,12 +1699,6 @@ char zencode(unsigned long *keys, char c)
   return (char)(t^c);
 }
 
-
-
-
-
-
-
 bool HasZipSuffix(const TCHAR *fn)
 { const TCHAR *ext = fn+_tcslen(fn);
   while (ext>fn && *ext!='.') ext--;
@@ -2145,7 +1713,6 @@ bool HasZipSuffix(const TCHAR *fn)
   if (_tcsicmp(ext,_T(".tgz"))==0) return true;
   return false;
 }
-
 
 lutime_t filetime2timet(const FILETIME ft)
 { __int64 i = *(__int64*)&ft;
@@ -2163,7 +1730,6 @@ void filetime2dosdatetime(const FILETIME ft, WORD *dosdate,WORD *dostime)
   *dostime |= (WORD)((st.wMinute&0x3f) << 5);
   *dostime |= (WORD)((st.wSecond*2)&0x1f);
 }
-
 
 ZRESULT GetFileInfo(HANDLE hf, ulg *attr, long *size, iztimes *times, ulg *timestamp)
 { // The handle must be a handle to a file
@@ -2215,13 +1781,6 @@ ZRESULT GetFileInfo(HANDLE hf, ulg *attr, long *size, iztimes *times, ulg *times
   }
   return ZR_OK;
 }
-
-
-
-
-
-
-
 
 class TZip
 { public:
@@ -2287,8 +1846,6 @@ class TZip
   ZRESULT AddCentral();
 
 };
-
-
 
 ZRESULT TZip::Create(void *z,unsigned int len,DWORD flags)
 { if (hfout!=0 || hmapout!=0 || obuf!=0 || writ!=0 || oerr!=ZR_OK || hasputcen) return ZR_NOTINITED;
@@ -2403,9 +1960,6 @@ ZRESULT TZip::Close()
   return res;
 }
 
-
-
-
 ZRESULT TZip::open_file(const TCHAR *fn)
 { hfin=0; bufin=0; selfclosehf=false; crc=CRCVAL_INITIAL; isize=0; csize=0; ired=0;
   if (fn==0) return ZR_ARGS;
@@ -2510,8 +2064,6 @@ ZRESULT TZip::iclose()
   else return ZR_OK;
 }
 
-
-
 ZRESULT TZip::ideflate(TZipFileInfo *zfi)
 { if (state==0) state=new TState();
   // It's a very big object! 500k! We allocate it on the heap, because PocketPC's
@@ -2544,10 +2096,6 @@ ZRESULT TZip::istore()
   csize=size;
   return ZR_OK;
 }
-
-
-
-
 
 bool has_seeded=false;
 ZRESULT TZip::Add(const TCHAR *odstzn, void *src,unsigned int len, DWORD flags)
@@ -2727,10 +2275,6 @@ ZRESULT TZip::AddCentral()
   return ZR_OK;
 }
 
-
-
-
-
 ZRESULT lasterrorZ=ZR_OK;
 
 unsigned int FormatZipMessageZ(ZRESULT code, char *buf,unsigned int len)
@@ -2766,13 +2310,10 @@ unsigned int FormatZipMessageZ(ZRESULT code, char *buf,unsigned int len)
   return mlen;
 }
 
-
-
 typedef struct
 { DWORD flag;
   TZip *zip;
 } TZipHandleData;
-
 
 HZIP CreateZipInternal(void *z,unsigned int len,DWORD flags, const char *password)
 { TZip *zip = new TZip(password);
@@ -2784,7 +2325,6 @@ HZIP CreateZipInternal(void *z,unsigned int len,DWORD flags, const char *passwor
 HZIP CreateZipHandle(HANDLE h, const char *password) {return CreateZipInternal(h,0,ZIP_HANDLE,password);}
 HZIP CreateZip(const TCHAR *fn, const char *password) {return CreateZipInternal((void*)fn,0,ZIP_FILENAME,password);}
 HZIP CreateZip(void *z,unsigned int len, const char *password) {return CreateZipInternal(z,len,ZIP_MEMORY,password);}
-
 
 ZRESULT ZipAddInternal(HZIP hz,const TCHAR *dstzn, void *src,unsigned int len, DWORD flags)
 { if (hz==0) {lasterrorZ=ZR_ARGS;return ZR_ARGS;}
@@ -2799,8 +2339,6 @@ ZRESULT ZipAdd(HZIP hz,const TCHAR *dstzn, void *src,unsigned int len) {return Z
 ZRESULT ZipAddHandle(HZIP hz,const TCHAR *dstzn, HANDLE h) {return ZipAddInternal(hz,dstzn,h,0,ZIP_HANDLE);}
 ZRESULT ZipAddHandle(HZIP hz,const TCHAR *dstzn, HANDLE h, unsigned int len) {return ZipAddInternal(hz,dstzn,h,len,ZIP_HANDLE);}
 ZRESULT ZipAddFolder(HZIP hz,const TCHAR *dstzn) {return ZipAddInternal(hz,dstzn,0,0,ZIP_FOLDER);}
-
-
 
 ZRESULT ZipGetMemory(HZIP hz, void **buf, unsigned long *len)
 { if (hz==0) {if (buf!=0) *buf=0; if (len!=0) *len=0; lasterrorZ=ZR_ARGS;return ZR_ARGS;}
