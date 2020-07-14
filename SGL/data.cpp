@@ -1234,20 +1234,7 @@ void setArrayElement(struct JSON *json, int idx, struct JSON *j) {
 */
 
 DECLARE_HANDLE(HZIP);
-
-#ifndef _zip_H
-#define _zip_H
-
 typedef DWORD ZRESULT;
-HZIP CreateZip(const TCHAR *fn, const char *password);
-HZIP CreateZip(void *buf, unsigned int len, const char *password);
-HZIP CreateZipHandle(HANDLE h, const char *password);
-ZRESULT ZipAdd(HZIP hz, const TCHAR *dstzn, const TCHAR *fn);
-ZRESULT ZipAdd(HZIP hz, const TCHAR *dstzn, void *src, unsigned int len);
-ZRESULT ZipAddHandle(HZIP hz, const TCHAR *dstzn, HANDLE h);
-ZRESULT ZipAddHandle(HZIP hz, const TCHAR *dstzn, HANDLE h, unsigned int len);
-ZRESULT ZipAddFolder(HZIP hz, const TCHAR *dstzn);
-ZRESULT ZipGetMemory(HZIP hz, void **buf, unsigned long *len);
 
 #define ZR_OK         0x00000000     // nb. the pseudo-code zr-recent is never returned,
 #define ZR_RECENT     0x00000001     // but can be passed to FormatZipMessage.
@@ -1274,14 +1261,6 @@ ZRESULT ZipGetMemory(HZIP hz, void **buf, unsigned long *len);
 #define ZR_SEEK       0x02000000     // trying to seek in an unseekable file
 #define ZR_NOCHANGE   0x04000000     // changed its mind on storage, but not allowed
 #define ZR_FLATE      0x05000000     // an internal error in the de/inflation code
-
-ZRESULT CloseZipZ(HZIP hz);
-unsigned int FormatZipMessageZ(ZRESULT code, char *buf, unsigned int len);
-bool IsZipHandleZ(HZIP hz);
-
-#define CloseZip CloseZipZ
-#define FormatZipMessage FormatZipMessageZ
-#endif
 
 typedef unsigned char uch;      // unsigned 8-bit value
 typedef unsigned short ush;     // unsigned 16-bit value
@@ -1350,10 +1329,9 @@ typedef unsigned IPos; // A Pos is an index in the character window. Pos is used
 #define MIN_LOOKAHEAD (MAX_MATCH+MIN_MATCH+1)
 #define MAX_DIST  (WSIZE-MIN_LOOKAHEAD)
 
-#define ZIP_HANDLE   1
-#define ZIP_FILENAME 2
-#define ZIP_MEMORY   3
-#define ZIP_FOLDER   4
+#define ZIP_FILENAME 1
+#define ZIP_MEMORY 2
+#define ZIP_FOLDER 3
 
 #define MAX_BITS 15
 #define MAX_BL_BITS 7
@@ -3104,22 +3082,7 @@ ZRESULT TZip::Create(void *z, unsigned int len, DWORD flags)
 {
 	if (hfout != 0 || hmapout != 0 || obuf != 0 || writ != 0 || oerr != ZR_OK || hasputcen) return ZR_NOTINITED;
 	//
-	if (flags == ZIP_HANDLE)
-	{
-		HANDLE hf = (HANDLE)z;
-		hfout = hf; mustclosehfout = false;
-#ifdef DuplicateHandle
-		BOOL res = DuplicateHandle(GetCurrentProcess(), hf, GetCurrentProcess(), &hfout, 0, FALSE, DUPLICATE_SAME_ACCESS);
-		if (res) mustclosehandle = true;
-#endif
-		// now we have hfout. Either we duplicated the handle and we close it ourselves
-		// (while the caller closes h themselves), or we couldn't duplicate it.
-		DWORD res = SetFilePointer(hfout, 0, 0, FILE_CURRENT);
-		ocanseek = (res != 0xFFFFFFFF);
-		if (ocanseek) ooffset = res; else ooffset = 0;
-		return ZR_OK;
-	}
-	else if (flags == ZIP_FILENAME)
+	if (flags == ZIP_FILENAME)
 	{
 		const TCHAR *fn = (const TCHAR*)z;
 		hfout = CreateFile(fn, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -3395,7 +3358,6 @@ ZRESULT TZip::Add(const TCHAR *odstzn, void *src, unsigned int len, DWORD flags)
 	// now open whatever was our input source:
 	ZRESULT openres;
 	if (flags == ZIP_FILENAME) openres = open_file((const TCHAR*)src);
-	else if (flags == ZIP_HANDLE) openres = open_handle((HANDLE)src, len);
 	else if (flags == ZIP_MEMORY) openres = open_mem(src, len);
 	else if (flags == ZIP_FOLDER) openres = open_dir();
 	else return ZR_ARGS;
@@ -3560,41 +3522,6 @@ ZRESULT TZip::AddCentral()
 
 ZRESULT lasterrorZ = ZR_OK;
 
-unsigned int FormatZipMessageZ(ZRESULT code, char *buf, unsigned int len)
-{
-	if (code == ZR_RECENT) code = lasterrorZ;
-	const char *msg = "unknown zip result code";
-	switch (code)
-	{
-	case ZR_OK: msg = "Success"; break;
-	case ZR_NODUPH: msg = "Culdn't duplicate handle"; break;
-	case ZR_NOFILE: msg = "Couldn't create/open file"; break;
-	case ZR_NOALLOC: msg = "Failed to allocate memory"; break;
-	case ZR_WRITE: msg = "Error writing to file"; break;
-	case ZR_NOTFOUND: msg = "File not found in the zipfile"; break;
-	case ZR_MORE: msg = "Still more data to unzip"; break;
-	case ZR_CORRUPT: msg = "Zipfile is corrupt or not a zipfile"; break;
-	case ZR_READ: msg = "Error reading file"; break;
-	case ZR_ARGS: msg = "Caller: faulty arguments"; break;
-	case ZR_PARTIALUNZ: msg = "Caller: the file had already been partially unzipped"; break;
-	case ZR_NOTMMAP: msg = "Caller: can only get memory of a memory zipfile"; break;
-	case ZR_MEMSIZE: msg = "Caller: not enough space allocated for memory zipfile"; break;
-	case ZR_FAILED: msg = "Caller: there was a previous error"; break;
-	case ZR_ENDED: msg = "Caller: additions to the zip have already been ended"; break;
-	case ZR_ZMODE: msg = "Caller: mixing creation and opening of zip"; break;
-	case ZR_NOTINITED: msg = "Zip-bug: internal initialisation not completed"; break;
-	case ZR_SEEK: msg = "Zip-bug: trying to seek the unseekable"; break;
-	case ZR_MISSIZE: msg = "Zip-bug: the anticipated size turned out wrong"; break;
-	case ZR_NOCHANGE: msg = "Zip-bug: tried to change mind, but not allowed"; break;
-	case ZR_FLATE: msg = "Zip-bug: an internal error during flation"; break;
-	}
-	unsigned int mlen = (unsigned int)strlen(msg);
-	if (buf == 0 || len == 0) return mlen;
-	unsigned int n = mlen; if (n + 1>len) n = len - 1;
-	strncpy(buf, msg, n); buf[n] = 0;
-	return mlen;
-}
-
 typedef struct
 {
 	DWORD flag;
@@ -3609,7 +3536,6 @@ HZIP CreateZipInternal(void *z, unsigned int len, DWORD flags, const char *passw
 	TZipHandleData *han = new TZipHandleData;
 	han->flag = 2; han->zip = zip; return (HZIP)han;
 }
-HZIP CreateZipHandle(HANDLE h, const char *password) { return CreateZipInternal(h, 0, ZIP_HANDLE, password); }
 HZIP CreateZip(const TCHAR *fn, const char *password) { return CreateZipInternal((void*)fn, 0, ZIP_FILENAME, password); }
 HZIP CreateZip(void *z, unsigned int len, const char *password) { return CreateZipInternal(z, len, ZIP_MEMORY, password); }
 
@@ -3624,23 +3550,10 @@ ZRESULT ZipAddInternal(HZIP hz, const TCHAR *dstzn, void *src, unsigned int len,
 }
 ZRESULT ZipAdd(HZIP hz, const TCHAR *dstzn, const TCHAR *fn) { return ZipAddInternal(hz, dstzn, (void*)fn, 0, ZIP_FILENAME); }
 ZRESULT ZipAdd(HZIP hz, const TCHAR *dstzn, void *src, unsigned int len) { return ZipAddInternal(hz, dstzn, src, len, ZIP_MEMORY); }
-ZRESULT ZipAddHandle(HZIP hz, const TCHAR *dstzn, HANDLE h) { return ZipAddInternal(hz, dstzn, h, 0, ZIP_HANDLE); }
-ZRESULT ZipAddHandle(HZIP hz, const TCHAR *dstzn, HANDLE h, unsigned int len) { return ZipAddInternal(hz, dstzn, h, len, ZIP_HANDLE); }
 ZRESULT ZipAddFolder(HZIP hz, const TCHAR *dstzn) { return ZipAddInternal(hz, dstzn, 0, 0, ZIP_FOLDER); }
 
-ZRESULT ZipGetMemory(HZIP hz, void **buf, unsigned long *len)
-{
-	if (hz == 0) { if (buf != 0) *buf = 0; if (len != 0) *len = 0; lasterrorZ = ZR_ARGS; return ZR_ARGS; }
-	TZipHandleData *han = (TZipHandleData*)hz;
-	if (han->flag != 2) { lasterrorZ = ZR_ZMODE; return ZR_ZMODE; }
-	TZip *zip = han->zip;
-	lasterrorZ = zip->GetMemory(buf, len);
-	return lasterrorZ;
-}
-
-ZRESULT CloseZipZ(HZIP hz)
-{
-	if (hz == 0) { lasterrorZ = ZR_ARGS; return ZR_ARGS; }
+int CloseZipZ(HZIP hz) {
+	if (hz == 0)return SG_NULL_POINTER;
 	TZipHandleData *han = (TZipHandleData*)hz;
 	if (han->flag != 2) { lasterrorZ = ZR_ZMODE; return ZR_ZMODE; }
 	TZip *zip = han->zip;
@@ -3657,11 +3570,6 @@ bool IsZipHandleZ(HZIP hz)
 	return (han->flag == 2);
 }
 
-#ifndef _unzip_H
-#define _unzip_H
-
-typedef DWORD ZRESULT;
-
 typedef struct
 {
 	int index;                 // index of this file within the zip
@@ -3671,16 +3579,6 @@ typedef struct
 	long comp_size;            // sizes of item, compressed and uncompressed. These
 	long unc_size;             // may be -1 if not yet known (e.g. being streamed in)
 } ZIPENTRY;
-
-HZIP OpenZip(const TCHAR *fn, const char *password);
-HZIP OpenZip(void *z, unsigned int len, const char *password);
-HZIP OpenZipHandle(HANDLE h, const char *password);
-ZRESULT GetZipItem(HZIP hz, int index, ZIPENTRY *ze);
-ZRESULT FindZipItem(HZIP hz, const TCHAR *name, bool ic, int *index, ZIPENTRY *ze);
-ZRESULT UnzipItem(HZIP hz, int index, const TCHAR *fn);
-ZRESULT UnzipItem(HZIP hz, int index, void *z, unsigned int len);
-ZRESULT UnzipItemHandle(HZIP hz, int index, HANDLE h);
-ZRESULT SetUnzipBaseDir(HZIP hz, const TCHAR *dir);
 
 #define ZR_OK         0x00000000     // nb. the pseudo-code zr-recent is never returned,
 #define ZR_RECENT     0x00000001     // but can be passed to FormatZipMessage.
@@ -3709,21 +3607,7 @@ ZRESULT SetUnzipBaseDir(HZIP hz, const TCHAR *dir);
 #define ZR_NOCHANGE   0x04000000     // changed its mind on storage, but not allowed
 #define ZR_FLATE      0x05000000     // an internal error in the de/inflation code
 
-ZRESULT CloseZipU(HZIP hz);
-unsigned int FormatZipMessageU(ZRESULT code, TCHAR *buf, unsigned int len);
-bool IsZipHandleU(HZIP hz);
-#ifdef _zip_H
-#undef CloseZip
 #define CloseZip(hz) (IsZipHandleU(hz)?CloseZipU(hz):CloseZipZ(hz))
-#else
-#define CloseZip CloseZipU
-#define FormatZipMessage FormatZipMessageU
-#endif
-#endif
-
-#define ZIP_HANDLE   1
-#define ZIP_FILENAME 2
-#define ZIP_MEMORY   3
 
 #define zmalloc(len) malloc(len)
 #define zfree(p) free(p)
@@ -3851,7 +3735,6 @@ uLong adler32(uLong adler, const Byte *buf, uInt len);
 uLong ucrc32(uLong crc, const Byte *buf, uInt len);
 
 const char   *zError(int err);
-int           inflateSyncPoint(z_streamp z);
 const uLong *get_crc_table(void);
 
 typedef unsigned char  uch;
@@ -5298,7 +5181,6 @@ uLong ucrc32(uLong crc, const Byte *buf, uInt len)
 	return crc ^ 0xffffffffL;
 }
 
-#define CRC32(c, b) (crc_table[((int)(c)^(b))&0xff]^((c)>>8))
 void Uupdate_keys(unsigned long *keys, char c)
 {
 	keys[0] = CRC32(keys[0], c);
@@ -5643,33 +5525,21 @@ typedef struct
 
 LUFILE *lufopen(void *z, unsigned int len, DWORD flags, ZRESULT *err)
 {
-	if (flags != ZIP_HANDLE && flags != ZIP_FILENAME && flags != ZIP_MEMORY) { *err = ZR_ARGS; return NULL; }
+	if (flags != ZIP_FILENAME && flags != ZIP_MEMORY) { *err = ZR_ARGS; return NULL; }
 	//
 	HANDLE h = 0; bool canseek = false; *err = ZR_OK;
 	bool mustclosehandle = false;
-	if (flags == ZIP_HANDLE || flags == ZIP_FILENAME)
+	if (flags == ZIP_FILENAME)
 	{
-		if (flags == ZIP_HANDLE)
-		{
-			HANDLE hf = z;
-			h = hf; mustclosehandle = false;
-#ifdef DuplicateHandle
-			BOOL res = DuplicateHandle(GetCurrentProcess(), hf, GetCurrentProcess(), &h, 0, FALSE, DUPLICATE_SAME_ACCESS);
-			if (!res) mustclosehandle = true;
-#endif
-		}
-		else
-		{
-			h = CreateFile((const TCHAR*)z, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-			if (h == INVALID_HANDLE_VALUE) { *err = ZR_NOFILE; return NULL; }
-			mustclosehandle = true;
-		}
+		h = CreateFile((const TCHAR*)z, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (h == INVALID_HANDLE_VALUE) { *err = ZR_NOFILE; return NULL; }
+		mustclosehandle = true;
 		// test if we can seek on it. We can't use GetFileType(h)==FILE_TYPE_DISK since it's not on CE.
 		DWORD res = SetFilePointer(h, 0, 0, FILE_CURRENT);
 		canseek = (res != 0xFFFFFFFF);
 	}
 	LUFILE *lf = new LUFILE;
-	if (flags == ZIP_HANDLE || flags == ZIP_FILENAME)
+	if (flags == ZIP_FILENAME)
 	{
 		lf->is_handle = true; lf->mustclosehandle = mustclosehandle;
 		lf->canseek = canseek;
@@ -6713,12 +6583,6 @@ ZRESULT TUnzip::Open(void *z, unsigned int len, DWORD flags)
 	TCHAR lastchar = rootdir[_tcslen(rootdir) - 1];
 	if (lastchar != '\\' && lastchar != '/') _tcscat(rootdir, _T("\\"));
 	//
-	if (flags == ZIP_HANDLE)
-	{ // test if we can seek on it. We can't use GetFileType(h)==FILE_TYPE_DISK since it's not on CE.
-		DWORD res = SetFilePointer(z, 0, 0, FILE_CURRENT);
-		bool canseek = (res != 0xFFFFFFFF);
-		if (!canseek) return ZR_SEEK;
-	}
 	ZRESULT e; LUFILE *f = lufopen(z, len, flags, &e);
 	if (f == NULL) return e;
 	uf = unzOpenInternal(f);
@@ -6911,7 +6775,7 @@ void EnsureDirectory(const TCHAR *rootdir, const TCHAR *dir)
 
 ZRESULT TUnzip::Unzip(int index, void *dst, unsigned int len, DWORD flags)
 {
-	if (flags != ZIP_MEMORY && flags != ZIP_FILENAME && flags != ZIP_HANDLE) return ZR_ARGS;
+	if (flags != ZIP_MEMORY && flags != ZIP_FILENAME) return ZR_ARGS;
 	if (flags == ZIP_MEMORY)
 	{
 		if (index != currentfile)
@@ -6939,7 +6803,6 @@ ZRESULT TUnzip::Unzip(int index, void *dst, unsigned int len, DWORD flags)
 	// zipentry=directory is handled specially
 	if ((ze.attr&FILE_ATTRIBUTE_DIRECTORY) != 0)
 	{
-		if (flags == ZIP_HANDLE) return ZR_OK; // don't do anything
 		const TCHAR *dir = (const TCHAR*)dst;
 		bool isabsolute = (dir[0] == '/' || dir[0] == '\\' || (dir[0] != 0 && dir[1] == ':'));
 		if (isabsolute) EnsureDirectory(0, dir); else EnsureDirectory(rootdir, dir);
@@ -6947,26 +6810,22 @@ ZRESULT TUnzip::Unzip(int index, void *dst, unsigned int len, DWORD flags)
 	}
 	// otherwise, we write the zipentry to a file/handle
 	HANDLE h;
-	if (flags == ZIP_HANDLE) h = dst;
-	else
-	{
-		const TCHAR *ufn = (const TCHAR*)dst;
-		// We'll qualify all relative names to our root dir, and leave absolute names as they are
-		// ufn="zipfile.txt"  dir=""  name="zipfile.txt"  fn="c:\\currentdir\\zipfile.txt"
-		// ufn="dir1/dir2/subfile.txt"  dir="dir1/dir2/"  name="subfile.txt"  fn="c:\\currentdir\\dir1/dir2/subfiles.txt"
-		// ufn="\z\file.txt"  dir="\z\"  name="file.txt"  fn="\z\file.txt"
-		// This might be a security risk, in the case where we just use the zipentry's name as "ufn", where
-		// a malicious zip could unzip itself into c:\windows. Our solution is that GetZipItem (which
-		// is how the user retrieve's the file's name within the zip) never returns absolute paths.
-		const TCHAR *name = ufn; const TCHAR *c = name; while (*c != 0) { if (*c == '/' || *c == '\\') name = c + 1; c++; }
-		TCHAR dir[MAX_PATH]; _tcscpy(dir, ufn); if (name == ufn) *dir = 0; else dir[name - ufn] = 0;
-		TCHAR fn[MAX_PATH];
-		bool isabsolute = (dir[0] == '/' || dir[0] == '\\' || (dir[0] != 0 && dir[1] == ':'));
-		if (isabsolute) { wsprintf(fn, _T("%s%s"), dir, name); EnsureDirectory(0, dir); }
-		else { wsprintf(fn, _T("%s%s%s"), rootdir, dir, name); EnsureDirectory(rootdir, dir); }
-		//
-		h = CreateFile(fn, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, ze.attr, NULL);
-	}
+	const TCHAR *ufn = (const TCHAR*)dst;
+	// We'll qualify all relative names to our root dir, and leave absolute names as they are
+	// ufn="zipfile.txt"  dir=""  name="zipfile.txt"  fn="c:\\currentdir\\zipfile.txt"
+	// ufn="dir1/dir2/subfile.txt"  dir="dir1/dir2/"  name="subfile.txt"  fn="c:\\currentdir\\dir1/dir2/subfiles.txt"
+	// ufn="\z\file.txt"  dir="\z\"  name="file.txt"  fn="\z\file.txt"
+	// This might be a security risk, in the case where we just use the zipentry's name as "ufn", where
+	// a malicious zip could unzip itself into c:\windows. Our solution is that GetZipItem (which
+	// is how the user retrieve's the file's name within the zip) never returns absolute paths.
+	const TCHAR *name = ufn; const TCHAR *c = name; while (*c != 0) { if (*c == '/' || *c == '\\') name = c + 1; c++; }
+	TCHAR dir[MAX_PATH]; _tcscpy(dir, ufn); if (name == ufn) *dir = 0; else dir[name - ufn] = 0;
+	TCHAR fn[MAX_PATH];
+	bool isabsolute = (dir[0] == '/' || dir[0] == '\\' || (dir[0] != 0 && dir[1] == ':'));
+	if (isabsolute) { wsprintf(fn, _T("%s%s"), dir, name); EnsureDirectory(0, dir); }
+	else { wsprintf(fn, _T("%s%s%s"), rootdir, dir, name); EnsureDirectory(rootdir, dir); }
+	//
+	h = CreateFile(fn, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, ze.attr, NULL);
 	if (h == INVALID_HANDLE_VALUE) return ZR_NOFILE;
 	unzOpenCurrentFile(uf, password);
 	if (unzbuf == 0) unzbuf = new char[16384]; DWORD haderr = 0;
@@ -6983,7 +6842,7 @@ ZRESULT TUnzip::Unzip(int index, void *dst, unsigned int len, DWORD flags)
 		if (res == 0) { haderr = ZR_FLATE; break; }
 	}
 	if (!haderr) SetFileTime(h, &ze.ctime, &ze.atime, &ze.mtime); // may fail if it was a pipe
-	if (flags != ZIP_HANDLE) CloseHandle(h);
+	CloseHandle(h);
 	unzCloseCurrentFile(uf);
 	if (haderr != 0) return haderr;
 	return ZR_OK;
@@ -6997,42 +6856,6 @@ ZRESULT TUnzip::Close()
 }
 
 ZRESULT lasterrorU = ZR_OK;
-
-unsigned int FormatZipMessageU(ZRESULT code, TCHAR *buf, unsigned int len)
-{
-	if (code == ZR_RECENT) code = lasterrorU;
-	const TCHAR *msg = _T("unknown zip result code");
-	switch (code)
-	{
-	case ZR_OK: msg = _T("Success"); break;
-	case ZR_NODUPH: msg = _T("Culdn't duplicate handle"); break;
-	case ZR_NOFILE: msg = _T("Couldn't create/open file"); break;
-	case ZR_NOALLOC: msg = _T("Failed to allocate memory"); break;
-	case ZR_WRITE: msg = _T("Error writing to file"); break;
-	case ZR_NOTFOUND: msg = _T("File not found in the zipfile"); break;
-	case ZR_MORE: msg = _T("Still more data to unzip"); break;
-	case ZR_CORRUPT: msg = _T("Zipfile is corrupt or not a zipfile"); break;
-	case ZR_READ: msg = _T("Error reading file"); break;
-	case ZR_PASSWORD: msg = _T("Correct password required"); break;
-	case ZR_ARGS: msg = _T("Caller: faulty arguments"); break;
-	case ZR_PARTIALUNZ: msg = _T("Caller: the file had already been partially unzipped"); break;
-	case ZR_NOTMMAP: msg = _T("Caller: can only get memory of a memory zipfile"); break;
-	case ZR_MEMSIZE: msg = _T("Caller: not enough space allocated for memory zipfile"); break;
-	case ZR_FAILED: msg = _T("Caller: there was a previous error"); break;
-	case ZR_ENDED: msg = _T("Caller: additions to the zip have already been ended"); break;
-	case ZR_ZMODE: msg = _T("Caller: mixing creation and opening of zip"); break;
-	case ZR_NOTINITED: msg = _T("Zip-bug: internal initialisation not completed"); break;
-	case ZR_SEEK: msg = _T("Zip-bug: trying to seek the unseekable"); break;
-	case ZR_MISSIZE: msg = _T("Zip-bug: the anticipated size turned out wrong"); break;
-	case ZR_NOCHANGE: msg = _T("Zip-bug: tried to change mind, but not allowed"); break;
-	case ZR_FLATE: msg = _T("Zip-bug: an internal error during flation"); break;
-	}
-	unsigned int mlen = (unsigned int)_tcslen(msg);
-	if (buf == 0 || len == 0) return mlen;
-	unsigned int n = mlen; if (n + 1>len) n = len - 1;
-	_tcsncpy(buf, msg, n); buf[n] = 0;
-	return mlen;
-}
 
 typedef struct
 {
@@ -7048,7 +6871,6 @@ HZIP OpenZipInternal(void *z, unsigned int len, DWORD flags, const char *passwor
 	TUnzipHandleData *han = new TUnzipHandleData;
 	han->flag = 1; han->unz = unz; return (HZIP)han;
 }
-HZIP OpenZipHandle(HANDLE h, const char *password) { return OpenZipInternal((void*)h, 0, ZIP_HANDLE, password); }
 HZIP OpenZip(const TCHAR *fn, const char *password) { return OpenZipInternal((void*)fn, 0, ZIP_FILENAME, password); }
 HZIP OpenZip(void *z, unsigned int len, const char *password) { return OpenZipInternal(z, len, ZIP_MEMORY, password); }
 
@@ -7082,7 +6904,6 @@ ZRESULT UnzipItemInternal(HZIP hz, int index, void *dst, unsigned int len, DWORD
 	lasterrorU = unz->Unzip(index, dst, len, flags);
 	return lasterrorU;
 }
-ZRESULT UnzipItemHandle(HZIP hz, int index, HANDLE h) { return UnzipItemInternal(hz, index, (void*)h, 0, ZIP_HANDLE); }
 ZRESULT UnzipItem(HZIP hz, int index, const TCHAR *fn) { return UnzipItemInternal(hz, index, (void*)fn, 0, ZIP_FILENAME); }
 ZRESULT UnzipItem(HZIP hz, int index, void *z, unsigned int len) { return UnzipItemInternal(hz, index, z, len, ZIP_MEMORY); }
 
@@ -7123,13 +6944,13 @@ void zipFile(HANDLE h, SGstring src, SGstring dst) {
 	HZIP hz = (HZIP)h;
 	ZipAdd(hz, _widen(dst), _widen(src));
 }
+void zipMemory(HANDLE h, void *src, int len, SGstring dst) {
+	HZIP hz = (HZIP)h;
+	ZipAdd(hz, _widen(dst), src, len);
+}
 void zipFolder(HANDLE h, SGstring dst) {
 	HZIP hz = (HZIP)h;
 	ZipAddFolder(hz, _widen(dst));
-}
-void zipFinish(HANDLE h) {
-	HZIP hz = (HZIP)h;
-	CloseZip(hz);
 }
 HANDLE createUnzip(SGstring zip) {
 	if (fileExist(zip)) return OpenZip(_widen(zip), "");
@@ -7147,6 +6968,17 @@ void unzipFile(HANDLE h, SGstring src, SGstring dst) {
 	ZIPENTRY ze;
 	FindZipItem(hz, _widen(src), 0, &index, &ze);
 	UnzipItem(hz, index, _widen(dst));
+}
+void unzipMemory(HANDLE h, SGstring src, void *dst, int len) {
+	HZIP hz = (HZIP)h;
+	int index;
+	ZIPENTRY ze;
+	FindZipItem(hz, _widen(src), 0, &index, &ze);
+	UnzipItem(hz, index, dst, len);
+}
+void zipFinish(HANDLE h) {
+	HZIP hz = (HZIP)h;
+	CloseZip(hz);
 }
 
 

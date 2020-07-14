@@ -1821,6 +1821,15 @@ extern "C" {
 	void zipFile(HANDLE h, SGstring src, SGstring dst);
 
 	/**
+	* Add file into zip file.
+	* @Param h is the zip handle from createZip.
+	* @Param src is the memory pointer.
+	* @Param len is the memory size(bytes).
+	* @Param dst is the path where origin file should be put in the zip file.
+	*/
+	void zipMemory(HANDLE h, void *src, int len, SGstring dst);
+
+	/**
 	* Create a folder in the zip file.
 	* @Param h is the zip handle from createZip.
 	* @Param dst is the folder in the zip file.
@@ -1854,6 +1863,15 @@ extern "C" {
 	* @Param dst is the path where the unzip file should be put.
 	*/
 	void unzipFile(HANDLE h, SGstring src, SGstring dst);
+
+	/**
+	* Open and unzip the file int the zip file.
+	* @Param h is the zip handle from createUnzip.
+	* @Param src is the path where the unzip file should be put.
+	* @Param dst is the memory pointer.
+	* @Param len is the memory size(bytes).
+	*/
+	void unzipMemory(HANDLE h, SGstring src, void *dst, int len);
 
 
 	/*
