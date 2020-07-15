@@ -1,11 +1,11 @@
 #define _CRT_SECURE_NO_WARNINGS
 
-#include "winsgl.h"
-#include "geometry.h"
 #include <amp.h>
 #include <vector>
 #include <map>
 #include <list>
+#include "winsgl.h"
+#include "geometry.h"
 
 #define TRIANGLE_VERTEX 3
 

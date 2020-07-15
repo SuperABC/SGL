@@ -82,6 +82,9 @@
 #define SG_MAX_WIDGET_NUM 256
 #define SG_MAX_PANEL_FUNCTION 12
 #define SG_MIN_WIDGET_CONTENT 1024
+#ifndef INT_MAX
+#define INT_MAX       2147483647
+#endif
 
 
 //SG io macros.
@@ -112,13 +115,20 @@
 #define WIDGET_SELECTED 0x04
 
 #define INRECT(x, y, xl, yl, xh, yh) (((x)>=(xl))&&((x)<=(xh))&&((y)>=(yl))&&((y)<=(yh)))
+#ifndef max
+#define max(a,b)            ((a) > (b) ? (a) : (b))
+#endif
+#ifndef min
+#define min(a,b)            ((a) < (b) ? (a) : (b))
+#endif
+
 
 // Windows string.
 
 #ifdef UNICODE
 #define SGWINSTR  LPWSTR
 #else
-#define SGWINSTR  LPCSTR
+#define SGWINSTR  LPSTR
 #endif
 
 

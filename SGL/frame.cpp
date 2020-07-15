@@ -1,12 +1,12 @@
 #define _CRT_SECURE_NO_WARNINGS
 
+#include <shlwapi.h>
+#include <vector>
 #include "winsgl.h"
 #include "inner.h"
 #include "util.h"
 #include "window.h"
 #include "users.h"
-#include <shlwapi.h>
-#include <vector>
 
 
 using std::vector;
@@ -85,7 +85,11 @@ int createWindow(int width, int height, SGtext title, int mode, vect setup, vect
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 	String className = String((string("SubClass") + std::to_string(_windowList.size())).data());
+#ifdef UNICODE
 	wc.lpszClassName = className.widen();
+#else
+	wc.lpszClassName = className.shorten();
+#endif
 	wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
 
 	if (!RegisterClassEx(&wc)) {
@@ -129,7 +133,11 @@ int createWindow(int width, int height, SGtext title, int mode, void(*setup)(voi
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 	String className = String((string("SubClass") + std::to_string(_windowList.size())).data());
+#ifdef UNICODE
 	wc.lpszClassName = className.widen();
+#else
+	wc.lpszClassName = className.shorten();
+#endif
 	wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
 
 	if (!RegisterClassEx(&wc)) {
@@ -186,7 +194,11 @@ int createPolarWindow(int rx, int ry, vect setup, vect loop) {
 	wc.hCursor = LoadCursor(NULL, IDC_ARROW);
 	wc.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
 	String className = String((string("SubClass") + std::to_string(_windowList.size())).data());
+#ifdef UNICODE
 	wc.lpszClassName = className.widen();
+#else
+	wc.lpszClassName = className.shorten();
+#endif
 	wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
 
 	if (!RegisterClassEx(&wc)) {
@@ -245,7 +257,7 @@ void resizeFuntion(void(*func)(int x, int y)) {
 	else _windowList[_currentWindow]->resize = [](int x, int y) {};
 }
 void renameCaption(SGtext name) {
-	SetWindowText(_windowList[_currentWindow]->getHwnd(), _widen(String(name)));
+	SetWindowText(_windowList[_currentWindow]->getHwnd(), _widen(name));
 }
 void hideCaption() {
 	LONG lStyle = GetWindowLong(_windowList[_currentWindow]->getHwnd(), GWL_STYLE);
@@ -833,7 +845,7 @@ void debugf(SGtext format, ...) {
 			format++;
 			switch (*format) {
 			case 'c': {
-				char valch = va_arg(ap, char);
+				char valch = va_arg(ap, int);
 				buffer += valch;
 				format++;
 				break;
@@ -851,7 +863,7 @@ void debugf(SGtext format, ...) {
 				break;
 			}
 			case 'f': {
-				float valfloat = va_arg(ap, float);
+				float valfloat = va_arg(ap, double);
 				buffer += std::to_string(valfloat);
 				format++;
 				break;
@@ -943,7 +955,7 @@ int selectSave(char name[], SGWINSTR start, SGWINSTR format, SGWINSTR def, int i
 }
 int makePath(SGtext path) {
 	if (!PathFileExists(_widen(path))) {
-		_wmkdir(_widen(path));
+		_wmkdir(String(path).widen());
 	}
 	return SG_NO_ERORR;
 }
@@ -1231,7 +1243,7 @@ int _stringPrintf(SGtext format, va_list ap, char *buffer) {
 			format++;
 			switch (*format) {
 			case 'c': {
-				char valch = va_arg(ap, char);
+				char valch = va_arg(ap, int);
 				buf += valch;
 				format++;
 				break;
@@ -1249,7 +1261,7 @@ int _stringPrintf(SGtext format, va_list ap, char *buffer) {
 				break;
 			}
 			case 'f': {
-				float valfloat = va_arg(ap, float);
+				float valfloat = va_arg(ap, double);
 				buf += std::to_string(valfloat);
 				format++;
 				break;
@@ -1317,7 +1329,7 @@ int _stringLength(SGtext format, va_list ap) {
 				break;
 			}
 			case 'f': {
-				float valfloat = va_arg(ap, float);
+				float valfloat = va_arg(ap, double);
 				len += 10;
 				format++;
 				break;
@@ -1926,7 +1938,7 @@ widget newWidget(enum _control type, SGtext name) {
 	ret.tf.color.r = 0;
 	ret.tf.color.g = 0;
 	ret.tf.color.b = 0;
-	ret.tf.name = (LPWSTR)malloc((_strlen(_widen("Î¢ÈíÑÅºÚ")) + 1) * sizeof(wchar_t));
+	ret.tf.name = (SGWINSTR)malloc((_strlen(_widen("Î¢ÈíÑÅºÚ")) + 1) * sizeof(wchar_t));
 	_strcpy(ret.tf.name, _widen("Î¢ÈíÑÅºÚ"));
 	ret.tf.size = 20;
 	ret.tf.coeff = 0;

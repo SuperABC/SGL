@@ -419,7 +419,7 @@ private:
 
 		tf.color.r = tf.color.g = tf.color.b = 0;
 		tf.size = 20;
-		tf.name = (LPWSTR)malloc(16);
+		tf.name = (SGWINSTR)malloc(16);
 		_strcpy(tf.name,  _widen("微软雅黑"));
 		tf.coeff = 0;
 
@@ -751,7 +751,7 @@ public:
 		}
 
 		free(text.bitBuf);
-		free(tf.name);
+		free((void *)tf.name);
 		free(winName);
 
 		delete key;
@@ -818,10 +818,12 @@ public:
 	}
 
 	void setThread() {
-		tmpThread = GetThreadId(GetCurrentThread());
+		//tmpThread = GetThreadId(GetCurrentThread());
+		tmpThread = (int)GetCurrentThread();
 	}
 	int checkThread() {
-		int tmp = GetThreadId(GetCurrentThread());
+		//int tmp = GetThreadId(GetCurrentThread());
+		int tmp = (int)GetCurrentThread();
 		if (tmp != tmpThread) {
 			debugf("系统拒绝在非主线程中使用绘图函数。\n");
 			return -1;
@@ -891,7 +893,7 @@ public:
 		if (sglMode != BIT_MAP && !innerFunc)return 0.f;
 		return alpha;
 	}
-	int __forceinline putPixel(int x, int y) {
+	int inline putPixel(int x, int y) {
 		int p;
 
 		if (sglMode != BIT_MAP && !innerFunc)return SG_INVALID_MODE;
@@ -1001,7 +1003,7 @@ public:
 		}
 #undef ABS
 	}
-	int __forceinline putQuad(int x1, int y1, int x2, int y2, int mode) {
+	int inline putQuad(int x1, int y1, int x2, int y2, int mode) {
 		int i, j, p;
 
 		if (sglMode != BIT_MAP && !innerFunc)return SG_INVALID_MODE;

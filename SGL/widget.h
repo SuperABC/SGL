@@ -177,7 +177,7 @@ public:
 	virtual ~Widget() {
 		free(content);
 		free(obj);
-		free(tf.name);
+		free((void *)tf.name);
 		free(bgImg.data);
 	}
 	widget *getObj() { return obj; }
@@ -350,7 +350,7 @@ public:
 		}
 	}
 	virtual void mouseMove(int x, int y) {
-		__super::mouseMove(x, y);
+		Widget::mouseMove(x, y);
 		if (inWidget(obj, x, y)) {
 			setMouseIcon(IDC_IBEAM);
 
@@ -1585,7 +1585,7 @@ public:
 		}
 	}
 	virtual void mouseMove(int x, int y) {
-		__super::mouseMove(x, y);
+		Widget::mouseMove(x, y);
 		Widget *iter = child;
 		while (iter) {
 			iter->mouseMove(x, y);
@@ -1593,7 +1593,7 @@ public:
 		}
 	}
 	virtual void mouseClick(int x, int y, int button) {
-		__super::mouseClick(x, y, button);
+		Widget::mouseClick(x, y, button);
 		Widget *iter = child;
 		while (iter) {
 			if (!crossWidget(iter->obj, pos.x, pos.y, pos.x + size.x, pos.y + size.y)) {
@@ -1605,7 +1605,7 @@ public:
 		}
 	}
 	virtual void keyPress(int key, bool utf16 = false) {
-		__super::keyPress(key, utf16);
+		Widget::keyPress(key, utf16);
 		Widget *iter = child;
 		while (iter) {
 			if (!crossWidget(iter->obj, pos.x, pos.y, pos.x + size.x, pos.y + size.y)) {
@@ -1652,7 +1652,7 @@ Widget::Widget(widget w, int window, string p) {
 	this->name = this->obj->name = w.name;
 	this->path = p;
 	this->tf.color = this->obj->tf.color = w.tf.color;
-	this->tf.name = (LPWSTR)malloc((_strlen(w.tf.name) + 1) * sizeof(wchar_t));
+	this->tf.name = (SGWINSTR)malloc((_strlen(w.tf.name) + 1) * sizeof(wchar_t));
 	_strcpy(this->tf.name, w.tf.name);
 	this->obj->tf.name = w.tf.name;
 	this->tf.size = this->obj->tf.size = w.tf.size;

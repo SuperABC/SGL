@@ -1,9 +1,9 @@
 #define _CRT_SECURE_NO_WARNINGS
 
-#include "winsgl.h"
-#include "inner.h"
 #include <vector>
 #include <bitset>
+#include "winsgl.h"
+#include "inner.h"
 
 using namespace std;
 

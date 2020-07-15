@@ -7,7 +7,7 @@ const char *txt = "Hello, welcome to sgl text mode!\n"
 "Like this, just put down the string and it will be sent to the screen. Very convenient, isn't it?\n";
 
 void sgSetup() {
-	initWindow(40, 16, "SGL Sample", TEXT_MAP);
+	initWindow(40, 16, "Write", TEXT_MAP);
 }
 void sgLoop() {
 	static int first = 1;

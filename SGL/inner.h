@@ -24,7 +24,7 @@
 
 //Inner macros.
 
-#define SGL_ASSERT(exp, text) {if(!!(exp));else{MessageBox(NULL, _widen(text), _widen("SGL_ASSERT"), NULL);}}
+#define SGL_ASSERT(exp, text) {if(!!(exp));else{MessageBox(NULL, _widen(text), _widen("SGL_ASSERT"), 0);}}
 #define TIMER_DELTA_HANDLE 1
 #define WM_TRAY (WM_USER + 1)
 
@@ -39,7 +39,7 @@
 #else
 #define _widen(str)  str
 #define _shorten(str)  str
-#define _strcpy(dst, src) strcpy(dst, src)
+#define _strcpy(dst, src) strcpy((char *)dst, src)
 #define _strlen(str) strlen(str)
 #endif
 
