@@ -8,9 +8,12 @@ void sgLoop() {
 	bitMap *buf = (bitMap*)malloc(sizeof(bitMap));
 
 	if (!first) {
-		drawBmp(0, 0, "Source/pic.bmp");
+		putBitmap(0, 0, loadBmp("Source/pic.bmp"));
+		putBitmap(100, 0, loadPng("Source/pic.png"));
 		getImage(0, 0, 39, 39, buf);
 		putImage(320, 200, buf, COPY_PUT);
+		savePng("Source/out.png", *buf);
+		saveBmp("Source/out.bmp", *buf);
 		free(buf->data);
 		free(buf);
 
