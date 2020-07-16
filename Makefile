@@ -1,11 +1,38 @@
-all:
-	#g++ -c -o Debug/frame.o SGL/frame.cpp -I pack/include/
-	#g++ -c -o Debug/geometry.o SGL/geometry.cpp -I pack/include/
-	#g++ -c -o Debug/graph.o SGL/graph.cpp -I pack/include/
-	#g++ -c -o Debug/imfile.o SGL/imfile.cpp -I pack/include/
-	#g++ -c -o Debug/data.o SGL/data.cpp -I pack/include/
-	#g++ -c -o Debug/encryption.o SGL/encryption.cpp -I pack/include/
-	#
-	#ar cr Debug/libsgl.a Debug/frame.o Debug/geometry.o Debug/graph.o Debug/imfile.o Debug/data.o Debug/encryption.o
+SAMPLE = Sample/1.Window/init.c
+
+LINK = g++
+GCC = g++
+AR = ar crv
+
+FLAGS = 
+#FLAGS = -D DEBUG
+HEADER = -I pack/include/
+ifdef FLAGS
+	OUTDIR = Debug/
+	vpath %.o Debug
+else
+	OUTDIR = Release/
+	vpath %.o Release
+endif
+vpath %.cpp SGL/
+
+SGLOBJ = frame.o geometry.o graph.o imfile.o data.o encryption.o
+WINLIB = -lsgl -lgdi32 -lwsock32 -lcomdlg32 -lshlwapi -lwinmm
+
+all: libsgl.a sample.exe
+
+libsgl.a: $(SGLOBJ)
+	$(AR) $(OUTDIR)$@ $^
+
+.cpp.o:
+	$(GCC) -c -o $(OUTDIR)$@ $< $(HEADER) $(FLAGS)
 	
-	g++ Sample/1.Window/init.c -LDebug/ -lsgl -lgdi32 -lwsock32 -lcomdlg32 -lshlwapi -lwinmm -I pack/include/
+sample.exe:
+	$(LINK) $(SAMPLE)\
+	 -o $(OUTDIR)$@\
+	 -L $(OUTDIR) $(WINLIB) $(HEADER) $(FLAGS)
+
+
+.PHONY:clean
+clean:
+	rm -rf $(OUTDIR)*.o $(OUTDIR)libsgl.a $(OUTDIR)sample.exe
