@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Sample\8.Graph\view.cpp">
+    <ClCompile Include="..\Sample\1.Window\create.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

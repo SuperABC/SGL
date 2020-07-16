@@ -1,6 +1,5 @@
 #define _CRT_SECURE_NO_WARNINGS
 
-#include <amp.h>
 #include <vector>
 #include <map>
 #include <list>
@@ -32,6 +31,18 @@ typedef struct tagEDGE {
 	int ymax;
 	float xedge;
 	int pid;
+
+	bool operator==(const struct tagEDGE e) {
+		if (e.xi != xi)return false;
+		if (e.dx != dx)return false;
+		if (e.zi != zi)return false;
+		if (e.dzy != dzy)return false;
+		if (e.dzx != dzx)return false;
+		if (e.ymax != ymax)return false;
+		if (e.xedge != xedge)return false;
+		if (e.pid != pid)return false;
+		return true;
+	}
  }EDGE;
 void UpdateAetEdgeInfo(EDGE& e) {
 	e.xi += e.dx;
@@ -336,7 +347,11 @@ private:
 		return;
 	}
 	void RemoveNonActiveEdgeFromAet(std::list<EDGE>& aet, int y) {
-		aet.remove_if(std::bind2nd(std::ptr_fun(IsEdgeOutOfActive), y));
+		for (auto &e : aet) {
+			if (IsEdgeOutOfActive(e, y)) {
+				aet.remove(e);
+			}
+		}
 	}
 	void ProcessScanLineFill(vector<vector<vec3f>>&points, vector<vector<float *>> outs,
 		int dataLength, std::vector< std::list<EDGE> >&slNet, int ymin, int ymax) {
@@ -347,7 +362,7 @@ private:
 			if(y >= top && y < bottom)
 				FillAetPeriodScanLine(points, outs, dataLength, aet, y);
 			RemoveNonActiveEdgeFromAet(aet, y);
-			for_each(aet.begin(), aet.end(), UpdateAetEdgeInfo);
+			for (auto &e : aet)UpdateAetEdgeInfo(e);
 		}
 	}
 	void scan(vector<vector<vec3f>>&points, vector<vector<float *>> &outs, int dataLength, int vertexNum) {

@@ -73,13 +73,15 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <TargetName>winsgld</TargetName>
-    <OutDir>$(SolutionDir)\Pack\lib\</OutDir>
+    <OutDir>$(SolutionDir)\Pack\lib\x86\</OutDir>
     <IntDir>$(Configuration)\</IntDir>
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../Pack/include</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);../Pack/include</IncludePath>
+    <OutDir>$(SolutionDir)\Pack\lib\x64\</OutDir>
+    <TargetName>winsgld</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>

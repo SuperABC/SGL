@@ -818,12 +818,12 @@ public:
 	}
 
 	void setThread() {
-		//tmpThread = GetThreadId(GetCurrentThread());
-		tmpThread = (int)GetCurrentThread();
+		tmpThread = GetThreadId(GetCurrentThread());
+		//tmpThread = (int)GetCurrentThread();
 	}
 	int checkThread() {
-		//int tmp = GetThreadId(GetCurrentThread());
-		int tmp = (int)GetCurrentThread();
+		int tmp = GetThreadId(GetCurrentThread());
+		//int tmp = (int)GetCurrentThread();
 		if (tmp != tmpThread) {
 			debugf("系统拒绝在非主线程中使用绘图函数。\n");
 			return -1;
