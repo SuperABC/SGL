@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Sample\1.Window\create.c">
+    <ClCompile Include="..\Sample\7.Widget\output.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

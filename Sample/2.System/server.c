@@ -49,7 +49,7 @@ NEW_THREAD_FUNC(socketResponse) {
 int main() {
 	server = createServer(4497);
 	createThread(socketResponse, NULL);
-	printf("Server is on.");
+	printf("Server is on.\n");
 
 	while (1);
 }

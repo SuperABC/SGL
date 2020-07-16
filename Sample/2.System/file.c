@@ -13,15 +13,15 @@ void sgLoop() {
 
 		makePath("C:/test");
 
-		//if (selectDir(file, "") == SG_NO_ERORR)
-		//	alertInfo("Dir", file, 0, NULL);
+		if (selectDir(file, "") == SG_NO_ERORR)
+			alertInfo("Dir", file, 0, NULL);
 
-		//if (selectFile(file, L"C:/test", L"All files\0*.*\0C/C++file\0 * .h; *.c; *.cpp\0\0", 1) == SG_NO_ERORR)
-		//	alertInfo("File", file, 0, NULL);
+		if (selectFile(file, L"C:/test", L"All files\0*.*\0C/C++file\0 * .h; *.c; *.cpp\0\0", 1) == SG_NO_ERORR)
+			alertInfo("File", file, 0, NULL);
 
-		//if (selectSave(file, L"C:/test", L"All files\0*.*\0C/C++file\0 * .h; *.c; *.cpp\0\0", L"c", 1) == SG_NO_ERORR)
-		//if(fileExist(file)) alertInfo("Exist", file, 0, NULL);
-		//else alertInfo("Save", file, 0, NULL);
+		if (selectSave(file, L"C:/test", L"All files\0*.*\0C/C++file\0 * .h; *.c; *.cpp\0\0", L"c", 1) == SG_NO_ERORR)
+		if(fileExist(file)) alertInfo("Exist", file, 0, NULL);
+		else alertInfo("Save", file, 0, NULL);
 	}
 	clearKeyBuffer();
 }

@@ -1,8 +1,8 @@
 #include "winsgl.h"
 
 void callback(widget *obj) {
-	char *buffer = getWidgetByName("output")->content;
-	char *add = getWidgetByName("input")->content;
+	char *buffer = (char *)getWidgetByName("output")->content;
+	char *add = (char *)getWidgetByName("input")->content;
 	strcat(buffer, add);
 	strcat(buffer, "\n");
 	refreshWidget("output");
