@@ -58,6 +58,10 @@
 #include <string>
 #endif
 
+//SG constraint macros.
+
+#define __after_init
+
 
 //SG const macros.
 
@@ -440,13 +444,13 @@ extern "C" {
 	* @Param setup and loop is the logic of the window created.
 	* @Return returns the id of the window created.
 	*/
-	SGint createWindow(int width, int height, SGtext title, int mode, vect setup, vect loop);
+	SGint __after_init createWindow(int width, int height, SGtext title, int mode, vect setup, vect loop);
 
 	/**
 	* Create a new window with SGL canvas.
 	* @Param rx and ry is the x radius and y radius of the window.
 	*/
-	SGint createPolarWindow(int rx, int ry, vect setup, vect loop);
+	SGint __after_init createPolarWindow(int rx, int ry, vect setup, vect loop);
 
 	/**
 	* Used in setup or loop function to define what to do when
@@ -466,23 +470,23 @@ extern "C" {
 	* Close the sub window.
 	* @Param id determined which window should be closed.
 	*/
-	SGvoid closeWindow(int id);
+	SGvoid __after_init closeWindow(int id);
 
 	/**
 	* Rename the caption of the window.
 	* @Param name is the new caption name to be displayed.
 	*/
-	SGvoid renameCaption(SGtext name);
+	SGvoid __after_init renameCaption(SGtext name);
 
 	/**
 	* Hide the caption bar.
 	*/
-	SGvoid hideCaption();
+	SGvoid __after_init hideCaption();
 
 	/**
 	* Show the caption bar.
 	*/
-	SGvoid showCaption();
+	SGvoid __after_init showCaption();
 
 
 	/*
@@ -641,14 +645,14 @@ extern "C" {
 	* to other programs.
 	* @Param src is the source passed to window clipboard.
 	*/
-	SGint copyText(SGtext src);
+	SGint __after_init copyText(SGtext src);
 
 	/**
 	* Copy the given text into windows clipboard so that it can be pasted
 	* to other programs.
 	* @Return string from clipboard and it need to be free by the programmer.
 	*/
-	SGstring pasteText();
+	SGstring __after_init pasteText();
 
 	/**
 	* Set up a server(either local and remote).
@@ -775,7 +779,7 @@ extern "C" {
 	* @Param mode describes the button in new window.
 	* @Param result will be called when window closed or button push.
 	*/
-	void alertInfo(SGtext caption, SGtext text, int mode, void(*result)(int));
+	void __after_init alertInfo(SGtext caption, SGtext text, int mode, void(*result)(int));
 
 
 	/*
@@ -823,19 +827,19 @@ extern "C" {
 	/**
 	* Fill the whole screen with current color.
 	*/
-	SGvoid clearScreen();
+	SGvoid __after_init clearScreen();
 
 	/**
 	* Set the pixel with current color.
 	* @Param x and y is the target position of the pixel.
 	*/
-	SGint putPixel(int x, int y);
+	SGint __after_init putPixel(int x, int y);
 
 	/**
 	* Get the rgb color of a pixel.
 	* @Param x and y is the target position of the pixel.
 	*/
-	rgb getPixel(int x, int y);
+	rgb __after_init getPixel(int x, int y);
 
 	/**
 	* Draw a line.
@@ -843,14 +847,14 @@ extern "C" {
 	* @Param x2 and y2 is the end point of the line.
 	* @Param mode can be choosed in the enum list.
 	*/
-	SGvoid putLine(int x1, int y1, int x2, int y2, int mode);
+	SGvoid __after_init putLine(int x1, int y1, int x2, int y2, int mode);
 
 	/* Draw a rectangle.
 	* @Param x1 and y1 is one vertex of the quad.
 	* @Param x2 and y2 is the opposite vertex of the quad.
 	* @Param mode can be choosed in the enum list.
 	*/
-	SGint putQuad(int x1, int y1, int x2, int y2, int mode);
+	SGint __after_init putQuad(int x1, int y1, int x2, int y2, int mode);
 
 	/**
 	* Draw a triangle.
@@ -859,7 +863,7 @@ extern "C" {
 	* @Param x3 and y3 is the third vertex of the triangle.
 	* @Param mode can be choosed in the enum list.
 	*/
-	SGvoid putTriangle(int x1, int y1, int x2, int y2, int x3, int y3, int mode);
+	SGvoid __after_init putTriangle(int x1, int y1, int x2, int y2, int x3, int y3, int mode);
 
 	/**
 	* Draw a circle.
@@ -867,7 +871,7 @@ extern "C" {
 	* @Param r is the radius of the circle.
 	* @Param mode can be choosed in the enum list.
 	*/
-	SGvoid putCircle(int xc, int yc, int r, int mode);
+	SGvoid __after_init putCircle(int xc, int yc, int r, int mode);
 
 	/**
 	* Draw an ellipse.
@@ -875,7 +879,7 @@ extern "C" {
 	* @Param a and b is the x-radius and y-radius of the ellipse.
 	* @Param mode can be choosed in the enum list.
 	*/
-	SGvoid putEllipse(int xc, int yc, int a, int b, int mode);
+	SGvoid __after_init putEllipse(int xc, int yc, int a, int b, int mode);
 
 	/**
 	* Load bmp to a bitMap struct other than showing it on screen.
@@ -910,14 +914,14 @@ extern "C" {
 	* @Param x and y is the top-left corner of the picture.
 	* @Param bmp is the memory pointer of the picture.
 	*/
-	void putBitmap(int x, int y, bitMap bmp);
+	void __after_init putBitmap(int x, int y, bitMap bmp);
 
 	/**
 	* Draw one character ch on the screen.
 	* @Param ch is the ascii of the character.
 	* @Param x and y is the top-left corner of the character.
 	*/
-	SGvoid putChar(char ch, int x, int y);
+	SGvoid __after_init putChar(char ch, int x, int y);
 
 	/**
 	* Draw one number ch on the screen.
@@ -926,7 +930,7 @@ extern "C" {
 	* @Param lr is the orientation of the number. If lr is 'l' then (x, y) represent
 	* the left-top corner, or else 'r' then (x, y) represent the right-top corner.
 	*/
-	SGvoid putNumber(int n, int x, int y, char lr);
+	SGvoid __after_init putNumber(int n, int x, int y, char lr);
 
 	/**
 	* Draw one string on the screen. If there is '\n' in the string, it will
@@ -934,7 +938,7 @@ extern "C" {
 	* @Param str is the string content.
 	* @Param x and y is the top-left corner of the string.
 	*/
-	SGint putString(SGtext str, int x, int y);
+	SGint __after_init putString(SGtext str, int x, int y);
 
 	/**
 	* Draw one string on the screen with max x-length.
@@ -943,7 +947,7 @@ extern "C" {
 	* @Param start is the index of first character to be shown .
 	* @Param constraint is the x pixel length of the constraint .
 	*/
-	SGint putStringConstraint(SGtext str, int x, int y, int start, int constraint);
+	SGint __after_init putStringConstraint(SGtext str, int x, int y, int start, int constraint);
 
 	/**
 	* Get the width on x axis of the given string in current font.
@@ -968,7 +972,7 @@ extern "C" {
 	* @Param bitmap is the memory area to save the image. Note that bitmap->data
 	* need not to be allocated.
 	*/
-	SGint getImage(int left, int top, int right, int bottom, bitMap *bitmap);
+	SGint __after_init getImage(int left, int top, int right, int bottom, bitMap *bitmap);
 
 	/**
 	* Paste the pixel messages.
@@ -976,7 +980,7 @@ extern "C" {
 	* @Param bitmap point to the image memory.
 	* @Param op can be choosed in the enum list.
 	*/
-	SGvoid putImage(int left, int top, bitMap *bitmap, int op);
+	SGvoid __after_init putImage(int left, int top, bitMap *bitmap, int op);
 
 	/**
 	* Paste the pixel messages with transparent mask.
@@ -985,7 +989,7 @@ extern "C" {
 	* color and 255 means bitmap color.
 	* @Param bitmap point to the image memory.
 	*/
-	SGint maskImage(int left, int top, bitMap *mask, bitMap *bitmap);
+	SGint __after_init maskImage(int left, int top, bitMap *mask, bitMap *bitmap);
 
 	/**
 	* Draw the graph of function vect with border limitation.
@@ -993,7 +997,7 @@ extern "C" {
 	* @Param y1 and y2 are y boarders.
 	* @Param vect is the function to be shown.
 	*/
-	SGvoid funcMap(int x1, int x2, int y1, int y2, float(*vect)(float x));
+	SGvoid __after_init funcMap(int x1, int x2, int y1, int y2, float(*vect)(float x));
 
 	/**
 	* Fill an area.
@@ -1001,12 +1005,12 @@ extern "C" {
 	* @Param c is the stopping color which means the area boarder
 	* is with this color.
 	*/
-	SGvoid floodFill(int x, int y, rgb c);
+	SGvoid __after_init floodFill(int x, int y, rgb c);
 
 	/**
 	* Show the fps on the screen for testing.
 	*/
-	SGint showFps();
+	SGint __after_init showFps();
 
 	/**
 	* Use the region with given parameters to draw 3D graph.
@@ -1026,7 +1030,7 @@ extern "C" {
 	* Clear the graph region with black color.
 	* @Param id is the canvas id.
 	*/
-	SGvoid clearGraphBuffer(int id);
+	SGvoid __after_init clearGraphBuffer(int id);
 
 	/**
 	* Pass a variable from user coding environment to programmable pipeline coding
@@ -1053,14 +1057,14 @@ extern "C" {
 	* @Param id is the canvas id.
 	* @Param elementNum is the triangles num to be shown.
 	*/
-	SGvoid refreshGraph(int id, int elementNum);
+	SGvoid __after_init refreshGraph(int id, int elementNum);
 
 	/**
 	* When finish sending objects, draw the whole graph region using
 	* the tracer defined.
 	* @Param id is the canvas id.
 	*/
-	SGvoid refreshTracer(int id);
+	SGvoid __after_init refreshTracer(int id);
 
 	/**
 	* Give one data strip to vertex shader.
@@ -1183,7 +1187,7 @@ extern "C" {
 	* @Param id is the graph id.
 	* @Param posX and posY is the pixel coordinate.
 	*/
-	vec3f getGraphPixel(int id, int posX, int posY);
+	vec3f __after_init getGraphPixel(int id, int posX, int posY);
 
 
 	/*
@@ -1202,7 +1206,7 @@ extern "C" {
 	/**
 	* Fill the whole screen to the current background color.
 	*/
-	SGvoid clearText();
+	SGvoid __after_init clearText();
 
 	/**
 	* Set the background and foreground color of one charactor.
@@ -1231,21 +1235,21 @@ extern "C" {
 	* @Return value combined with character and color. The low 8 bit is
 	* character and the high 8 bit is color.
 	*/
-	SGint getShort(int x, int y);
+	SGint __after_init getShort(int x, int y);
 
 	/**
 	* Put down one character with current color.
 	* @Param c is the character.
 	* @Param x and y is the character position.
 	*/
-	SGvoid writeChar(char c, int x, int y);
+	SGvoid __after_init writeChar(char c, int x, int y);
 
 	/**
 	* Put down one string with current color.
 	* @Param s is the string.
 	* @Param x and y is the character position.
 	*/
-	SGvoid writeString(SGtext s, int x, int y);
+	SGvoid __after_init writeString(SGtext s, int x, int y);
 
 	/**
 	* Copy the text messages of the given area to parameter text.
@@ -1254,14 +1258,14 @@ extern "C" {
 	* @Param test is the memory area to save the text. Note that text->data
 	* need not to be allocated.
 	*/
-	SGint getText(int left, int top, int right, int bottom, textMap *text);
+	SGint __after_init getText(int left, int top, int right, int bottom, textMap *text);
 
 	/**
 	* Paste the text messages.
 	* @Param left and top is the left-top vertex of the quad area.
 	* @Param text point to the text memory.
 	*/
-	SGvoid putText(int left, int top, textMap *text);
+	SGvoid __after_init putText(int left, int top, textMap *text);
 
 
 	/*
@@ -1276,7 +1280,7 @@ extern "C" {
 	* @Return if cmd is 1 then return value is whether there's waiting
 	* events, or else if cmd is 0 then return the earliest event key value.
 	*/
-	SGint biosKey(int cmd);
+	SGint __after_init biosKey(int cmd);
 
 	/**
 	* Delete all key events before current time.
@@ -1287,7 +1291,7 @@ extern "C" {
 	* Get the current position of the cursor.
 	* @Return value is a struct with mouse position.
 	*/
-	vec2i mousePos();
+	vec2i __after_init mousePos();
 
 	/**
 	* Get whether one of the three mouse button is push down.
@@ -1295,7 +1299,7 @@ extern "C" {
 	* SG_MIDDLE_BUTTON.
 	* @Return value is whether button b is down.
 	*/
-	SGint mouseStatus(int b);
+	SGint __after_init mouseStatus(int b);
 
 	/**
 	* Main function to deal with mouse event.
@@ -1304,7 +1308,7 @@ extern "C" {
 	* there's waiting events, or else if cmd is 0 then return the earliest
 	* event mouse contains x, y and which mouse button.
 	*/
-	vec3i biosMouse(int cmd);
+	vec3i __after_init biosMouse(int cmd);
 
 	/**
 	* Delete all mouse events before current time.
@@ -1350,24 +1354,24 @@ extern "C" {
 	/**
 	* Make the cursor visible.
 	*/
-	SGvoid showMouse();
+	SGvoid __after_init showMouse();
 
 	/**
 	* Make the cursor disvisible.
 	*/
-	SGvoid hideMouse();
+	SGvoid __after_init hideMouse();
 
 	/*
 	* Set the cursor position.
 	* @Param x and y describe the position to be set.
 	*/
-	SGvoid setMousePos(int x, int y);
+	SGvoid __after_init setMousePos(int x, int y);
 
 	/**
 	* Set the icon of the cursor.
 	* @Param icon can be either preset enums or icon resource path.
 	*/
-	SGvoid setMouseIcon(SGWINSTR icon);
+	SGvoid __after_init setMouseIcon(SGWINSTR icon);
 
 	/**
 	* Allow this program to use windows main menu.
@@ -1557,7 +1561,7 @@ extern "C" {
 	* @Param menu is the popup menu id.
 	* @Param x and y describe the top-left position of the popup menu.
 	*/
-	SGint showPopupMenu(int menu, int x, int y);
+	SGint __after_init showPopupMenu(int menu, int x, int y);
 
 
 	/*
@@ -1578,7 +1582,7 @@ extern "C" {
 	* by setBackgroundRefresh.
 	* @Param left, top, right and bottom define the quad area.
 	*/
-	SGvoid useBackgroundRefresh(int left, int top, int right, int bottom);
+	SGvoid __after_init useBackgroundRefresh(int left, int top, int right, int bottom);
 
 	/**
 	* Create a widget with default parameter.
