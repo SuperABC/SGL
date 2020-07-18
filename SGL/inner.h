@@ -36,11 +36,13 @@
 #define _shorten(str) String(str).shorten()
 #define _strcpy(dst, src) String::copy(dst, src)
 #define _strlen(str) String::len(str)
+#define _strcat(str, suffix) String::connect(str, suffix)
 #else
 #define _widen(str)  str
 #define _shorten(str)  str
 #define _strcpy(dst, src) strcpy((char *)dst, src)
 #define _strlen(str) strlen(str)
+#define _strcat(str, suffix) strcat(str, suffix)
 #endif
 
 

@@ -66,6 +66,18 @@ public:
 	static int len(LPSTR str) {
 		return strlen(str);
 	}
+	static void connect(LPWSTR str, const const wchar_t *suffix) {
+		wcscat(str, suffix);
+	}
+	static void connect(LPSTR str, const char *suffix) {
+		strcat(str, suffix);
+	}
+	static void connect(LPWSTR str, const char *suffix) {
+		wcscat(str, _widen((LPSTR)suffix));
+	}
+	static void connect(LPSTR str, const wchar_t *suffix) {
+		strcat(str, _shorten((LPWSTR)suffix));
+	}
 };
 
 #endif
