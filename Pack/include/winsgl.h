@@ -1824,7 +1824,7 @@ extern "C" {
 	* Create zip file if the zip file isn't exist.
 	* @Param zip is the path of the zip file.
 	*/
-	HANDLE createZip(SGstring zip);
+	HANDLE createZip(SGstring file);
 
 	/**
 	* Add file into zip file.
@@ -1860,7 +1860,7 @@ extern "C" {
 	* Open zip file for unzip.
 	* @Param zip is the path of the zip file.
 	*/
-	HANDLE createUnzip(SGstring zip);
+	HANDLE createUnzip(SGstring file);
 
 	/**
 	* Read zip file and get the idxth file in the zip file.

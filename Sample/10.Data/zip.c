@@ -1,5 +1,7 @@
 #include "winsgl.h"
 
+char buf[65536];
+
 void sgSetup() {
 	initWindow(640, 480, "SGL Sample", BIT_MAP);
 
@@ -15,11 +17,13 @@ void sgSetup() {
 	debugf("%s\n", res);
 	readUnzip(unzip, 1, res);
 	debugf("%s\n", res);
-	unzipFile(unzip, res, "uzip.exe");
+	unzipFile(unzip, res, "unzip.exe");
 	SGstring text = malloc(6);
 	readUnzip(unzip, 2, res);
 	unzipMemory(unzip, res, text, 6);
 	debugf("%s\n", text);
+	readUnzip(unzip, 3, res);
+	debugf("%s\n", res);
 }
 void sgLoop() {
 
