@@ -437,6 +437,16 @@ extern "C" {
 	SGvoid initPolarWindow(int rx, int ry);
 
 	/**
+	* Set window size match screen.
+	*/
+	SGvoid maximizeWindow();
+
+	/**
+	* Set window size 0.
+	*/
+	SGvoid minimizeWindow();
+
+	/**
 	* Create a new window with SGL canvas.
 	* @Param width and height is the window size.
 	* @Param title is the string displayed in caption bar.

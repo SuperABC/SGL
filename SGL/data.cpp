@@ -1247,7 +1247,6 @@ typedef DWORD ZRESULT;
 #define ZR_MORE       0x00000600     // there's still more data to be unzipped
 #define ZR_CORRUPT    0x00000700     // the zipfile is corrupt or not a zipfile
 #define ZR_READ       0x00000800     // a general error reading the file
-#define ZR_PASSWORD   0x00001000     // we didn't get the right password to unzip the file
 #define ZR_CALLERMASK 0x00FF0000
 #define ZR_ARGS       0x00010000     // general mistake with the arguments
 #define ZR_NOTMMAP    0x00020000     // tried to ZipGetMemory, but that only works on mmap zipfiles, which yours wasn't
@@ -1353,18 +1352,18 @@ typedef unsigned IPos; // A Pos is an index in the character window. Pos is used
 #define REPZ_11_138  18
 #define HEAP_SIZE (2*L_CODES+1)
 #define Buf_size (8 * 2*sizeof(char))
-#define PUTSHORT(state,w) \
-{ if (state.bs.out_offset >= state.bs.out_size-1) \
-    state.flush_outbuf(state.param,state.bs.out_buf, &state.bs.out_offset); \
-  state.bs.out_buf[state.bs.out_offset++] = (char) ((w) & 0xff); \
-  state.bs.out_buf[state.bs.out_offset++] = (char) ((ush)(w) >> 8); \
-}
+#define PUTSHORT(state,w) {\
+	if (state.bs.out_offset >= state.bs.out_size-1) \
+		state.flush_outbuf(state.param,state.bs.out_buf, &state.bs.out_offset); \
+		state.bs.out_buf[state.bs.out_offset++] = (char) ((w) & 0xff); \
+		state.bs.out_buf[state.bs.out_offset++] = (char) ((ush)(w) >> 8); \
+	}
 
-#define PUTBYTE(state,b) \
-{ if (state.bs.out_offset >= state.bs.out_size) \
-    state.flush_outbuf(state.param,state.bs.out_buf, &state.bs.out_offset); \
-  state.bs.out_buf[state.bs.out_offset++] = (char) (b); \
-}
+#define PUTBYTE(state,b) {\
+	if (state.bs.out_offset >= state.bs.out_size) \
+		state.flush_outbuf(state.param,state.bs.out_buf, &state.bs.out_offset); \
+		state.bs.out_buf[state.bs.out_offset++] = (char) (b); \
+	}
 
 #define HASH_BITS  15
 #define HASH_SIZE (unsigned)(1<<HASH_BITS)
@@ -1396,15 +1395,15 @@ typedef struct config {
 const config configuration_table[10] = {
 	//  good lazy nice chain
 	{ 0,    0,  0,    0 },  // 0 store only
-{ 4,    4,  8,    4 },  // 1 maximum speed, no lazy matches
-{ 4,    5, 16,    8 },  // 2
-{ 4,    6, 32,   32 },  // 3
-{ 4,    4, 16,   16 },  // 4 lazy matches */
-{ 8,   16, 32,   32 },  // 5
-{ 8,   16, 128, 128 },  // 6
-{ 8,   32, 128, 256 },  // 7
-{ 32, 128, 258, 1024 }, // 8
-{ 32, 258, 258, 4096 } };// 9 maximum compression */
+	{ 4,    4,  8,    4 },  // 1 maximum speed, no lazy matches
+	{ 4,    5, 16,    8 },  // 2
+	{ 4,    6, 32,   32 },  // 3
+	{ 4,    4, 16,   16 },  // 4 lazy matches */
+	{ 8,   16, 32,   32 },  // 5
+	{ 8,   16, 128, 128 },  // 6
+	{ 8,   32, 128, 256 },  // 7
+	{ 32, 128, 258, 1024 }, // 8
+	{ 32, 258, 258, 4096 } };// 9 maximum compression */
 
 typedef struct ct_data {
 	union {
@@ -1427,8 +1426,7 @@ typedef struct tree_desc {
 	int     max_code;       // largest code with non zero frequency
 } tree_desc;
 
-class TTreeState
-{
+class TTreeState {
 public:
 	TTreeState();
 
@@ -1500,8 +1498,7 @@ public:
 						  //  int *file_method;     // pointer to DEFLATE or STORE
 };
 
-TTreeState::TTreeState()
-{
+TTreeState::TTreeState() {
 	tree_desc a = { dyn_ltree, static_ltree, extra_lbits, LITERALS + 1, L_CODES, MAX_BITS, 0 };  l_desc = a;
 	tree_desc b = { dyn_dtree, static_dtree, extra_dbits, 0,          D_CODES, MAX_BITS, 0 };  d_desc = b;
 	tree_desc c = { bl_tree, NULL,       extra_blbits, 0,         BL_CODES, MAX_BL_BITS, 0 };  bl_desc = c;
@@ -1510,8 +1507,7 @@ TTreeState::TTreeState()
 	last_flags = 0;
 }
 
-class TBitState
-{
+class TBitState {
 public:
 
 	int flush_flg;
@@ -1532,8 +1528,7 @@ public:
 	ulg bits_sent;   // bit length of the compressed data  only needed for debugging???
 };
 
-class TDeflateState
-{
+class TDeflateState {
 public:
 	TDeflateState() { window_size = 0; }
 
@@ -1585,8 +1580,7 @@ struct TState;
 typedef unsigned(*READFUNC)(TState &state, char *buf, unsigned size);
 typedef unsigned(*FLUSHFUNC)(void *param, const char *buf, unsigned *size);
 typedef unsigned(*WRITEFUNC)(void *param, const char *buf, unsigned size);
-struct TState
-{
+struct TState {
 	void *param;
 	int level; bool seekable;
 	READFUNC readfunc; FLUSHFUNC flush_outbuf;
@@ -1594,8 +1588,7 @@ struct TState
 	const char *err;
 };
 
-void Assert(TState &state, bool cond, const char *msg)
-{
+void Assert(TState &state, bool cond, const char *msg) {
 	if (cond) return;
 	state.err = msg;
 }
@@ -1625,8 +1618,7 @@ void copy_block(TState &state, char *buf, unsigned len, int header);
 
 #define Max(a,b) (a >= b ? a : b)
 
-void ct_init(TState &state, ush *attr)
-{
+void ct_init(TState &state, ush *attr) {
 	int n;        /* iterates over tree elements */
 	int bits;     /* bit counter */
 	int length;   /* length value */
@@ -1696,8 +1688,7 @@ void ct_init(TState &state, ush *attr)
 	init_block(state);
 }
 
-void init_block(TState &state)
-{
+void init_block(TState &state) {
 	int n; /* iterates over tree elements */
 
 		   /* Initialize the trees. */
@@ -1712,8 +1703,7 @@ void init_block(TState &state)
 }
 
 #define SMALLEST 1
-#define pqremove(tree, top) \
-{\
+#define pqremove(tree, top) {\
     top = state.ts.heap[SMALLEST]; \
     state.ts.heap[SMALLEST] = state.ts.heap[state.ts.heap_len--]; \
     pqdownheap(state,tree, SMALLEST); \
@@ -1723,8 +1713,7 @@ void init_block(TState &state)
    (tree[n].fc.freq < tree[m].fc.freq || \
    (tree[n].fc.freq == tree[m].fc.freq && state.ts.depth[n] <= state.ts.depth[m]))
 
-void pqdownheap(TState &state, ct_data *tree, int k)
-{
+void pqdownheap(TState &state, ct_data *tree, int k) {
 	int v = state.ts.heap[k];
 	int j = k << 1;  /* left son of k */
 	int htemp;       /* required because of bug in SASC compiler */
@@ -1747,8 +1736,7 @@ void pqdownheap(TState &state, ct_data *tree, int k)
 	state.ts.heap[k] = v;
 }
 
-void gen_bitlen(TState &state, tree_desc *desc)
-{
+void gen_bitlen(TState &state, tree_desc *desc) {
 	ct_data *tree = desc->dyn_tree;
 	const int *extra = desc->extra_bits;
 	int base = desc->extra_base;
@@ -1823,8 +1811,7 @@ void gen_bitlen(TState &state, tree_desc *desc)
 	}
 }
 
-void gen_codes(TState &state, ct_data *tree, int max_code)
-{
+void gen_codes(TState &state, ct_data *tree, int max_code) {
 	ush next_code[MAX_BITS + 1]; /* next code value for each bit length */
 	ush code = 0;              /* running code value */
 	int bits;                  /* bit index */
@@ -1853,8 +1840,7 @@ void gen_codes(TState &state, ct_data *tree, int max_code)
 	}
 }
 
-void build_tree(TState &state, tree_desc *desc)
-{
+void build_tree(TState &state, tree_desc *desc) {
 	ct_data *tree = desc->dyn_tree;
 	ct_data *stree = desc->static_tree;
 	int elems = desc->elems;
@@ -1928,8 +1914,7 @@ void build_tree(TState &state, tree_desc *desc)
 	gen_codes(state, (ct_data *)tree, max_code);
 }
 
-void scan_tree(TState &state, ct_data *tree, int max_code)
-{
+void scan_tree(TState &state, ct_data *tree, int max_code) {
 	int n;                     /* iterates over all tree elements */
 	int prevlen = -1;          /* last emitted length */
 	int curlen;                /* length of current code */
@@ -1972,8 +1957,7 @@ void scan_tree(TState &state, ct_data *tree, int max_code)
 	}
 }
 
-void send_tree(TState &state, ct_data *tree, int max_code)
-{
+void send_tree(TState &state, ct_data *tree, int max_code) {
 	int n;                     /* iterates over all tree elements */
 	int prevlen = -1;          /* last emitted length */
 	int curlen;                /* length of current code */
@@ -2022,8 +2006,7 @@ void send_tree(TState &state, ct_data *tree, int max_code)
 	}
 }
 
-int build_bl_tree(TState &state)
-{
+int build_bl_tree(TState &state) {
 	int max_blindex;  /* index of last bit length code of non zero freq */
 
 					  /* Determine the bit length frequencies for literal and distance trees */
@@ -2050,8 +2033,7 @@ int build_bl_tree(TState &state)
 	return max_blindex;
 }
 
-void send_all_trees(TState &state, int lcodes, int dcodes, int blcodes)
-{
+void send_all_trees(TState &state, int lcodes, int dcodes, int blcodes) {
 	int rank;                    /* index in bl_order */
 
 	Assert(state, lcodes >= 257 && dcodes >= 1 && blcodes >= 4, "not enough codes");
@@ -2075,8 +2057,7 @@ void send_all_trees(TState &state, int lcodes, int dcodes, int blcodes)
 	Trace("\ndist tree: sent %ld", state.bs.bits_sent);
 }
 
-ulg flush_block(TState &state, char *buf, ulg stored_len, int eof)
-{
+ulg flush_block(TState &state, char *buf, ulg stored_len, int eof) {
 	ulg opt_lenb, static_lenb; /* opt_len and static_len in bytes */
 	int max_blindex;  /* index of last bit length code of non zero freq */
 
@@ -2168,8 +2149,7 @@ ulg flush_block(TState &state, char *buf, ulg stored_len, int eof)
 	return state.ts.cmpr_bytelen + (state.ts.cmpr_len_bits >> 3);
 }
 
-int ct_tally(TState &state, int dist, int lc)
-{
+int ct_tally(TState &state, int dist, int lc) {
 	state.ts.l_buf[state.ts.last_lit++] = (uch)lc;
 	if (dist == 0) {
 		/* lc is the unmatched char */
@@ -2217,8 +2197,7 @@ int ct_tally(TState &state, int dist, int lc)
 	*/
 }
 
-void compress_block(TState &state, ct_data *ltree, ct_data *dtree)
-{
+void compress_block(TState &state, ct_data *ltree, ct_data *dtree) {
 	unsigned dist;      /* distance of matched string */
 	int lc;             /* match length or unmatched char (if dist == 0) */
 	unsigned lx = 0;    /* running index in l_buf */
@@ -2261,8 +2240,7 @@ void compress_block(TState &state, ct_data *ltree, ct_data *dtree)
 	send_code(state, END_BLOCK, ltree);
 }
 
-void set_file_type(TState &state)
-{
+void set_file_type(TState &state) {
 	int n = 0;
 	unsigned ascii_freq = 0;
 	unsigned bin_freq = 0;
@@ -2272,8 +2250,7 @@ void set_file_type(TState &state)
 	*state.ts.file_type = (ush)(bin_freq >(ascii_freq >> 2) ? BINARY : ASCII);
 }
 
-void bi_init(TState &state, char *tgt_buf, unsigned tgt_size, int flsh_allowed)
-{
+void bi_init(TState &state, char *tgt_buf, unsigned tgt_size, int flsh_allowed) {
 	state.bs.out_buf = tgt_buf;
 	state.bs.out_size = tgt_size;
 	state.bs.out_offset = 0;
@@ -2284,8 +2261,7 @@ void bi_init(TState &state, char *tgt_buf, unsigned tgt_size, int flsh_allowed)
 	state.bs.bits_sent = 0L;
 }
 
-void send_bits(TState &state, int value, int length)
-{
+void send_bits(TState &state, int value, int length) {
 	Assert(state, length > 0 && length <= 15, "invalid length");
 	state.bs.bits_sent += (ulg)length;
 	/* If not enough room in bi_buf, use (bi_valid) bits from bi_buf and
@@ -2302,8 +2278,7 @@ void send_bits(TState &state, int value, int length)
 	}
 }
 
-unsigned bi_reverse(unsigned code, int len)
-{
+unsigned bi_reverse(unsigned code, int len) {
 	register unsigned res = 0;
 	do {
 		res |= code & 1;
@@ -2312,8 +2287,7 @@ unsigned bi_reverse(unsigned code, int len)
 	return res >> 1;
 }
 
-void bi_windup(TState &state)
-{
+void bi_windup(TState &state) {
 	if (state.bs.bi_valid > 8) {
 		PUTSHORT(state, state.bs.bi_buf);
 	}
@@ -2328,8 +2302,7 @@ void bi_windup(TState &state)
 	state.bs.bits_sent = (state.bs.bits_sent + 7) & ~7;
 }
 
-void copy_block(TState &state, char *block, unsigned len, int header)
-{
+void copy_block(TState &state, char *block, unsigned len, int header) {
 	bi_windup(state);              /* align on byte boundary */
 
 	if (header) {
@@ -2364,8 +2337,7 @@ int  longest_match(TState &state, IPos cur_match);
     state.ds.prev[(s) & WMASK] = match_head = state.ds.head[state.ds.ins_h], \
     state.ds.head[state.ds.ins_h] = (s))
 
-void lm_init(TState &state, int pack_level, ush *flags)
-{
+void lm_init(TState &state, int pack_level, ush *flags) {
 	register unsigned j;
 
 	Assert(state, pack_level >= 1 && pack_level <= 8, "bad pack level");
@@ -2423,8 +2395,7 @@ void lm_init(TState &state, int pack_level, ush *flags)
 	*/
 }
 
-int longest_match(TState &state, IPos cur_match)
-{
+int longest_match(TState &state, IPos cur_match) {
 	unsigned chain_length = state.ds.max_chain_length;   /* max hash chain length */
 	register uch far *scan = state.ds.window + state.ds.strstart; /* current string */
 	register uch far *match;                    /* matched string */
@@ -2503,8 +2474,7 @@ int longest_match(TState &state, IPos cur_match)
 
 #define check_match(state,start, match, length)
 
-void fill_window(TState &state)
-{
+void fill_window(TState &state) {
 	register unsigned n, m;
 	unsigned more;    /* Amount of free space at the end of the window. */
 
@@ -2579,8 +2549,7 @@ void fill_window(TState &state)
    flush_block(state,state.ds.block_start >= 0L ? (char*)&state.ds.window[(unsigned)state.ds.block_start] : \
                 (char*)NULL, (long)state.ds.strstart - state.ds.block_start, (eof))
 
-ulg deflate_fast(TState &state)
-{
+ulg deflate_fast(TState &state) {
 	IPos hash_head = NIL;       /* head of the hash chain */
 	int flush;                  /* set if current block must be flushed */
 	unsigned match_length = 0;  /* length of best match */
@@ -2657,8 +2626,7 @@ ulg deflate_fast(TState &state)
 	return FLUSH_BLOCK(state, 1); /* eof */
 }
 
-ulg deflate(TState &state)
-{
+ulg deflate(TState &state) {
 	IPos hash_head = NIL;       /* head of hash chain */
 	IPos prev_match;            /* previous match */
 	int flush;                  /* set if current block must be flushed */
@@ -2763,8 +2731,7 @@ ulg deflate(TState &state)
 	return FLUSH_BLOCK(state, 1); /* eof */
 }
 
-int putlocal(struct zlist far *z, WRITEFUNC wfunc, void *param)
-{ // Write a local header described by *z to file *f.  Return a ZE_ error code.
+int putlocal(struct zlist far *z, WRITEFUNC wfunc, void *param) {
 	PUTLG(LOCSIG, f);
 	PUTSH(z->ver, f);
 	PUTSH(z->lflg, f);
@@ -2785,8 +2752,7 @@ int putlocal(struct zlist far *z, WRITEFUNC wfunc, void *param)
 	return ZE_OK;
 }
 
-int putextended(struct zlist far *z, WRITEFUNC wfunc, void *param)
-{ // Write an extended local header described by *z to file *f. Returns a ZE_ code
+int putextended(struct zlist far *z, WRITEFUNC wfunc, void *param) {
 	PUTLG(EXTLOCSIG, f);
 	PUTLG(z->crc, f);
 	PUTLG(z->siz, f);
@@ -2794,8 +2760,7 @@ int putextended(struct zlist far *z, WRITEFUNC wfunc, void *param)
 	return ZE_OK;
 }
 
-int putcentral(struct zlist far *z, WRITEFUNC wfunc, void *param)
-{ // Write a central header entry of *z to file *f. Returns a ZE_ code.
+int putcentral(struct zlist far *z, WRITEFUNC wfunc, void *param) {
 	PUTLG(CENSIG, f);
 	PUTSH(z->vem, f);
 	PUTSH(z->ver, f);
@@ -2819,8 +2784,7 @@ int putcentral(struct zlist far *z, WRITEFUNC wfunc, void *param)
 	return ZE_OK;
 }
 
-int putend(int n, ulg s, ulg c, extent m, char *z, WRITEFUNC wfunc, void *param)
-{ // write the end of the central-directory-data to file *f.
+int putend(int n, ulg s, ulg c, extent m, char *z, WRITEFUNC wfunc, void *param) {
 	PUTLG(ENDSIG, f);
 	PUTSH(0, f);
 	PUTSH(0, f);
@@ -2895,8 +2859,7 @@ const ulg crc_table[256] = {
 #define DO4(buf)  DO2(buf); DO2(buf)
 #define DO8(buf)  DO4(buf); DO4(buf)
 
-ulg crc32(ulg crc, const uch *buf, extent len)
-{
+ulg crc32(ulg crc, const uch *buf, extent len) {
 	if (buf == NULL) return 0L;
 	crc = crc ^ 0xffffffffL;
 	while (len >= 8) { DO8(buf); len -= 8; }
@@ -2904,27 +2867,7 @@ ulg crc32(ulg crc, const uch *buf, extent len)
 	return crc ^ 0xffffffffL;  // (instead of ~c for 64-bit machines)
 }
 
-void update_keys(unsigned long *keys, char c)
-{
-	keys[0] = CRC32(keys[0], c);
-	keys[1] += keys[0] & 0xFF;
-	keys[1] = keys[1] * 134775813L + 1;
-	keys[2] = CRC32(keys[2], keys[1] >> 24);
-}
-char decrypt_byte(unsigned long *keys)
-{
-	unsigned temp = ((unsigned)keys[2] & 0xffff) | 2;
-	return (char)(((temp * (temp ^ 1)) >> 8) & 0xff);
-}
-char zencode(unsigned long *keys, char c)
-{
-	int t = decrypt_byte(keys);
-	update_keys(keys, c);
-	return (char)(t^c);
-}
-
-bool HasZipSuffix(const TCHAR *fn)
-{
+bool HasZipSuffix(const TCHAR *fn) {
 	const TCHAR *ext = fn + _tcslen(fn);
 	while (ext>fn && *ext != '.') ext--;
 	if (ext == fn && *ext != '.') return false;
@@ -2939,15 +2882,12 @@ bool HasZipSuffix(const TCHAR *fn)
 	return false;
 }
 
-lutime_t filetime2timet(const FILETIME ft)
-{
+lutime_t filetime2timet(const FILETIME ft) {
 	__int64 i = *(__int64*)&ft;
 	return (lutime_t)((i - 116444736000000000) / 10000000);
 }
 
-void filetime2dosdatetime(const FILETIME ft, WORD *dosdate, WORD *dostime)
-{ // date: bits 0-4 are day of month 1-31. Bits 5-8 are month 1..12. Bits 9-15 are year-1980
-  // time: bits 0-4 are seconds/2, bits 5-10 are minute 0..59. Bits 11-15 are hour 0..23
+void filetime2dosdatetime(const FILETIME ft, WORD *dosdate, WORD *dostime) {
 	SYSTEMTIME st; FileTimeToSystemTime(&ft, &st);
 	*dosdate = (WORD)(((st.wYear - 1980) & 0x7f) << 9);
 	*dosdate |= (WORD)((st.wMonth & 0xf) << 5);
@@ -2957,13 +2897,7 @@ void filetime2dosdatetime(const FILETIME ft, WORD *dosdate, WORD *dostime)
 	*dostime |= (WORD)((st.wSecond * 2) & 0x1f);
 }
 
-ZRESULT GetFileInfo(HANDLE hf, ulg *attr, long *size, iztimes *times, ulg *timestamp)
-{ // The handle must be a handle to a file
-  // The date and time is returned in a long with the date most significant to allow
-  // unsigned integer comparison of absolute times. The attributes have two
-  // high bytes unix attr, and two low bytes a mapping of that to DOS attr.
-  //struct stat s; int res=stat(fn,&s); if (res!=0) return false;
-  // translate windows file attributes into zip ones.
+ZRESULT GetFileInfo(HANDLE hf, ulg *attr, long *size, iztimes *times, ulg *timestamp) {
 	BY_HANDLE_FILE_INFORMATION bhi; BOOL res = GetFileInformationByHandle(hf, &bhi);
 	if (!res) return ZR_NOFILE;
 	DWORD fa = bhi.dwFileAttributes; ulg a = 0;
@@ -3016,17 +2950,14 @@ ZRESULT GetFileInfo(HANDLE hf, ulg *attr, long *size, iztimes *times, ulg *times
 bool has_seeded = false;
 class TZip {
 public:
-	TZip() : hfout(0), mustclosehfout(false), hmapout(0), zfis(0), obuf(0), hfin(0), writ(0), oerr(false), hasputcen(false), ooffset(0), encwriting(false), encbuf(0), password(0), state(0) {}
+	TZip() : hfout(0), mustclosehfout(false), hmapout(0), zfis(0), obuf(0), hfin(0), writ(0), oerr(false), hasputcen(false), ooffset(0), state(0) {}
 	~TZip() {
 		if (state != 0) delete state;
 		state = 0;
-		if (encbuf != 0) delete[] encbuf;
-		encbuf = 0;
 	}
 
 	// These variables say about the file we're writing into
 	// We can write to pipe, file-by-handle, file-by-name, memory-to-memmapfile
-	char *password;           // keep a copy of the password
 	HANDLE hfout;             // if valid, we'll write here (for files or pipes)
 	bool mustclosehfout;      // if true, we are responsible for closing hfout
 	HANDLE hmapout;           // otherwise, we'll write here (for memmap)
@@ -3038,10 +2969,6 @@ public:
 	unsigned int opos;        // current pos in the mmap
 	unsigned int mapsize;     // the size of the map we created
 	bool hasputcen;           // have we yet placed the central directory?
-	bool encwriting;          // if true, then we'll encrypt stuff using 'keys' before we write it to disk
-	unsigned long keys[3];    // keys are initialised inside Add()
-	char *encbuf;             // if encrypting, then this is a temporary workspace for encrypting the data
-	unsigned int encbufsize;  // (to be used and resized inside write(), and deleted in the destructor)
 							  //
 	TZipFileInfo *zfis;       // each file gets added onto this list, for writing the table at the end
 	TState *state;            // we use just one state object per zip, because it's big (500k)
@@ -3090,14 +3017,6 @@ public:
 	}
 	unsigned int write(const char *buf, unsigned int size) {
 		const char *srcbuf = buf;
-		if (encwriting)
-		{
-			if (encbuf != 0 && encbufsize<size) { delete[] encbuf; encbuf = 0; }
-			if (encbuf == 0) { encbuf = new char[size * 2]; encbufsize = size; }
-			memcpy(encbuf, buf, size);
-			for (unsigned int i = 0; i<size; i++) encbuf[i] = zencode(keys, encbuf[i]);
-			srcbuf = encbuf;
-		}
 		if (obuf != 0)
 		{
 			if (opos + size >= mapsize) { oerr = ZR_MEMSIZE; return 0; }
@@ -3142,9 +3061,6 @@ public:
 		return res;
 	}
 
-	// some variables to do with the file currently being read:
-	// I haven't done it object-orientedly here, just put them all
-	// together, since OO didn't seem to make the design any clearer.
 	ulg attr; iztimes times; ulg timestamp;  // all open_* methods set these
 	bool iseekable; long isize, ired;         // size is not set until close() on pips
 	ulg crc;                                 // crc is not set until close(). iwrit is cumulative
@@ -3296,8 +3212,7 @@ public:
 		if (oerr) return ZR_FAILED;
 		if (hasputcen) return ZR_ENDED;
 
-		// if we use password encryption, then every isize and csize is 12 bytes bigger
-		int passex = 0; if (password != 0 && flags != ZIP_FOLDER) passex = 12;
+		int passex = 0;
 
 		// zip has its own notion of what its names should look like: i.e. dir/file.stuff
 		TCHAR dstzn[MAX_PATH]; _tcscpy(dstzn, odstzn);
@@ -3341,7 +3256,6 @@ public:
 		// Even though we write the header now, it will have to be rewritten, since we don't know compressed size or crc.
 		zfi.crc = 0;            // to be updated later
 		zfi.flg = 8;            // 8 means 'there is an extra header'. Assume for the moment that we need it.
-		if (password != 0 && !isdir) zfi.flg = 9;  // and 1 means 'password-encrypted'
 		zfi.lflg = zfi.flg;     // to be updated later
 		zfi.how = (ush)method;  // to be updated later
 		zfi.siz = (ulg)(method == STORE && isize >= 0 ? isize + passex : 0); // to be updated later
@@ -3381,25 +3295,11 @@ public:
 		writ += 4 + LOCHEAD + (unsigned int)zfi.nam + (unsigned int)zfi.ext;
 		if (oerr != ZR_OK) { iclose(); return oerr; }
 
-		// (1.5) if necessary, write the encryption header
-		keys[0] = 305419896L;
-		keys[1] = 591751049L;
-		keys[2] = 878082192L;
-		for (const char *cp = password; cp != 0 && *cp != 0; cp++) update_keys(keys, *cp);
-		// generate some random bytes
-		if (!has_seeded) srand(GetTickCount() ^ (unsigned long)GetDesktopWindow());
-		char encbuf[12]; for (int i = 0; i<12; i++) encbuf[i] = (char)((rand() >> 7) & 0xff);
-		encbuf[11] = (char)((zfi.tim >> 8) & 0xff);
-		for (int ei = 0; ei<12; ei++) encbuf[ei] = zencode(keys, encbuf[ei]);
-		if (password != 0 && !isdir) { swrite(this, encbuf, 12); writ += 12; }
-
 		//(2) Write deflated/stored file to zip file
 		ZRESULT writeres = ZR_OK;
-		encwriting = (password != 0 && !isdir);  // an object member variable to say whether we write to disk encrypted
 		if (!isdir && method == DEFLATE) writeres = ideflate(&zfi);
 		else if (!isdir && method == STORE) writeres = istore();
 		else if (isdir) csize = 0;
-		encwriting = false;
 		iclose();
 		writ += csize;
 		if (oerr != ZR_OK) return oerr;
@@ -3410,7 +3310,7 @@ public:
 		zfi.crc = crc;
 		zfi.siz = csize + passex;
 		zfi.len = isize;
-		if (ocanseek && (password == 0 || isdir))
+		if (ocanseek)
 		{
 			zfi.how = (ush)method;
 			if ((zfi.flg & 1) == 0) zfi.flg &= ~8; // clear the extended local header flag
@@ -3484,7 +3384,7 @@ typedef struct {
 	long unc_size;
 } ZIPENTRY;
 
-typedef struct  {
+typedef struct {
 	unsigned int tm_sec;
 	unsigned int tm_min;
 	unsigned int tm_hour;
@@ -3493,12 +3393,12 @@ typedef struct  {
 	unsigned int tm_year;
 } tm_unz;
 
-typedef struct  {
+typedef struct {
 	unsigned long number_entry;
 	unsigned long size_comment;
 } unz_global_info;
 
-typedef struct  {
+typedef struct {
 	unsigned long version;
 	unsigned long version_needed;
 	unsigned long flag;
@@ -3524,7 +3424,6 @@ typedef struct  {
 #define UNZ_BADZIPFILE          (-103)
 #define UNZ_INTERNALERROR       (-104)
 #define UNZ_CRCERROR            (-105)
-#define UNZ_PASSWORD            (-106)
 
 #define Z_NO_FLUSH      0
 #define Z_SYNC_FLUSH    2
@@ -3597,8 +3496,6 @@ unsigned long adler32(unsigned long adler, const unsigned char *buf, unsigned in
 unsigned long ucrc32(unsigned long crc, const unsigned char *buf, unsigned int len);
 
 const char   *zError(int err);
-const unsigned long *get_crc_table(void);
-
 typedef unsigned char  uch;
 typedef uch uchf;
 typedef unsigned short ush;
@@ -3800,147 +3697,146 @@ const unsigned int fixed_bl = 9;
 const unsigned int fixed_bd = 5;
 const inflate_huft fixed_tl[] = {
 	{ { { 96,7 } },256 },{ { { 0,8 } },80 },{ { { 0,8 } },16 },{ { { 84,8 } },115 },
-{ { { 82,7 } },31 },{ { { 0,8 } },112 },{ { { 0,8 } },48 },{ { { 0,9 } },192 },
-{ { { 80,7 } },10 },{ { { 0,8 } },96 },{ { { 0,8 } },32 },{ { { 0,9 } },160 },
-{ { { 0,8 } },0 },{ { { 0,8 } },128 },{ { { 0,8 } },64 },{ { { 0,9 } },224 },
-{ { { 80,7 } },6 },{ { { 0,8 } },88 },{ { { 0,8 } },24 },{ { { 0,9 } },144 },
-{ { { 83,7 } },59 },{ { { 0,8 } },120 },{ { { 0,8 } },56 },{ { { 0,9 } },208 },
-{ { { 81,7 } },17 },{ { { 0,8 } },104 },{ { { 0,8 } },40 },{ { { 0,9 } },176 },
-{ { { 0,8 } },8 },{ { { 0,8 } },136 },{ { { 0,8 } },72 },{ { { 0,9 } },240 },
-{ { { 80,7 } },4 },{ { { 0,8 } },84 },{ { { 0,8 } },20 },{ { { 85,8 } },227 },
-{ { { 83,7 } },43 },{ { { 0,8 } },116 },{ { { 0,8 } },52 },{ { { 0,9 } },200 },
-{ { { 81,7 } },13 },{ { { 0,8 } },100 },{ { { 0,8 } },36 },{ { { 0,9 } },168 },
-{ { { 0,8 } },4 },{ { { 0,8 } },132 },{ { { 0,8 } },68 },{ { { 0,9 } },232 },
-{ { { 80,7 } },8 },{ { { 0,8 } },92 },{ { { 0,8 } },28 },{ { { 0,9 } },152 },
-{ { { 84,7 } },83 },{ { { 0,8 } },124 },{ { { 0,8 } },60 },{ { { 0,9 } },216 },
-{ { { 82,7 } },23 },{ { { 0,8 } },108 },{ { { 0,8 } },44 },{ { { 0,9 } },184 },
-{ { { 0,8 } },12 },{ { { 0,8 } },140 },{ { { 0,8 } },76 },{ { { 0,9 } },248 },
-{ { { 80,7 } },3 },{ { { 0,8 } },82 },{ { { 0,8 } },18 },{ { { 85,8 } },163 },
-{ { { 83,7 } },35 },{ { { 0,8 } },114 },{ { { 0,8 } },50 },{ { { 0,9 } },196 },
-{ { { 81,7 } },11 },{ { { 0,8 } },98 },{ { { 0,8 } },34 },{ { { 0,9 } },164 },
-{ { { 0,8 } },2 },{ { { 0,8 } },130 },{ { { 0,8 } },66 },{ { { 0,9 } },228 },
-{ { { 80,7 } },7 },{ { { 0,8 } },90 },{ { { 0,8 } },26 },{ { { 0,9 } },148 },
-{ { { 84,7 } },67 },{ { { 0,8 } },122 },{ { { 0,8 } },58 },{ { { 0,9 } },212 },
-{ { { 82,7 } },19 },{ { { 0,8 } },106 },{ { { 0,8 } },42 },{ { { 0,9 } },180 },
-{ { { 0,8 } },10 },{ { { 0,8 } },138 },{ { { 0,8 } },74 },{ { { 0,9 } },244 },
-{ { { 80,7 } },5 },{ { { 0,8 } },86 },{ { { 0,8 } },22 },{ { { 192,8 } },0 },
-{ { { 83,7 } },51 },{ { { 0,8 } },118 },{ { { 0,8 } },54 },{ { { 0,9 } },204 },
-{ { { 81,7 } },15 },{ { { 0,8 } },102 },{ { { 0,8 } },38 },{ { { 0,9 } },172 },
-{ { { 0,8 } },6 },{ { { 0,8 } },134 },{ { { 0,8 } },70 },{ { { 0,9 } },236 },
-{ { { 80,7 } },9 },{ { { 0,8 } },94 },{ { { 0,8 } },30 },{ { { 0,9 } },156 },
-{ { { 84,7 } },99 },{ { { 0,8 } },126 },{ { { 0,8 } },62 },{ { { 0,9 } },220 },
-{ { { 82,7 } },27 },{ { { 0,8 } },110 },{ { { 0,8 } },46 },{ { { 0,9 } },188 },
-{ { { 0,8 } },14 },{ { { 0,8 } },142 },{ { { 0,8 } },78 },{ { { 0,9 } },252 },
-{ { { 96,7 } },256 },{ { { 0,8 } },81 },{ { { 0,8 } },17 },{ { { 85,8 } },131 },
-{ { { 82,7 } },31 },{ { { 0,8 } },113 },{ { { 0,8 } },49 },{ { { 0,9 } },194 },
-{ { { 80,7 } },10 },{ { { 0,8 } },97 },{ { { 0,8 } },33 },{ { { 0,9 } },162 },
-{ { { 0,8 } },1 },{ { { 0,8 } },129 },{ { { 0,8 } },65 },{ { { 0,9 } },226 },
-{ { { 80,7 } },6 },{ { { 0,8 } },89 },{ { { 0,8 } },25 },{ { { 0,9 } },146 },
-{ { { 83,7 } },59 },{ { { 0,8 } },121 },{ { { 0,8 } },57 },{ { { 0,9 } },210 },
-{ { { 81,7 } },17 },{ { { 0,8 } },105 },{ { { 0,8 } },41 },{ { { 0,9 } },178 },
-{ { { 0,8 } },9 },{ { { 0,8 } },137 },{ { { 0,8 } },73 },{ { { 0,9 } },242 },
-{ { { 80,7 } },4 },{ { { 0,8 } },85 },{ { { 0,8 } },21 },{ { { 80,8 } },258 },
-{ { { 83,7 } },43 },{ { { 0,8 } },117 },{ { { 0,8 } },53 },{ { { 0,9 } },202 },
-{ { { 81,7 } },13 },{ { { 0,8 } },101 },{ { { 0,8 } },37 },{ { { 0,9 } },170 },
-{ { { 0,8 } },5 },{ { { 0,8 } },133 },{ { { 0,8 } },69 },{ { { 0,9 } },234 },
-{ { { 80,7 } },8 },{ { { 0,8 } },93 },{ { { 0,8 } },29 },{ { { 0,9 } },154 },
-{ { { 84,7 } },83 },{ { { 0,8 } },125 },{ { { 0,8 } },61 },{ { { 0,9 } },218 },
-{ { { 82,7 } },23 },{ { { 0,8 } },109 },{ { { 0,8 } },45 },{ { { 0,9 } },186 },
-{ { { 0,8 } },13 },{ { { 0,8 } },141 },{ { { 0,8 } },77 },{ { { 0,9 } },250 },
-{ { { 80,7 } },3 },{ { { 0,8 } },83 },{ { { 0,8 } },19 },{ { { 85,8 } },195 },
-{ { { 83,7 } },35 },{ { { 0,8 } },115 },{ { { 0,8 } },51 },{ { { 0,9 } },198 },
-{ { { 81,7 } },11 },{ { { 0,8 } },99 },{ { { 0,8 } },35 },{ { { 0,9 } },166 },
-{ { { 0,8 } },3 },{ { { 0,8 } },131 },{ { { 0,8 } },67 },{ { { 0,9 } },230 },
-{ { { 80,7 } },7 },{ { { 0,8 } },91 },{ { { 0,8 } },27 },{ { { 0,9 } },150 },
-{ { { 84,7 } },67 },{ { { 0,8 } },123 },{ { { 0,8 } },59 },{ { { 0,9 } },214 },
-{ { { 82,7 } },19 },{ { { 0,8 } },107 },{ { { 0,8 } },43 },{ { { 0,9 } },182 },
-{ { { 0,8 } },11 },{ { { 0,8 } },139 },{ { { 0,8 } },75 },{ { { 0,9 } },246 },
-{ { { 80,7 } },5 },{ { { 0,8 } },87 },{ { { 0,8 } },23 },{ { { 192,8 } },0 },
-{ { { 83,7 } },51 },{ { { 0,8 } },119 },{ { { 0,8 } },55 },{ { { 0,9 } },206 },
-{ { { 81,7 } },15 },{ { { 0,8 } },103 },{ { { 0,8 } },39 },{ { { 0,9 } },174 },
-{ { { 0,8 } },7 },{ { { 0,8 } },135 },{ { { 0,8 } },71 },{ { { 0,9 } },238 },
-{ { { 80,7 } },9 },{ { { 0,8 } },95 },{ { { 0,8 } },31 },{ { { 0,9 } },158 },
-{ { { 84,7 } },99 },{ { { 0,8 } },127 },{ { { 0,8 } },63 },{ { { 0,9 } },222 },
-{ { { 82,7 } },27 },{ { { 0,8 } },111 },{ { { 0,8 } },47 },{ { { 0,9 } },190 },
-{ { { 0,8 } },15 },{ { { 0,8 } },143 },{ { { 0,8 } },79 },{ { { 0,9 } },254 },
-{ { { 96,7 } },256 },{ { { 0,8 } },80 },{ { { 0,8 } },16 },{ { { 84,8 } },115 },
-{ { { 82,7 } },31 },{ { { 0,8 } },112 },{ { { 0,8 } },48 },{ { { 0,9 } },193 },
-{ { { 80,7 } },10 },{ { { 0,8 } },96 },{ { { 0,8 } },32 },{ { { 0,9 } },161 },
-{ { { 0,8 } },0 },{ { { 0,8 } },128 },{ { { 0,8 } },64 },{ { { 0,9 } },225 },
-{ { { 80,7 } },6 },{ { { 0,8 } },88 },{ { { 0,8 } },24 },{ { { 0,9 } },145 },
-{ { { 83,7 } },59 },{ { { 0,8 } },120 },{ { { 0,8 } },56 },{ { { 0,9 } },209 },
-{ { { 81,7 } },17 },{ { { 0,8 } },104 },{ { { 0,8 } },40 },{ { { 0,9 } },177 },
-{ { { 0,8 } },8 },{ { { 0,8 } },136 },{ { { 0,8 } },72 },{ { { 0,9 } },241 },
-{ { { 80,7 } },4 },{ { { 0,8 } },84 },{ { { 0,8 } },20 },{ { { 85,8 } },227 },
-{ { { 83,7 } },43 },{ { { 0,8 } },116 },{ { { 0,8 } },52 },{ { { 0,9 } },201 },
-{ { { 81,7 } },13 },{ { { 0,8 } },100 },{ { { 0,8 } },36 },{ { { 0,9 } },169 },
-{ { { 0,8 } },4 },{ { { 0,8 } },132 },{ { { 0,8 } },68 },{ { { 0,9 } },233 },
-{ { { 80,7 } },8 },{ { { 0,8 } },92 },{ { { 0,8 } },28 },{ { { 0,9 } },153 },
-{ { { 84,7 } },83 },{ { { 0,8 } },124 },{ { { 0,8 } },60 },{ { { 0,9 } },217 },
-{ { { 82,7 } },23 },{ { { 0,8 } },108 },{ { { 0,8 } },44 },{ { { 0,9 } },185 },
-{ { { 0,8 } },12 },{ { { 0,8 } },140 },{ { { 0,8 } },76 },{ { { 0,9 } },249 },
-{ { { 80,7 } },3 },{ { { 0,8 } },82 },{ { { 0,8 } },18 },{ { { 85,8 } },163 },
-{ { { 83,7 } },35 },{ { { 0,8 } },114 },{ { { 0,8 } },50 },{ { { 0,9 } },197 },
-{ { { 81,7 } },11 },{ { { 0,8 } },98 },{ { { 0,8 } },34 },{ { { 0,9 } },165 },
-{ { { 0,8 } },2 },{ { { 0,8 } },130 },{ { { 0,8 } },66 },{ { { 0,9 } },229 },
-{ { { 80,7 } },7 },{ { { 0,8 } },90 },{ { { 0,8 } },26 },{ { { 0,9 } },149 },
-{ { { 84,7 } },67 },{ { { 0,8 } },122 },{ { { 0,8 } },58 },{ { { 0,9 } },213 },
-{ { { 82,7 } },19 },{ { { 0,8 } },106 },{ { { 0,8 } },42 },{ { { 0,9 } },181 },
-{ { { 0,8 } },10 },{ { { 0,8 } },138 },{ { { 0,8 } },74 },{ { { 0,9 } },245 },
-{ { { 80,7 } },5 },{ { { 0,8 } },86 },{ { { 0,8 } },22 },{ { { 192,8 } },0 },
-{ { { 83,7 } },51 },{ { { 0,8 } },118 },{ { { 0,8 } },54 },{ { { 0,9 } },205 },
-{ { { 81,7 } },15 },{ { { 0,8 } },102 },{ { { 0,8 } },38 },{ { { 0,9 } },173 },
-{ { { 0,8 } },6 },{ { { 0,8 } },134 },{ { { 0,8 } },70 },{ { { 0,9 } },237 },
-{ { { 80,7 } },9 },{ { { 0,8 } },94 },{ { { 0,8 } },30 },{ { { 0,9 } },157 },
-{ { { 84,7 } },99 },{ { { 0,8 } },126 },{ { { 0,8 } },62 },{ { { 0,9 } },221 },
-{ { { 82,7 } },27 },{ { { 0,8 } },110 },{ { { 0,8 } },46 },{ { { 0,9 } },189 },
-{ { { 0,8 } },14 },{ { { 0,8 } },142 },{ { { 0,8 } },78 },{ { { 0,9 } },253 },
-{ { { 96,7 } },256 },{ { { 0,8 } },81 },{ { { 0,8 } },17 },{ { { 85,8 } },131 },
-{ { { 82,7 } },31 },{ { { 0,8 } },113 },{ { { 0,8 } },49 },{ { { 0,9 } },195 },
-{ { { 80,7 } },10 },{ { { 0,8 } },97 },{ { { 0,8 } },33 },{ { { 0,9 } },163 },
-{ { { 0,8 } },1 },{ { { 0,8 } },129 },{ { { 0,8 } },65 },{ { { 0,9 } },227 },
-{ { { 80,7 } },6 },{ { { 0,8 } },89 },{ { { 0,8 } },25 },{ { { 0,9 } },147 },
-{ { { 83,7 } },59 },{ { { 0,8 } },121 },{ { { 0,8 } },57 },{ { { 0,9 } },211 },
-{ { { 81,7 } },17 },{ { { 0,8 } },105 },{ { { 0,8 } },41 },{ { { 0,9 } },179 },
-{ { { 0,8 } },9 },{ { { 0,8 } },137 },{ { { 0,8 } },73 },{ { { 0,9 } },243 },
-{ { { 80,7 } },4 },{ { { 0,8 } },85 },{ { { 0,8 } },21 },{ { { 80,8 } },258 },
-{ { { 83,7 } },43 },{ { { 0,8 } },117 },{ { { 0,8 } },53 },{ { { 0,9 } },203 },
-{ { { 81,7 } },13 },{ { { 0,8 } },101 },{ { { 0,8 } },37 },{ { { 0,9 } },171 },
-{ { { 0,8 } },5 },{ { { 0,8 } },133 },{ { { 0,8 } },69 },{ { { 0,9 } },235 },
-{ { { 80,7 } },8 },{ { { 0,8 } },93 },{ { { 0,8 } },29 },{ { { 0,9 } },155 },
-{ { { 84,7 } },83 },{ { { 0,8 } },125 },{ { { 0,8 } },61 },{ { { 0,9 } },219 },
-{ { { 82,7 } },23 },{ { { 0,8 } },109 },{ { { 0,8 } },45 },{ { { 0,9 } },187 },
-{ { { 0,8 } },13 },{ { { 0,8 } },141 },{ { { 0,8 } },77 },{ { { 0,9 } },251 },
-{ { { 80,7 } },3 },{ { { 0,8 } },83 },{ { { 0,8 } },19 },{ { { 85,8 } },195 },
-{ { { 83,7 } },35 },{ { { 0,8 } },115 },{ { { 0,8 } },51 },{ { { 0,9 } },199 },
-{ { { 81,7 } },11 },{ { { 0,8 } },99 },{ { { 0,8 } },35 },{ { { 0,9 } },167 },
-{ { { 0,8 } },3 },{ { { 0,8 } },131 },{ { { 0,8 } },67 },{ { { 0,9 } },231 },
-{ { { 80,7 } },7 },{ { { 0,8 } },91 },{ { { 0,8 } },27 },{ { { 0,9 } },151 },
-{ { { 84,7 } },67 },{ { { 0,8 } },123 },{ { { 0,8 } },59 },{ { { 0,9 } },215 },
-{ { { 82,7 } },19 },{ { { 0,8 } },107 },{ { { 0,8 } },43 },{ { { 0,9 } },183 },
-{ { { 0,8 } },11 },{ { { 0,8 } },139 },{ { { 0,8 } },75 },{ { { 0,9 } },247 },
-{ { { 80,7 } },5 },{ { { 0,8 } },87 },{ { { 0,8 } },23 },{ { { 192,8 } },0 },
-{ { { 83,7 } },51 },{ { { 0,8 } },119 },{ { { 0,8 } },55 },{ { { 0,9 } },207 },
-{ { { 81,7 } },15 },{ { { 0,8 } },103 },{ { { 0,8 } },39 },{ { { 0,9 } },175 },
-{ { { 0,8 } },7 },{ { { 0,8 } },135 },{ { { 0,8 } },71 },{ { { 0,9 } },239 },
-{ { { 80,7 } },9 },{ { { 0,8 } },95 },{ { { 0,8 } },31 },{ { { 0,9 } },159 },
-{ { { 84,7 } },99 },{ { { 0,8 } },127 },{ { { 0,8 } },63 },{ { { 0,9 } },223 },
-{ { { 82,7 } },27 },{ { { 0,8 } },111 },{ { { 0,8 } },47 },{ { { 0,9 } },191 },
-{ { { 0,8 } },15 },{ { { 0,8 } },143 },{ { { 0,8 } },79 },{ { { 0,9 } },255 }
+	{ { { 82,7 } },31 },{ { { 0,8 } },112 },{ { { 0,8 } },48 },{ { { 0,9 } },192 },
+	{ { { 80,7 } },10 },{ { { 0,8 } },96 },{ { { 0,8 } },32 },{ { { 0,9 } },160 },
+	{ { { 0,8 } },0 },{ { { 0,8 } },128 },{ { { 0,8 } },64 },{ { { 0,9 } },224 },
+	{ { { 80,7 } },6 },{ { { 0,8 } },88 },{ { { 0,8 } },24 },{ { { 0,9 } },144 },
+	{ { { 83,7 } },59 },{ { { 0,8 } },120 },{ { { 0,8 } },56 },{ { { 0,9 } },208 },
+	{ { { 81,7 } },17 },{ { { 0,8 } },104 },{ { { 0,8 } },40 },{ { { 0,9 } },176 },
+	{ { { 0,8 } },8 },{ { { 0,8 } },136 },{ { { 0,8 } },72 },{ { { 0,9 } },240 },
+	{ { { 80,7 } },4 },{ { { 0,8 } },84 },{ { { 0,8 } },20 },{ { { 85,8 } },227 },
+	{ { { 83,7 } },43 },{ { { 0,8 } },116 },{ { { 0,8 } },52 },{ { { 0,9 } },200 },
+	{ { { 81,7 } },13 },{ { { 0,8 } },100 },{ { { 0,8 } },36 },{ { { 0,9 } },168 },
+	{ { { 0,8 } },4 },{ { { 0,8 } },132 },{ { { 0,8 } },68 },{ { { 0,9 } },232 },
+	{ { { 80,7 } },8 },{ { { 0,8 } },92 },{ { { 0,8 } },28 },{ { { 0,9 } },152 },
+	{ { { 84,7 } },83 },{ { { 0,8 } },124 },{ { { 0,8 } },60 },{ { { 0,9 } },216 },
+	{ { { 82,7 } },23 },{ { { 0,8 } },108 },{ { { 0,8 } },44 },{ { { 0,9 } },184 },
+	{ { { 0,8 } },12 },{ { { 0,8 } },140 },{ { { 0,8 } },76 },{ { { 0,9 } },248 },
+	{ { { 80,7 } },3 },{ { { 0,8 } },82 },{ { { 0,8 } },18 },{ { { 85,8 } },163 },
+	{ { { 83,7 } },35 },{ { { 0,8 } },114 },{ { { 0,8 } },50 },{ { { 0,9 } },196 },
+	{ { { 81,7 } },11 },{ { { 0,8 } },98 },{ { { 0,8 } },34 },{ { { 0,9 } },164 },
+	{ { { 0,8 } },2 },{ { { 0,8 } },130 },{ { { 0,8 } },66 },{ { { 0,9 } },228 },
+	{ { { 80,7 } },7 },{ { { 0,8 } },90 },{ { { 0,8 } },26 },{ { { 0,9 } },148 },
+	{ { { 84,7 } },67 },{ { { 0,8 } },122 },{ { { 0,8 } },58 },{ { { 0,9 } },212 },
+	{ { { 82,7 } },19 },{ { { 0,8 } },106 },{ { { 0,8 } },42 },{ { { 0,9 } },180 },
+	{ { { 0,8 } },10 },{ { { 0,8 } },138 },{ { { 0,8 } },74 },{ { { 0,9 } },244 },
+	{ { { 80,7 } },5 },{ { { 0,8 } },86 },{ { { 0,8 } },22 },{ { { 192,8 } },0 },
+	{ { { 83,7 } },51 },{ { { 0,8 } },118 },{ { { 0,8 } },54 },{ { { 0,9 } },204 },
+	{ { { 81,7 } },15 },{ { { 0,8 } },102 },{ { { 0,8 } },38 },{ { { 0,9 } },172 },
+	{ { { 0,8 } },6 },{ { { 0,8 } },134 },{ { { 0,8 } },70 },{ { { 0,9 } },236 },
+	{ { { 80,7 } },9 },{ { { 0,8 } },94 },{ { { 0,8 } },30 },{ { { 0,9 } },156 },
+	{ { { 84,7 } },99 },{ { { 0,8 } },126 },{ { { 0,8 } },62 },{ { { 0,9 } },220 },
+	{ { { 82,7 } },27 },{ { { 0,8 } },110 },{ { { 0,8 } },46 },{ { { 0,9 } },188 },
+	{ { { 0,8 } },14 },{ { { 0,8 } },142 },{ { { 0,8 } },78 },{ { { 0,9 } },252 },
+	{ { { 96,7 } },256 },{ { { 0,8 } },81 },{ { { 0,8 } },17 },{ { { 85,8 } },131 },
+	{ { { 82,7 } },31 },{ { { 0,8 } },113 },{ { { 0,8 } },49 },{ { { 0,9 } },194 },
+	{ { { 80,7 } },10 },{ { { 0,8 } },97 },{ { { 0,8 } },33 },{ { { 0,9 } },162 },
+	{ { { 0,8 } },1 },{ { { 0,8 } },129 },{ { { 0,8 } },65 },{ { { 0,9 } },226 },
+	{ { { 80,7 } },6 },{ { { 0,8 } },89 },{ { { 0,8 } },25 },{ { { 0,9 } },146 },
+	{ { { 83,7 } },59 },{ { { 0,8 } },121 },{ { { 0,8 } },57 },{ { { 0,9 } },210 },
+	{ { { 81,7 } },17 },{ { { 0,8 } },105 },{ { { 0,8 } },41 },{ { { 0,9 } },178 },
+	{ { { 0,8 } },9 },{ { { 0,8 } },137 },{ { { 0,8 } },73 },{ { { 0,9 } },242 },
+	{ { { 80,7 } },4 },{ { { 0,8 } },85 },{ { { 0,8 } },21 },{ { { 80,8 } },258 },
+	{ { { 83,7 } },43 },{ { { 0,8 } },117 },{ { { 0,8 } },53 },{ { { 0,9 } },202 },
+	{ { { 81,7 } },13 },{ { { 0,8 } },101 },{ { { 0,8 } },37 },{ { { 0,9 } },170 },
+	{ { { 0,8 } },5 },{ { { 0,8 } },133 },{ { { 0,8 } },69 },{ { { 0,9 } },234 },
+	{ { { 80,7 } },8 },{ { { 0,8 } },93 },{ { { 0,8 } },29 },{ { { 0,9 } },154 },
+	{ { { 84,7 } },83 },{ { { 0,8 } },125 },{ { { 0,8 } },61 },{ { { 0,9 } },218 },
+	{ { { 82,7 } },23 },{ { { 0,8 } },109 },{ { { 0,8 } },45 },{ { { 0,9 } },186 },
+	{ { { 0,8 } },13 },{ { { 0,8 } },141 },{ { { 0,8 } },77 },{ { { 0,9 } },250 },
+	{ { { 80,7 } },3 },{ { { 0,8 } },83 },{ { { 0,8 } },19 },{ { { 85,8 } },195 },
+	{ { { 83,7 } },35 },{ { { 0,8 } },115 },{ { { 0,8 } },51 },{ { { 0,9 } },198 },
+	{ { { 81,7 } },11 },{ { { 0,8 } },99 },{ { { 0,8 } },35 },{ { { 0,9 } },166 },
+	{ { { 0,8 } },3 },{ { { 0,8 } },131 },{ { { 0,8 } },67 },{ { { 0,9 } },230 },
+	{ { { 80,7 } },7 },{ { { 0,8 } },91 },{ { { 0,8 } },27 },{ { { 0,9 } },150 },
+	{ { { 84,7 } },67 },{ { { 0,8 } },123 },{ { { 0,8 } },59 },{ { { 0,9 } },214 },
+	{ { { 82,7 } },19 },{ { { 0,8 } },107 },{ { { 0,8 } },43 },{ { { 0,9 } },182 },
+	{ { { 0,8 } },11 },{ { { 0,8 } },139 },{ { { 0,8 } },75 },{ { { 0,9 } },246 },
+	{ { { 80,7 } },5 },{ { { 0,8 } },87 },{ { { 0,8 } },23 },{ { { 192,8 } },0 },
+	{ { { 83,7 } },51 },{ { { 0,8 } },119 },{ { { 0,8 } },55 },{ { { 0,9 } },206 },
+	{ { { 81,7 } },15 },{ { { 0,8 } },103 },{ { { 0,8 } },39 },{ { { 0,9 } },174 },
+	{ { { 0,8 } },7 },{ { { 0,8 } },135 },{ { { 0,8 } },71 },{ { { 0,9 } },238 },
+	{ { { 80,7 } },9 },{ { { 0,8 } },95 },{ { { 0,8 } },31 },{ { { 0,9 } },158 },
+	{ { { 84,7 } },99 },{ { { 0,8 } },127 },{ { { 0,8 } },63 },{ { { 0,9 } },222 },
+	{ { { 82,7 } },27 },{ { { 0,8 } },111 },{ { { 0,8 } },47 },{ { { 0,9 } },190 },
+	{ { { 0,8 } },15 },{ { { 0,8 } },143 },{ { { 0,8 } },79 },{ { { 0,9 } },254 },
+	{ { { 96,7 } },256 },{ { { 0,8 } },80 },{ { { 0,8 } },16 },{ { { 84,8 } },115 },
+	{ { { 82,7 } },31 },{ { { 0,8 } },112 },{ { { 0,8 } },48 },{ { { 0,9 } },193 },
+	{ { { 80,7 } },10 },{ { { 0,8 } },96 },{ { { 0,8 } },32 },{ { { 0,9 } },161 },
+	{ { { 0,8 } },0 },{ { { 0,8 } },128 },{ { { 0,8 } },64 },{ { { 0,9 } },225 },
+	{ { { 80,7 } },6 },{ { { 0,8 } },88 },{ { { 0,8 } },24 },{ { { 0,9 } },145 },
+	{ { { 83,7 } },59 },{ { { 0,8 } },120 },{ { { 0,8 } },56 },{ { { 0,9 } },209 },
+	{ { { 81,7 } },17 },{ { { 0,8 } },104 },{ { { 0,8 } },40 },{ { { 0,9 } },177 },
+	{ { { 0,8 } },8 },{ { { 0,8 } },136 },{ { { 0,8 } },72 },{ { { 0,9 } },241 },
+	{ { { 80,7 } },4 },{ { { 0,8 } },84 },{ { { 0,8 } },20 },{ { { 85,8 } },227 },
+	{ { { 83,7 } },43 },{ { { 0,8 } },116 },{ { { 0,8 } },52 },{ { { 0,9 } },201 },
+	{ { { 81,7 } },13 },{ { { 0,8 } },100 },{ { { 0,8 } },36 },{ { { 0,9 } },169 },
+	{ { { 0,8 } },4 },{ { { 0,8 } },132 },{ { { 0,8 } },68 },{ { { 0,9 } },233 },
+	{ { { 80,7 } },8 },{ { { 0,8 } },92 },{ { { 0,8 } },28 },{ { { 0,9 } },153 },
+	{ { { 84,7 } },83 },{ { { 0,8 } },124 },{ { { 0,8 } },60 },{ { { 0,9 } },217 },
+	{ { { 82,7 } },23 },{ { { 0,8 } },108 },{ { { 0,8 } },44 },{ { { 0,9 } },185 },
+	{ { { 0,8 } },12 },{ { { 0,8 } },140 },{ { { 0,8 } },76 },{ { { 0,9 } },249 },
+	{ { { 80,7 } },3 },{ { { 0,8 } },82 },{ { { 0,8 } },18 },{ { { 85,8 } },163 },
+	{ { { 83,7 } },35 },{ { { 0,8 } },114 },{ { { 0,8 } },50 },{ { { 0,9 } },197 },
+	{ { { 81,7 } },11 },{ { { 0,8 } },98 },{ { { 0,8 } },34 },{ { { 0,9 } },165 },
+	{ { { 0,8 } },2 },{ { { 0,8 } },130 },{ { { 0,8 } },66 },{ { { 0,9 } },229 },
+	{ { { 80,7 } },7 },{ { { 0,8 } },90 },{ { { 0,8 } },26 },{ { { 0,9 } },149 },
+	{ { { 84,7 } },67 },{ { { 0,8 } },122 },{ { { 0,8 } },58 },{ { { 0,9 } },213 },
+	{ { { 82,7 } },19 },{ { { 0,8 } },106 },{ { { 0,8 } },42 },{ { { 0,9 } },181 },
+	{ { { 0,8 } },10 },{ { { 0,8 } },138 },{ { { 0,8 } },74 },{ { { 0,9 } },245 },
+	{ { { 80,7 } },5 },{ { { 0,8 } },86 },{ { { 0,8 } },22 },{ { { 192,8 } },0 },
+	{ { { 83,7 } },51 },{ { { 0,8 } },118 },{ { { 0,8 } },54 },{ { { 0,9 } },205 },
+	{ { { 81,7 } },15 },{ { { 0,8 } },102 },{ { { 0,8 } },38 },{ { { 0,9 } },173 },
+	{ { { 0,8 } },6 },{ { { 0,8 } },134 },{ { { 0,8 } },70 },{ { { 0,9 } },237 },
+	{ { { 80,7 } },9 },{ { { 0,8 } },94 },{ { { 0,8 } },30 },{ { { 0,9 } },157 },
+	{ { { 84,7 } },99 },{ { { 0,8 } },126 },{ { { 0,8 } },62 },{ { { 0,9 } },221 },
+	{ { { 82,7 } },27 },{ { { 0,8 } },110 },{ { { 0,8 } },46 },{ { { 0,9 } },189 },
+	{ { { 0,8 } },14 },{ { { 0,8 } },142 },{ { { 0,8 } },78 },{ { { 0,9 } },253 },
+	{ { { 96,7 } },256 },{ { { 0,8 } },81 },{ { { 0,8 } },17 },{ { { 85,8 } },131 },
+	{ { { 82,7 } },31 },{ { { 0,8 } },113 },{ { { 0,8 } },49 },{ { { 0,9 } },195 },
+	{ { { 80,7 } },10 },{ { { 0,8 } },97 },{ { { 0,8 } },33 },{ { { 0,9 } },163 },
+	{ { { 0,8 } },1 },{ { { 0,8 } },129 },{ { { 0,8 } },65 },{ { { 0,9 } },227 },
+	{ { { 80,7 } },6 },{ { { 0,8 } },89 },{ { { 0,8 } },25 },{ { { 0,9 } },147 },
+	{ { { 83,7 } },59 },{ { { 0,8 } },121 },{ { { 0,8 } },57 },{ { { 0,9 } },211 },
+	{ { { 81,7 } },17 },{ { { 0,8 } },105 },{ { { 0,8 } },41 },{ { { 0,9 } },179 },
+	{ { { 0,8 } },9 },{ { { 0,8 } },137 },{ { { 0,8 } },73 },{ { { 0,9 } },243 },
+	{ { { 80,7 } },4 },{ { { 0,8 } },85 },{ { { 0,8 } },21 },{ { { 80,8 } },258 },
+	{ { { 83,7 } },43 },{ { { 0,8 } },117 },{ { { 0,8 } },53 },{ { { 0,9 } },203 },
+	{ { { 81,7 } },13 },{ { { 0,8 } },101 },{ { { 0,8 } },37 },{ { { 0,9 } },171 },
+	{ { { 0,8 } },5 },{ { { 0,8 } },133 },{ { { 0,8 } },69 },{ { { 0,9 } },235 },
+	{ { { 80,7 } },8 },{ { { 0,8 } },93 },{ { { 0,8 } },29 },{ { { 0,9 } },155 },
+	{ { { 84,7 } },83 },{ { { 0,8 } },125 },{ { { 0,8 } },61 },{ { { 0,9 } },219 },
+	{ { { 82,7 } },23 },{ { { 0,8 } },109 },{ { { 0,8 } },45 },{ { { 0,9 } },187 },
+	{ { { 0,8 } },13 },{ { { 0,8 } },141 },{ { { 0,8 } },77 },{ { { 0,9 } },251 },
+	{ { { 80,7 } },3 },{ { { 0,8 } },83 },{ { { 0,8 } },19 },{ { { 85,8 } },195 },
+	{ { { 83,7 } },35 },{ { { 0,8 } },115 },{ { { 0,8 } },51 },{ { { 0,9 } },199 },
+	{ { { 81,7 } },11 },{ { { 0,8 } },99 },{ { { 0,8 } },35 },{ { { 0,9 } },167 },
+	{ { { 0,8 } },3 },{ { { 0,8 } },131 },{ { { 0,8 } },67 },{ { { 0,9 } },231 },
+	{ { { 80,7 } },7 },{ { { 0,8 } },91 },{ { { 0,8 } },27 },{ { { 0,9 } },151 },
+	{ { { 84,7 } },67 },{ { { 0,8 } },123 },{ { { 0,8 } },59 },{ { { 0,9 } },215 },
+	{ { { 82,7 } },19 },{ { { 0,8 } },107 },{ { { 0,8 } },43 },{ { { 0,9 } },183 },
+	{ { { 0,8 } },11 },{ { { 0,8 } },139 },{ { { 0,8 } },75 },{ { { 0,9 } },247 },
+	{ { { 80,7 } },5 },{ { { 0,8 } },87 },{ { { 0,8 } },23 },{ { { 192,8 } },0 },
+	{ { { 83,7 } },51 },{ { { 0,8 } },119 },{ { { 0,8 } },55 },{ { { 0,9 } },207 },
+	{ { { 81,7 } },15 },{ { { 0,8 } },103 },{ { { 0,8 } },39 },{ { { 0,9 } },175 },
+	{ { { 0,8 } },7 },{ { { 0,8 } },135 },{ { { 0,8 } },71 },{ { { 0,9 } },239 },
+	{ { { 80,7 } },9 },{ { { 0,8 } },95 },{ { { 0,8 } },31 },{ { { 0,9 } },159 },
+	{ { { 84,7 } },99 },{ { { 0,8 } },127 },{ { { 0,8 } },63 },{ { { 0,9 } },223 },
+	{ { { 82,7 } },27 },{ { { 0,8 } },111 },{ { { 0,8 } },47 },{ { { 0,9 } },191 },
+	{ { { 0,8 } },15 },{ { { 0,8 } },143 },{ { { 0,8 } },79 },{ { { 0,9 } },255 }
 };
 const inflate_huft fixed_td[] = {
 	{ { { 80,5 } },1 },{ { { 87,5 } },257 },{ { { 83,5 } },17 },{ { { 91,5 } },4097 },
-{ { { 81,5 } },5 },{ { { 89,5 } },1025 },{ { { 85,5 } },65 },{ { { 93,5 } },16385 },
-{ { { 80,5 } },3 },{ { { 88,5 } },513 },{ { { 84,5 } },33 },{ { { 92,5 } },8193 },
-{ { { 82,5 } },9 },{ { { 90,5 } },2049 },{ { { 86,5 } },129 },{ { { 192,5 } },24577 },
-{ { { 80,5 } },2 },{ { { 87,5 } },385 },{ { { 83,5 } },25 },{ { { 91,5 } },6145 },
-{ { { 81,5 } },7 },{ { { 89,5 } },1537 },{ { { 85,5 } },97 },{ { { 93,5 } },24577 },
-{ { { 80,5 } },4 },{ { { 88,5 } },769 },{ { { 84,5 } },49 },{ { { 92,5 } },12289 },
-{ { { 82,5 } },13 },{ { { 90,5 } },3073 },{ { { 86,5 } },193 },{ { { 192,5 } },24577 }
+	{ { { 81,5 } },5 },{ { { 89,5 } },1025 },{ { { 85,5 } },65 },{ { { 93,5 } },16385 },
+	{ { { 80,5 } },3 },{ { { 88,5 } },513 },{ { { 84,5 } },33 },{ { { 92,5 } },8193 },
+	{ { { 82,5 } },9 },{ { { 90,5 } },2049 },{ { { 86,5 } },129 },{ { { 192,5 } },24577 },
+	{ { { 80,5 } },2 },{ { { 87,5 } },385 },{ { { 83,5 } },25 },{ { { 91,5 } },6145 },
+	{ { { 81,5 } },7 },{ { { 89,5 } },1537 },{ { { 85,5 } },97 },{ { { 93,5 } },24577 },
+	{ { { 80,5 } },4 },{ { { 88,5 } },769 },{ { { 84,5 } },49 },{ { { 92,5 } },12289 },
+	{ { { 82,5 } },13 },{ { { 90,5 } },3073 },{ { { 86,5 } },193 },{ { { 192,5 } },24577 }
 };
 
-int inflate_flush(inflate_blocks_statef *s, z_streamp z, int r)
-{
+int inflate_flush(inflate_blocks_statef *s, z_streamp z, int r) {
 	unsigned int n;
 	unsigned char *p;
 	unsigned char *q;
@@ -4051,8 +3947,7 @@ inflate_codes_statef *inflate_codes_new(
 	unsigned int bl, unsigned int bd,
 	const inflate_huft *tl,
 	const inflate_huft *td, // need separate declaration for Borland C++
-	z_streamp z)
-{
+	z_streamp z) {
 	inflate_codes_statef *c;
 
 	if ((c = (inflate_codes_statef *)
@@ -4068,8 +3963,7 @@ inflate_codes_statef *inflate_codes_new(
 	return c;
 }
 
-int inflate_codes(inflate_blocks_statef *s, z_streamp z, int r)
-{
+int inflate_codes(inflate_blocks_statef *s, z_streamp z, int r) {
 	unsigned int j;               // temporary storage
 	const inflate_huft *t;      // temporary pointer
 	unsigned int e;               // extra bits or operation
@@ -4225,8 +4119,7 @@ int inflate_codes(inflate_blocks_statef *s, z_streamp z, int r)
 		}
 }
 
-void inflate_codes_free(inflate_codes_statef *c, z_streamp z)
-{
+void inflate_codes_free(inflate_codes_statef *c, z_streamp z) {
 	ZFREE(z, c);
 	LuTracev((stderr, "inflate:       codes free\n"));
 }
@@ -4234,8 +4127,7 @@ void inflate_codes_free(inflate_codes_statef *c, z_streamp z)
 const unsigned int border[] = { // Order of the bit length code lengths
 	16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 };
 
-void inflate_blocks_reset(inflate_blocks_statef *s, z_streamp z, unsigned long *c)
-{
+void inflate_blocks_reset(inflate_blocks_statef *s, z_streamp z, unsigned long *c) {
 	if (c != Z_NULL)
 		*c = s->check;
 	if (s->mode == IBM_BTREE || s->mode == IBM_DTREE)
@@ -4251,8 +4143,7 @@ void inflate_blocks_reset(inflate_blocks_statef *s, z_streamp z, unsigned long *
 	LuTracev((stderr, "inflate:   blocks reset\n"));
 }
 
-inflate_blocks_statef *inflate_blocks_new(z_streamp z, check_func c, unsigned int w)
-{
+inflate_blocks_statef *inflate_blocks_new(z_streamp z, check_func c, unsigned int w) {
 	inflate_blocks_statef *s;
 
 	if ((s = (inflate_blocks_statef *)ZALLOC
@@ -4278,8 +4169,7 @@ inflate_blocks_statef *inflate_blocks_new(z_streamp z, check_func c, unsigned in
 	return s;
 }
 
-int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r)
-{
+int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r) {
 	unsigned int t;               // temporary storage
 	unsigned long b;              // bit buffer
 	unsigned int k;               // bits in bit buffer
@@ -4526,8 +4416,7 @@ int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r)
 		}
 }
 
-int inflate_blocks_free(inflate_blocks_statef *s, z_streamp z)
-{
+int inflate_blocks_free(inflate_blocks_statef *s, z_streamp z) {
 	inflate_blocks_reset(s, z, Z_NULL);
 	ZFREE(z, s->window);
 	ZFREE(z, s->hufts);
@@ -4575,8 +4464,7 @@ int huft_build(
 	unsigned int *m,               // maximum lookup bits, returns actual
 	inflate_huft *hp,       // space for trees
 	unsigned int *hn,               // hufts used in space
-	unsigned int *v)               // working area: values in order of bit length
-{
+	unsigned int *v) {
 
 	unsigned int a;                       // counter for codes of length k
 	unsigned int c[BMAX + 1];               // bit length count table
@@ -4766,8 +4654,7 @@ int inflate_trees_bits(
 	unsigned int *bb,              // bits tree desired/actual depth
 	inflate_huft * *tb, // bits tree result
 	inflate_huft *hp,       // space for trees
-	z_streamp z)            // for messages
-{
+	z_streamp z) {
 	int r;
 	unsigned int hn = 0;          // hufts used in space 
 	unsigned int *v;             // work area for huft_build 
@@ -4797,8 +4684,7 @@ int inflate_trees_dynamic(
 	inflate_huft * *tl, // literal/length tree result
 	inflate_huft * *td, // distance tree result
 	inflate_huft *hp,       // space for trees
-	z_streamp z)            // for messages
-{
+	z_streamp z) {
 	int r;
 	unsigned int hn = 0;          // hufts used in space 
 	unsigned int *v;             // work area for huft_build 
@@ -4855,8 +4741,7 @@ int inflate_trees_fixed(
 	unsigned int *bd,               // distance desired/actual bit depth
 	const inflate_huft * * tl,     // literal/length tree result
 	const inflate_huft * *td,     // distance tree result
-	z_streamp)             // for memory allocation
-{
+	z_streamp) {
 	*bl = fixed_bl;
 	*bd = fixed_bd;
 	*tl = fixed_tl;
@@ -4872,8 +4757,7 @@ int inflate_fast(
 	const inflate_huft *tl,
 	const inflate_huft *td, // need separate declaration for Borland C++
 	inflate_blocks_statef *s,
-	z_streamp z)
-{
+	z_streamp z) {
 	const inflate_huft *t;      // temporary pointer 
 	unsigned int e;               // extra bits or operation 
 	unsigned long b;              // bit buffer 
@@ -5024,42 +4908,17 @@ int inflate_fast(
 		return Z_OK;
 }
 
-const unsigned long * get_crc_table()
-{
-	return (const unsigned long *)crc_table;
-}
-
 #define CRC_DO1(buf) crc = crc_table[((int)crc ^ (*buf++)) & 0xff] ^ (crc >> 8);
 #define CRC_DO2(buf)  CRC_DO1(buf); CRC_DO1(buf);
 #define CRC_DO4(buf)  CRC_DO2(buf); CRC_DO2(buf);
 #define CRC_DO8(buf)  CRC_DO4(buf); CRC_DO4(buf);
 
-unsigned long ucrc32(unsigned long crc, const unsigned char *buf, unsigned int len)
-{
+unsigned long ucrc32(unsigned long crc, const unsigned char *buf, unsigned int len) {
 	if (buf == Z_NULL) return 0L;
 	crc = crc ^ 0xffffffffL;
 	while (len >= 8) { CRC_DO8(buf); len -= 8; }
 	if (len) do { CRC_DO1(buf); } while (--len);
 	return crc ^ 0xffffffffL;
-}
-
-void Uupdate_keys(unsigned long *keys, char c)
-{
-	keys[0] = CRC32(keys[0], c);
-	keys[1] += keys[0] & 0xFF;
-	keys[1] = keys[1] * 134775813L + 1;
-	keys[2] = CRC32(keys[2], keys[1] >> 24);
-}
-char Udecrypt_byte(unsigned long *keys)
-{
-	unsigned temp = ((unsigned)keys[2] & 0xffff) | 2;
-	return (char)(((temp * (temp ^ 1)) >> 8) & 0xff);
-}
-char zdecode(unsigned long *keys, char c)
-{
-	c ^= Udecrypt_byte(keys);
-	Uupdate_keys(keys, c);
-	return c;
 }
 
 #define BASE 65521L // largest prime smaller than 65536
@@ -5071,8 +4930,7 @@ char zdecode(unsigned long *keys, char c)
 #define AD_DO8(buf,i)  AD_DO4(buf,i); AD_DO4(buf,i+4);
 #define AD_DO16(buf)   AD_DO8(buf,0); AD_DO8(buf,8);
 
-unsigned long adler32(unsigned long adler, const unsigned char *buf, unsigned int len)
-{
+unsigned long adler32(unsigned long adler, const unsigned char *buf, unsigned int len) {
 	unsigned long s1 = adler & 0xffff;
 	unsigned long s2 = (adler >> 16) & 0xffff;
 	int k;
@@ -5096,20 +4954,14 @@ unsigned long adler32(unsigned long adler, const unsigned char *buf, unsigned in
 	}
 	return (s2 << 16) | s1;
 }
-
-const char * zError(int err)
-{
+const char * zError(int err) {
 	return ERR_MSG(err);
 }
-
-void * zcalloc(void * opaque, unsigned items, unsigned size)
-{
+void * zcalloc(void * opaque, unsigned items, unsigned size) {
 	if (opaque) items += size - size; // make compiler happy
 	return (void *)calloc(items, size);
 }
-
-void  zcfree(void * opaque, void * ptr)
-{
+void  zcfree(void * opaque, void * ptr) {
 	free(ptr);
 	if (opaque) return; // make compiler happy
 }
@@ -5155,8 +5007,7 @@ struct internal_state {
 
 };
 
-int inflateReset(z_streamp z)
-{
+int inflateReset(z_streamp z) {
 	if (z == Z_NULL || z->state == Z_NULL)
 		return Z_STREAM_ERROR;
 	z->total_in = z->total_out = 0;
@@ -5166,8 +5017,7 @@ int inflateReset(z_streamp z)
 	LuTracev((stderr, "inflate: reset\n"));
 	return Z_OK;
 }
-int inflateEnd(z_streamp z)
-{
+int inflateEnd(z_streamp z) {
 	if (z == Z_NULL || z->state == Z_NULL || z->zfree == Z_NULL)
 		return Z_STREAM_ERROR;
 	if (z->state->blocks != Z_NULL)
@@ -5177,8 +5027,7 @@ int inflateEnd(z_streamp z)
 	LuTracev((stderr, "inflate: end\n"));
 	return Z_OK;
 }
-int inflateInit2(z_streamp z)
-{
+int inflateInit2(z_streamp z) {
 	int stream_size = sizeof(z_stream);
 
 	int w = -15; // MAX_WBITS: 32K LZ77 window.
@@ -5243,8 +5092,7 @@ int inflateInit2(z_streamp z)
 #define IM_NEEDBYTE {if(z->avail_in==0)return r;r=f;}
 #define IM_NEXTBYTE (z->avail_in--,z->total_in++,*z->next_in++)
 
-int inflate(z_streamp z, int f)
-{
+int inflate(z_streamp z, int f) {
 	int r;
 	unsigned int b;
 
@@ -5370,13 +5218,11 @@ int inflate(z_streamp z, int f)
 #define SIZECENTRALDIRITEM (0x2e)
 #define SIZEZIPLOCALHEADER (0x1e)
 
-typedef struct unz_file_info_internal_s
-{
+typedef struct unz_file_info_internal_s {
 	unsigned long offset_curfile;// relative offset of local header 4 bytes
 } unz_file_info_internal;
 
-typedef struct
-{
+typedef struct {
 	bool is_handle; // either a handle or memory
 	bool canseek;
 	// for handles:
@@ -5385,29 +5231,22 @@ typedef struct
 	void *buf; unsigned int len, pos; // if it's a memory block
 } LUFILE;
 
-int lufclose(LUFILE *stream)
-{
+int lufclose(LUFILE *stream) {
 	if (stream == NULL) return EOF;
 	if (stream->mustclosehandle) CloseHandle(stream->h);
 	delete stream;
 	return 0;
 }
-
-int luferror(LUFILE *stream)
-{
+int luferror(LUFILE *stream) {
 	if (stream->is_handle && stream->herr) return 1;
 	else return 0;
 }
-
-long int luftell(LUFILE *stream)
-{
+long int luftell(LUFILE *stream) {
 	if (stream->is_handle && stream->canseek) return SetFilePointer(stream->h, 0, NULL, FILE_CURRENT) - stream->initial_offset;
 	else if (stream->is_handle) return 0;
 	else return stream->pos;
 }
-
-int lufseek(LUFILE *stream, long offset, int whence)
-{
+int lufseek(LUFILE *stream, long offset, int whence) {
 	if (stream->is_handle && stream->canseek)
 	{
 		if (whence == SEEK_SET) SetFilePointer(stream->h, stream->initial_offset + offset, 0, FILE_BEGIN);
@@ -5425,9 +5264,7 @@ int lufseek(LUFILE *stream, long offset, int whence)
 		return 0;
 	}
 }
-
-size_t lufread(void *ptr, size_t size, size_t n, LUFILE *stream)
-{
+size_t lufread(void *ptr, size_t size, size_t n, LUFILE *stream) {
 	unsigned int toread = (unsigned int)(size*n);
 	if (stream->is_handle)
 	{
@@ -5441,8 +5278,7 @@ size_t lufread(void *ptr, size_t size, size_t n, LUFILE *stream)
 	return red / size;
 }
 
-typedef struct
-{
+typedef struct {
 	char  *read_buffer;         // internal buffer for compressed data
 	z_stream stream;            // zLib stream structure for inflate
 
@@ -5460,14 +5296,9 @@ typedef struct
 	LUFILE* file;                 // io structore of the zipfile
 	unsigned long compression_method;   // compression method (0==store)
 	unsigned long byte_before_the_zipfile;// byte before the zipfile, (>0 for sfx)
-	bool encrypted;               // is it encrypted?
-	unsigned long keys[3];        // decryption keys, initialized by unzOpenCurrentFile
-	int encheadleft;              // the first call(s) to unzReadCurrentFile will read this many encryption-header bytes first
-	char crcenctest;              // if encrypted, we'll check the encryption buffer against this
 } file_in_zip_read_info_s;
 
-typedef struct
-{
+typedef struct {
 	LUFILE* file;               // io structore of the zipfile
 	unz_global_info gi;         // public global information
 	unsigned long byte_before_the_zipfile;// byte before the zipfile, (>0 for sfx)
@@ -5488,8 +5319,7 @@ int unzStringFileNameCompare(const char* fileName1, const char* fileName2, int i
 long unztell(unzFile file);
 int unzeof(unzFile file);
 int unzGetLocalExtrafield(unzFile file, void * buf, unsigned len);
-int unzlocal_getByte(LUFILE *fin, int *pi)
-{
+int unzlocal_getByte(LUFILE *fin, int *pi) {
 	unsigned char c;
 	int err = (int)lufread(&c, 1, 1, fin);
 	if (err == 1)
@@ -5503,8 +5333,7 @@ int unzlocal_getByte(LUFILE *fin, int *pi)
 		else return UNZ_EOF;
 	}
 }
-int unzlocal_getShort(LUFILE *fin, unsigned long *pX)
-{
+int unzlocal_getShort(LUFILE *fin, unsigned long *pX) {
 	unsigned long x;
 	int i;
 	int err;
@@ -5522,8 +5351,7 @@ int unzlocal_getShort(LUFILE *fin, unsigned long *pX)
 		*pX = 0;
 	return err;
 }
-int unzlocal_getLong(LUFILE *fin, unsigned long *pX)
-{
+int unzlocal_getLong(LUFILE *fin, unsigned long *pX) {
 	unsigned long x;
 	int i;
 	int err;
@@ -5549,36 +5377,9 @@ int unzlocal_getLong(LUFILE *fin, unsigned long *pX)
 		*pX = 0;
 	return err;
 }
-int strcmpcasenosensitive_internal(const char* fileName1, const char *fileName2)
-{
-	for (;;)
-	{
-		char c1 = *(fileName1++);
-		char c2 = *(fileName2++);
-		if ((c1 >= 'a') && (c1 <= 'z'))
-			c1 -= (char)0x20;
-		if ((c2 >= 'a') && (c2 <= 'z'))
-			c2 -= (char)0x20;
-		if (c1 == '\0')
-			return ((c2 == '\0') ? 0 : -1);
-		if (c2 == '\0')
-			return 1;
-		if (c1<c2)
-			return -1;
-		if (c1>c2)
-			return 1;
-	}
-}
-int unzStringFileNameCompare(const char*fileName1, const char*fileName2, int iCaseSensitivity)
-{
-	if (iCaseSensitivity == 1) return strcmp(fileName1, fileName2);
-	else return strcmpcasenosensitive_internal(fileName1, fileName2);
-}
-
 #define BUFREADCOMMENT (0x400)
 
-unsigned long unzlocal_SearchCentralDir(LUFILE *fin)
-{
+unsigned long unzlocal_SearchCentralDir(LUFILE *fin) {
 	if (lufseek(fin, 0, SEEK_END) != 0) return 0xFFFFFFFF;
 	unsigned long uSizeFile = luftell(fin);
 
@@ -5612,12 +5413,9 @@ unsigned long unzlocal_SearchCentralDir(LUFILE *fin)
 	if (buf) free(buf);
 	return uPosFound;
 }
-
 int unzGoToFirstFile(unzFile file);
 int unzCloseCurrentFile(unzFile file);
-
-int unzClose(unzFile file)
-{
+int unzClose(unzFile file) {
 	unz_s* s;
 	if (file == NULL)
 		return UNZ_PARAMERROR;
@@ -5630,9 +5428,7 @@ int unzClose(unzFile file)
 	if (s) free(s); // unused s=0;
 	return UNZ_OK;
 }
-
-int unzGetGlobalInfo(unzFile file, unz_global_info *pglobal_info)
-{
+int unzGetGlobalInfo(unzFile file, unz_global_info *pglobal_info) {
 	unz_s* s;
 	if (file == NULL)
 		return UNZ_PARAMERROR;
@@ -5640,9 +5436,7 @@ int unzGetGlobalInfo(unzFile file, unz_global_info *pglobal_info)
 	*pglobal_info = s->gi;
 	return UNZ_OK;
 }
-
-void unzlocal_DosDateToTmuDate(unsigned long ulDosDate, tm_unz* ptm)
-{
+void unzlocal_DosDateToTmuDate(unsigned long ulDosDate, tm_unz* ptm) {
 	unsigned long uDate;
 	uDate = (unsigned long)(ulDosDate >> 16);
 	ptm->tm_mday = (unsigned int)(uDate & 0x1f);
@@ -5653,7 +5447,6 @@ void unzlocal_DosDateToTmuDate(unsigned long ulDosDate, tm_unz* ptm)
 	ptm->tm_min = (unsigned int)((ulDosDate & 0x7E0) / 0x20);
 	ptm->tm_sec = (unsigned int)(2 * (ulDosDate & 0x1f));
 }
-
 int unzlocal_GetCurrentFileInfoInternal(unzFile file,
 	unz_file_info *pfile_info,
 	unz_file_info_internal
@@ -5664,12 +5457,10 @@ int unzlocal_GetCurrentFileInfoInternal(unzFile file,
 	unsigned long extraFieldBufferSize,
 	char *szComment,
 	unsigned long commentBufferSize);
-
 int unzlocal_GetCurrentFileInfoInternal(unzFile file, unz_file_info *pfile_info,
 	unz_file_info_internal *pfile_info_internal, char *szFileName,
 	unsigned long fileNameBufferSize, void *extraField, unsigned long extraFieldBufferSize,
-	char *szComment, unsigned long commentBufferSize)
-{
+	char *szComment, unsigned long commentBufferSize) {
 	unz_s* s;
 	unz_file_info file_info;
 	unz_file_info_internal file_info_internal;
@@ -5811,17 +5602,13 @@ int unzlocal_GetCurrentFileInfoInternal(unzFile file, unz_file_info *pfile_info,
 
 	return err;
 }
-
 int unzGetCurrentFileInfo(unzFile file, unz_file_info *pfile_info,
 	char *szFileName, unsigned long fileNameBufferSize, void *extraField, unsigned long extraFieldBufferSize,
-	char *szComment, unsigned long commentBufferSize)
-{
+	char *szComment, unsigned long commentBufferSize) {
 	return unzlocal_GetCurrentFileInfoInternal(file, pfile_info, NULL, szFileName, fileNameBufferSize,
 		extraField, extraFieldBufferSize, szComment, commentBufferSize);
 }
-
-int unzGoToFirstFile(unzFile file)
-{
+int unzGoToFirstFile(unzFile file) {
 	int err;
 	unz_s* s;
 	if (file == NULL) return UNZ_PARAMERROR;
@@ -5834,9 +5621,7 @@ int unzGoToFirstFile(unzFile file)
 	s->current_file_ok = (err == UNZ_OK);
 	return err;
 }
-
-int unzGoToNextFile(unzFile file)
-{
+int unzGoToNextFile(unzFile file) {
 	unz_s* s;
 	int err;
 
@@ -5857,9 +5642,7 @@ int unzGoToNextFile(unzFile file)
 	s->current_file_ok = (err == UNZ_OK);
 	return err;
 }
-
-int unzLocateFile(unzFile file, const char *szFileName, int iCaseSensitivity)
-{
+int unzLocateFile(unzFile file, const char *szFileName) {
 	unz_s* s;
 	int err;
 
@@ -5889,7 +5672,7 @@ int unzLocateFile(unzFile file, const char *szFileName, int iCaseSensitivity)
 		unzGetCurrentFileInfo(file, NULL,
 			szCurrentFileName, sizeof(szCurrentFileName) - 1,
 			NULL, 0, NULL, 0);
-		if (unzStringFileNameCompare(szCurrentFileName, szFileName, iCaseSensitivity) == 0)
+		if (strcmp(szCurrentFileName, szFileName) == 0)
 			return UNZ_OK;
 		err = unzGoToNextFile(file);
 	}
@@ -5898,10 +5681,8 @@ int unzLocateFile(unzFile file, const char *szFileName, int iCaseSensitivity)
 	s->pos_in_central_dir = pos_in_central_dirSaved;
 	return err;
 }
-
 int unzlocal_CheckCurrentFileCoherencyHeader(unz_s *s, unsigned int *piSizeVar,
-	unsigned long *poffset_local_extrafield, unsigned int  *psize_local_extrafield)
-{
+	unsigned long *poffset_local_extrafield, unsigned int  *psize_local_extrafield) {
 	unsigned long uMagic, uData, uFlags;
 	unsigned long size_filename;
 	unsigned long size_extra_field;
@@ -5976,9 +5757,7 @@ int unzlocal_CheckCurrentFileCoherencyHeader(unz_s *s, unsigned int *piSizeVar,
 
 	return err;
 }
-
-int unzOpenCurrentFile(unzFile file, const char *password)
-{
+int unzOpenCurrentFile(unzFile file) {
 	int err;
 	int Store;
 	unsigned int iSizeVar;
@@ -6039,24 +5818,10 @@ int unzOpenCurrentFile(unzFile file, const char *password)
 		err = inflateInit2(&pfile_in_zip_read_info->stream);
 		if (err == Z_OK)
 			pfile_in_zip_read_info->stream_initialised = 1;
-		// windowBits is passed < 0 to tell that there is no zlib header.
-		// Note that in this case inflate *requires* an extra "dummy" byte
-		// after the compressed stream in order to complete decompression and
-		// return Z_STREAM_END.
-		// In unzip, i don't wait absolutely Z_STREAM_END because I known the
-		// size of both compressed and uncompressed data
 	}
 	pfile_in_zip_read_info->rest_read_compressed = s->cur_file_info.compressed_size;
 	pfile_in_zip_read_info->rest_read_uncompressed = s->cur_file_info.uncompressed_size;
-	pfile_in_zip_read_info->encrypted = (s->cur_file_info.flag & 1) != 0;
 	bool extlochead = (s->cur_file_info.flag & 8) != 0;
-	if (extlochead) pfile_in_zip_read_info->crcenctest = (char)((s->cur_file_info.dosDate >> 8) & 0xff);
-	else pfile_in_zip_read_info->crcenctest = (char)(s->cur_file_info.crc >> 24);
-	pfile_in_zip_read_info->encheadleft = (pfile_in_zip_read_info->encrypted ? 12 : 0);
-	pfile_in_zip_read_info->keys[0] = 305419896L;
-	pfile_in_zip_read_info->keys[1] = 591751049L;
-	pfile_in_zip_read_info->keys[2] = 878082192L;
-	for (const char *cp = password; cp != 0 && *cp != 0; cp++) Uupdate_keys(pfile_in_zip_read_info->keys, *cp);
 
 	pfile_in_zip_read_info->pos_in_zipfile =
 		s->cur_file_info_internal.offset_curfile + SIZEZIPLOCALHEADER +
@@ -6068,9 +5833,7 @@ int unzOpenCurrentFile(unzFile file, const char *password)
 
 	return UNZ_OK;
 }
-
-int unzReadCurrentFile(unzFile file, void * buf, unsigned len, bool *reached_eof)
-{
+int unzReadCurrentFile(unzFile file, void * buf, unsigned len, bool *reached_eof) {
 	int err = UNZ_OK;
 	unsigned int iRead = 0;
 	if (reached_eof != 0) *reached_eof = false;
@@ -6104,15 +5867,9 @@ int unzReadCurrentFile(unzFile file, void * buf, unsigned len, bool *reached_eof
 			pfile_in_zip_read_info->rest_read_compressed -= uReadThis;
 			pfile_in_zip_read_info->stream.next_in = (unsigned char*)pfile_in_zip_read_info->read_buffer;
 			pfile_in_zip_read_info->stream.avail_in = (unsigned int)uReadThis;
-			//
-			if (pfile_in_zip_read_info->encrypted)
-			{
-				char *buf = (char*)pfile_in_zip_read_info->stream.next_in;
-				for (unsigned int i = 0; i<uReadThis; i++) buf[i] = zdecode(pfile_in_zip_read_info->keys, buf[i]);
-			}
 		}
 
-		unsigned int uDoEncHead = pfile_in_zip_read_info->encheadleft;
+		unsigned int uDoEncHead = 0;
 		if (uDoEncHead>pfile_in_zip_read_info->stream.avail_in) uDoEncHead = pfile_in_zip_read_info->stream.avail_in;
 		if (uDoEncHead>0)
 		{
@@ -6120,11 +5877,6 @@ int unzReadCurrentFile(unzFile file, void * buf, unsigned len, bool *reached_eof
 			pfile_in_zip_read_info->rest_read_uncompressed -= uDoEncHead;
 			pfile_in_zip_read_info->stream.avail_in -= uDoEncHead;
 			pfile_in_zip_read_info->stream.next_in += uDoEncHead;
-			pfile_in_zip_read_info->encheadleft -= uDoEncHead;
-			if (pfile_in_zip_read_info->encheadleft == 0)
-			{
-				if (bufcrc != pfile_in_zip_read_info->crcenctest) return UNZ_PASSWORD;
-			}
 		}
 
 		if (pfile_in_zip_read_info->compression_method == 0)
@@ -6177,9 +5929,7 @@ int unzReadCurrentFile(unzFile file, void * buf, unsigned len, bool *reached_eof
 	if (err == Z_OK) return iRead;
 	return err;
 }
-
-long unztell(unzFile file)
-{
+long unztell(unzFile file) {
 	unz_s* s;
 	file_in_zip_read_info_s* pfile_in_zip_read_info;
 	if (file == NULL)
@@ -6192,9 +5942,7 @@ long unztell(unzFile file)
 
 	return (long)pfile_in_zip_read_info->stream.total_out;
 }
-
-int unzeof(unzFile file)
-{
+int unzeof(unzFile file) {
 	unz_s* s;
 	file_in_zip_read_info_s* pfile_in_zip_read_info;
 	if (file == NULL)
@@ -6210,9 +5958,7 @@ int unzeof(unzFile file)
 	else
 		return 0;
 }
-
-int unzGetLocalExtrafield(unzFile file, void * buf, unsigned len)
-{
+int unzGetLocalExtrafield(unzFile file, void * buf, unsigned len) {
 	unz_s* s;
 	file_in_zip_read_info_s* pfile_in_zip_read_info;
 	unsigned int read_now;
@@ -6248,9 +5994,7 @@ int unzGetLocalExtrafield(unzFile file, void * buf, unsigned len)
 
 	return (int)read_now;
 }
-
-int unzCloseCurrentFile(unzFile file)
-{
+int unzCloseCurrentFile(unzFile file) {
 	int err = UNZ_OK;
 
 	unz_s* s;
@@ -6288,9 +6032,7 @@ int unzCloseCurrentFile(unzFile file)
 
 	return err;
 }
-
-int unzGetGlobalComment(unzFile file, char *szComment, unsigned long uSizeBuf)
-{ //int err=UNZ_OK;
+int unzGetGlobalComment(unzFile file, char *szComment, unsigned long uSizeBuf) {
 	unz_s* s;
 	unsigned long uReadThis;
 	if (file == NULL) return UNZ_PARAMERROR;
@@ -6307,21 +6049,14 @@ int unzGetGlobalComment(unzFile file, char *szComment, unsigned long uSizeBuf)
 	return (int)uReadThis;
 }
 
-int unzOpenCurrentFile(unzFile file, const char *password);
-int unzCloseCurrentFile(unzFile file);
-
-FILETIME timet2filetime(const lutime_t t)
-{
+FILETIME timet2filetime(const lutime_t t) {
 	LONGLONG i = Int32x32To64(t, 10000000) + 116444736000000000;
 	FILETIME ft;
 	ft.dwLowDateTime = (DWORD)i;
 	ft.dwHighDateTime = (DWORD)(i >> 32);
 	return ft;
 }
-
-FILETIME dosdatetime2filetime(WORD dosdate, WORD dostime)
-{ // date: bits 0-4 are day of month 1-31. Bits 5-8 are month 1..12. Bits 9-15 are year-1980
-  // time: bits 0-4 are seconds/2, bits 5-10 are minute 0..59. Bits 11-15 are hour 0..23
+FILETIME dosdatetime2filetime(WORD dosdate, WORD dostime) {
 	SYSTEMTIME st;
 	st.wYear = (WORD)(((dosdate >> 9) & 0x7f) + 1980);
 	st.wMonth = (WORD)((dosdate >> 5) & 0xf);
@@ -6337,54 +6072,34 @@ FILETIME dosdatetime2filetime(WORD dosdate, WORD dostime)
 
 class TUnzip {
 public:
-	TUnzip() : uf(0), unzbuf(0), currentfile(-1), czei(-1), password(0) {}
+	TUnzip() : uf(0), unzbuf(0), currentfile(-1), czei(-1) {}
 	~TUnzip() {
 		if (unzbuf != 0) delete[] unzbuf;
 		unzbuf = 0;
 	}
 
 	unzFile uf;
+	char *unzbuf;
 	int currentfile;
 	ZIPENTRY cze;
 	int czei;
-	char *password;
-	char *unzbuf;
-	TCHAR rootdir[MAX_PATH];
 
-	ZRESULT Open(void *z, unsigned int len, DWORD flags) {
-		GetCurrentDirectory(MAX_PATH, rootdir);
-		TCHAR lastchar = rootdir[_strlen(rootdir) - 1];
-		if (lastchar != '\\' && lastchar != '/') _strcat(rootdir, "\\");
-		ZRESULT e;
+	ZRESULT Open(void *z) {
+		HANDLE h = CreateFile((const TCHAR*)z, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (h == INVALID_HANDLE_VALUE)return NULL;
 
-		HANDLE h = 0; bool canseek = false;
-		bool mustclosehandle = false;
-		if (flags == ZIP_FILENAME)
-		{
-			h = CreateFile((const TCHAR*)z, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-			if (h == INVALID_HANDLE_VALUE) { return NULL; }
-			mustclosehandle = true;
-			DWORD res = SetFilePointer(h, 0, 0, FILE_CURRENT);
-			canseek = (res != 0xFFFFFFFF);
-		}
-		LUFILE *lf = new LUFILE;
-		if (flags == ZIP_FILENAME)
-		{
-			lf->is_handle = true; lf->mustclosehandle = mustclosehandle;
-			lf->canseek = canseek;
-			lf->h = h; lf->herr = false;
-			lf->initial_offset = 0;
-			if (canseek) lf->initial_offset = SetFilePointer(h, 0, NULL, FILE_CURRENT);
-		}
-		else
-		{
-			lf->is_handle = false;
-			lf->canseek = true;
-			lf->mustclosehandle = false;
-			lf->buf = z; lf->len = len; lf->pos = 0; lf->initial_offset = 0;
-		}
+		DWORD res = SetFilePointer(h, 0, 0, FILE_CURRENT);
+		bool mustclosehandle = true;
+		bool canseek = (res != 0xFFFFFFFF);
 
-		if (lf == NULL) return NULL;
+		LUFILE *lf = new LUFILE();
+		lf->is_handle = true;
+		lf->mustclosehandle = mustclosehandle;
+		lf->canseek = canseek;
+		lf->h = h;
+		lf->herr = false;
+		lf->initial_offset = 0;
+		if (canseek) lf->initial_offset = SetFilePointer(h, 0, NULL, FILE_CURRENT);
 
 		int err = UNZ_OK;
 		unz_s us;
@@ -6392,25 +6107,17 @@ public:
 		central_pos = unzlocal_SearchCentralDir(lf);
 		if (central_pos == 0xFFFFFFFF) err = UNZ_ERRNO;
 		if (lufseek(lf, central_pos, SEEK_SET) != 0) err = UNZ_ERRNO;
-		// the signature, already checked
 		if (unzlocal_getLong(lf, &uL) != UNZ_OK) err = UNZ_ERRNO;
-		// number of this disk
-		unsigned long number_disk;          // number of the current dist, used for spanning ZIP, unsupported, always 0
+		unsigned long number_disk;
 		if (unzlocal_getShort(lf, &number_disk) != UNZ_OK) err = UNZ_ERRNO;
-		// number of the disk with the start of the central directory
-		unsigned long number_disk_with_CD;  // number the the disk with central dir, used for spaning ZIP, unsupported, always 0
+		unsigned long number_disk_with_CD;
 		if (unzlocal_getShort(lf, &number_disk_with_CD) != UNZ_OK) err = UNZ_ERRNO;
-		// total number of entries in the central dir on this disk
 		if (unzlocal_getShort(lf, &us.gi.number_entry) != UNZ_OK) err = UNZ_ERRNO;
-		// total number of entries in the central dir
-		unsigned long number_entry_CD;      // total number of entries in the central dir (same than number_entry on nospan)
+		unsigned long number_entry_CD;
 		if (unzlocal_getShort(lf, &number_entry_CD) != UNZ_OK) err = UNZ_ERRNO;
 		if ((number_entry_CD != us.gi.number_entry) || (number_disk_with_CD != 0) || (number_disk != 0)) err = UNZ_BADZIPFILE;
-		// size of the central directory
 		if (unzlocal_getLong(lf, &us.size_central_dir) != UNZ_OK) err = UNZ_ERRNO;
-		// offset of start of central directory with respect to the starting disk number
 		if (unzlocal_getLong(lf, &us.offset_central_dir) != UNZ_OK) err = UNZ_ERRNO;
-		// zipfile comment length
 		if (unzlocal_getShort(lf, &us.gi.size_comment) != UNZ_OK) err = UNZ_ERRNO;
 		if ((central_pos + lf->initial_offset<us.offset_central_dir + us.size_central_dir) && (err == UNZ_OK)) err = UNZ_BADZIPFILE;
 		if (err != UNZ_OK) { lufclose(lf); return NULL; }
@@ -6419,7 +6126,7 @@ public:
 		us.byte_before_the_zipfile = central_pos + lf->initial_offset - (us.offset_central_dir + us.size_central_dir);
 		us.central_pos = central_pos;
 		us.pfile_in_zip_read = NULL;
-		lf->initial_offset = 0; // since the zipfile itself is expected to handle this
+		lf->initial_offset = 0;
 
 		unz_s *s = (unz_s*)malloc(sizeof(unz_s));
 		*s = us;
@@ -6432,8 +6139,7 @@ public:
 		if (index<-1 || index >= (int)uf->gi.number_entry) return ZR_ARGS;
 		if (currentfile != -1) unzCloseCurrentFile(uf); currentfile = -1;
 		if (index == czei && index != -1) { memcpy(ze, &cze, sizeof(ZIPENTRY)); return ZR_OK; }
-		if (index == -1)
-		{
+		if (index == -1) {
 			ze->index = uf->gi.number_entry;
 			ze->name[0] = 0;
 			ze->attr = 0;
@@ -6448,15 +6154,15 @@ public:
 		while ((int)uf->num_file<index) unzGoToNextFile(uf);
 		unz_file_info ufi; char fn[MAX_PATH];
 		unzGetCurrentFileInfo(uf, &ufi, fn, MAX_PATH, NULL, 0, NULL, 0);
-		// now get the extra header. We do this ourselves, instead of
-		// calling unzOpenCurrentFile &c., to avoid allocating more than necessary.
 		unsigned int extralen, iSizeVar; unsigned long offset;
 		int res = unzlocal_CheckCurrentFileCoherencyHeader(uf, &iSizeVar, &offset, &extralen);
 		if (res != UNZ_OK) return ZR_CORRUPT;
 		if (lufseek(uf->file, offset, SEEK_SET) != 0) return ZR_READ;
 		unsigned char *extra = new unsigned char[extralen];
-		if (lufread(extra, 1, (unsigned int)extralen, uf->file) != extralen) { delete[] extra; return ZR_READ; }
-		//
+		if (lufread(extra, 1, (unsigned int)extralen, uf->file) != extralen) {
+			delete[] extra;
+			return ZR_READ;
+		}
 		ze->index = uf->num_file;
 		TCHAR tfn[MAX_PATH];
 #ifdef UNICODE
@@ -6464,15 +6170,8 @@ public:
 #else
 		strcpy(tfn, fn);
 #endif
-		// As a safety feature: if the zip filename had sneaky stuff
-		// like "c:\windows\file.txt" or "\windows\file.txt" or "fred\..\..\..\windows\file.txt"
-		// then we get rid of them all. That way, when the programmer does UnzipItem(hz,i,ze.name),
-		// it won't be a problem. (If the programmer really did want to get the full evil information,
-		// then they can edit out this security feature from here).
-		// In particular, we chop off any prefixes that are "c:\" or "\" or "/" or "[stuff]\.." or "[stuff]/.."
 		const TCHAR *sfn = tfn;
-		for (;;)
-		{
+		for (;;) {
 			if (sfn[0] != 0 && sfn[1] == ':') { sfn += 2; continue; }
 			if (sfn[0] == '\\') { sfn++; continue; }
 			if (sfn[0] == '/') { sfn++; continue; }
@@ -6485,20 +6184,12 @@ public:
 		}
 		_tcscpy(ze->name, sfn);
 
-
-		// zip has an 'attribute' 32bit value. Its lower half is windows stuff
-		// its upper half is standard unix stat.st_mode. We'll start trying
-		// to read it in unix mode
 		unsigned long a = ufi.external_fa;
 		bool isdir = (a & 0x40000000) != 0;
 		bool readonly = (a & 0x00800000) == 0;
-		//bool readable=  (a&0x01000000)!=0; // unused
-		//bool executable=(a&0x00400000)!=0; // unused
 		bool hidden = false, system = false, archive = true;
-		// but in normal hostmodes these are overridden by the lower half...
 		int host = ufi.version >> 8;
-		if (host == 0 || host == 7 || host == 11 || host == 14)
-		{
+		if (host == 0 || host == 7 || host == 11 || host == 14){
 			readonly = (a & 0x00000001) != 0;
 			hidden = (a & 0x00000002) != 0;
 			system = (a & 0x00000004) != 0;
@@ -6513,17 +6204,15 @@ public:
 		if (system) ze->attr |= FILE_ATTRIBUTE_SYSTEM;
 		ze->comp_size = ufi.compressed_size;
 		ze->unc_size = ufi.uncompressed_size;
-		//
+
 		WORD dostime = (WORD)(ufi.dosDate & 0xFFFF);
 		WORD dosdate = (WORD)((ufi.dosDate >> 16) & 0xFFFF);
 		FILETIME ftd = dosdatetime2filetime(dosdate, dostime);
 		FILETIME ft; LocalFileTimeToFileTime(&ftd, &ft);
 		ze->atime = ft; ze->ctime = ft; ze->mtime = ft;
-		// the zip will always have at least that dostime. But if it also has
-		// an extra header, then we'll instead get the info from that.
+
 		unsigned int epos = 0;
-		while (epos + 4<extralen)
-		{
+		while (epos + 4<extralen) {
 			char etype[3]; etype[0] = extra[epos + 0]; etype[1] = extra[epos + 1]; etype[2] = 0;
 			int size = extra[epos + 2];
 			if (strcmp(etype, "UT") != 0) { epos += 4 + size; continue; }
@@ -6532,41 +6221,37 @@ public:
 			bool hasatime = (flags & 2) != 0;
 			bool hasctime = (flags & 4) != 0;
 			epos += 5;
-			if (hasmtime)
-			{
+			if (hasmtime) {
 				lutime_t mtime = ((extra[epos + 0]) << 0) | ((extra[epos + 1]) << 8) | ((extra[epos + 2]) << 16) | ((extra[epos + 3]) << 24);
 				epos += 4;
 				ze->mtime = timet2filetime(mtime);
 			}
-			if (hasatime)
-			{
+			if (hasatime) {
 				lutime_t atime = ((extra[epos + 0]) << 0) | ((extra[epos + 1]) << 8) | ((extra[epos + 2]) << 16) | ((extra[epos + 3]) << 24);
 				epos += 4;
 				ze->atime = timet2filetime(atime);
 			}
-			if (hasctime)
-			{
+			if (hasctime) {
 				lutime_t ctime = ((extra[epos + 0]) << 0) | ((extra[epos + 1]) << 8) | ((extra[epos + 2]) << 16) | ((extra[epos + 3]) << 24);
 				epos += 4;
 				ze->ctime = timet2filetime(ctime);
 			}
 			break;
 		}
-		//
+
 		if (extra != 0) delete[] extra;
 		memcpy(&cze, ze, sizeof(ZIPENTRY)); czei = index;
 		return ZR_OK;
 	}
-	ZRESULT Find(const TCHAR *tname, bool ic, int *index, ZIPENTRY *ze) {
+	ZRESULT Find(const TCHAR *tname, int *index, ZIPENTRY *ze) {
 		char name[MAX_PATH];
 #ifdef UNICODE
 		WideCharToMultiByte(CP_UTF8, 0, tname, -1, name, MAX_PATH, 0, 0);
 #else
 		strcpy(name, tname);
 #endif
-		int res = unzLocateFile(uf, name, ic ? CASE_INSENSITIVE : CASE_SENSITIVE);
-		if (res != UNZ_OK)
-		{
+		int res = unzLocateFile(uf, name);
+		if (res != UNZ_OK) {
 			if (index != 0) *index = -1;
 			if (ze != NULL) { ZeroMemory(ze, sizeof(ZIPENTRY)); ze->index = -1; }
 			return ZR_NOTFOUND;
@@ -6574,8 +6259,7 @@ public:
 		if (currentfile != -1) unzCloseCurrentFile(uf); currentfile = -1;
 		int i = (int)uf->num_file;
 		if (index != NULL) *index = i;
-		if (ze != NULL)
-		{
+		if (ze != NULL) {
 			ZRESULT zres = Get(i, ze);
 			if (zres != ZR_OK) return zres;
 		}
@@ -6583,70 +6267,55 @@ public:
 	}
 	ZRESULT Unzip(int index, void *dst, unsigned int len, DWORD flags) {
 		if (flags != ZIP_MEMORY && flags != ZIP_FILENAME) return ZR_ARGS;
-		if (flags == ZIP_MEMORY)
-		{
-			if (index != currentfile)
-			{
+		if (flags == ZIP_MEMORY) {
+			if (index != currentfile) {
 				if (currentfile != -1) unzCloseCurrentFile(uf); currentfile = -1;
 				if (index >= (int)uf->gi.number_entry) return ZR_ARGS;
 				if (index<(int)uf->num_file) unzGoToFirstFile(uf);
 				while ((int)uf->num_file<index) unzGoToNextFile(uf);
-				unzOpenCurrentFile(uf, password); currentfile = index;
+				unzOpenCurrentFile(uf);
+				currentfile = index;
 			}
 			bool reached_eof;
 			int res = unzReadCurrentFile(uf, dst, len, &reached_eof);
 			if (res <= 0) { unzCloseCurrentFile(uf); currentfile = -1; }
 			if (reached_eof) return ZR_OK;
 			if (res>0) return ZR_MORE;
-			if (res == UNZ_PASSWORD) return ZR_PASSWORD;
 			return ZR_FLATE;
 		}
-		// otherwise we're writing to a handle or a file
+
 		if (currentfile != -1) unzCloseCurrentFile(uf); currentfile = -1;
 		if (index >= (int)uf->gi.number_entry) return ZR_ARGS;
 		if (index<(int)uf->num_file) unzGoToFirstFile(uf);
 		while ((int)uf->num_file<index) unzGoToNextFile(uf);
 		ZIPENTRY ze;
 		Get(index, &ze);
-		// zipentry=directory is handled specially
-		if ((ze.attr&FILE_ATTRIBUTE_DIRECTORY) != 0)
-		{
+		if ((ze.attr&FILE_ATTRIBUTE_DIRECTORY) != 0) {
 			makePath(_shorten((LPWSTR)dst));
 		}
-		// otherwise, we write the zipentry to a file/handle
 		HANDLE h;
 		const TCHAR *ufn = (const TCHAR*)dst;
-		// We'll qualify all relative names to our root dir, and leave absolute names as they are
-		// ufn="zipfile.txt"  dir=""  name="zipfile.txt"  fn="c:\\currentdir\\zipfile.txt"
-		// ufn="dir1/dir2/subfile.txt"  dir="dir1/dir2/"  name="subfile.txt"  fn="c:\\currentdir\\dir1/dir2/subfiles.txt"
-		// ufn="\z\file.txt"  dir="\z\"  name="file.txt"  fn="\z\file.txt"
-		// This might be a security risk, in the case where we just use the zipentry's name as "ufn", where
-		// a malicious zip could unzip itself into c:\windows. Our solution is that GetZipItem (which
-		// is how the user retrieve's the file's name within the zip) never returns absolute paths.
 		const TCHAR *name = ufn; const TCHAR *c = name; while (*c != 0) { if (*c == '/' || *c == '\\') name = c + 1; c++; }
 		TCHAR dir[MAX_PATH]; _tcscpy(dir, ufn); if (name == ufn) *dir = 0; else dir[name - ufn] = 0;
 		TCHAR fn[MAX_PATH];
 		bool isabsolute = (dir[0] == '/' || dir[0] == '\\' || (dir[0] != 0 && dir[1] == ':'));
 		wsprintf(fn, _T("%s%s"), dir, name);
 		makePath(_shorten((LPWSTR)dir));
-		//
+
 		h = CreateFile(fn, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, ze.attr, NULL);
 		if (h == INVALID_HANDLE_VALUE) return ZR_NOFILE;
-		unzOpenCurrentFile(uf, password);
+		unzOpenCurrentFile(uf);
 		if (unzbuf == 0) unzbuf = new char[16384]; DWORD haderr = 0;
-		//  
-
-		for (; haderr == 0;)
-		{
+		
+		for (; haderr == 0;) {
 			bool reached_eof;
 			int res = unzReadCurrentFile(uf, unzbuf, 16384, &reached_eof);
-			if (res == UNZ_PASSWORD) { haderr = ZR_PASSWORD; break; }
 			if (res<0) { haderr = ZR_FLATE; break; }
 			if (res>0) { DWORD writ; BOOL bres = WriteFile(h, unzbuf, res, &writ, NULL); if (!bres) { haderr = ZR_WRITE; break; } }
 			if (reached_eof) break;
 			if (res == 0) { haderr = ZR_FLATE; break; }
 		}
-		if (!haderr) SetFileTime(h, &ze.ctime, &ze.atime, &ze.mtime); // may fail if it was a pipe
+		if (!haderr) SetFileTime(h, &ze.ctime, &ze.atime, &ze.mtime);
 		CloseHandle(h);
 		unzCloseCurrentFile(uf);
 		if (haderr != 0) return haderr;
@@ -6699,7 +6368,7 @@ void zipFolder(HANDLE h, SGstring dst) {
 HANDLE createUnzip(SGstring file) {
 	if (fileExist(file)) {
 		TUnzip *unzip = new TUnzip();
-		unzip->Open(_widen(file), 0, ZIP_FILENAME);
+		unzip->Open(_widen(file));
 		unzipList.push_back(unzip);
 		return unzip;
 	}
@@ -6718,14 +6387,14 @@ void unzipFile(HANDLE h, SGstring src, SGstring dst) {
 	int index;
 	ZIPENTRY ze;
 	TUnzip *unzip = (TUnzip*)h;
-	unzip->Find(_widen(src), 0, &index, &ze);
+	unzip->Find(_widen(src), &index, &ze);
 	unzip->Unzip(index, _widen(dst), 0, ZIP_FILENAME);
 }
 void unzipMemory(HANDLE h, SGstring src, void *dst, int len) {
 	int index;
 	ZIPENTRY ze;
 	TUnzip *unzip = (TUnzip*)h;
-	unzip->Find(_widen(src), 0, &index, &ze);
+	unzip->Find(_widen(src), &index, &ze);
 	unzip->Unzip(index, dst, len, ZIP_MEMORY);
 }
 void zipFinish(HANDLE h) {

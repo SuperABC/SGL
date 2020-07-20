@@ -72,6 +72,12 @@ void initPolarWindow(int rx, int ry) {
 		strcpy(_windowList.back()->winName, "");
 	}
 }
+void maximizeWindow() {
+	ShowWindow(_windowList[_currentWindow]->getHwnd(), SW_SHOWMAXIMIZED);
+}
+void minimizeWindow() {
+	ShowWindow(_windowList[_currentWindow]->getHwnd(), SW_SHOWMINIMIZED);
+}
 int createWindow(int width, int height, SGtext title, int mode, vect setup, vect loop) {
 	WNDCLASSEX wc;
 
