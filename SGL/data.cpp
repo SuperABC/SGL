@@ -1347,7 +1347,6 @@ typedef DWORD ZRESULT;
 		state.bs.out_buf[state.bs.out_offset++] = (char) ((w) & 0xff); \
 		state.bs.out_buf[state.bs.out_offset++] = (char) ((unsigned short)(w) >> 8); \
 	}
-
 #define PUTBYTE(state,b) {\
 	if (state.bs.out_offset >= state.bs.out_size) \
 		state.flush_outbuf(state.param,state.bs.out_buf, &state.bs.out_offset); \
@@ -1377,7 +1376,6 @@ typedef struct config {
 	unsigned short nice_length; // quit search above this match length
 	unsigned short max_chain;
 } config;
-
 const config configuration_table[10] = {
 	//  good lazy nice chain
 	{ 0,    0,  0,    0 },  // 0 store only
@@ -1490,7 +1488,6 @@ public:
 	unsigned short *file_type;       // pointer to UNKNOWN, BINARY or ASCII
 						  //  int *file_method;     // pointer to DEFLATE or STORE
 };
-
 class TBitState {
 public:
 
@@ -1511,7 +1508,6 @@ public:
 	// Size of current output buffer
 	unsigned long bits_sent;   // bit length of the compressed data  only needed for debugging???
 };
-
 class TDeflateState {
 public:
 	TDeflateState() { window_size = 0; }
@@ -1536,7 +1532,6 @@ public:
 };
 
 typedef __int64 lutime_t;       // define it ourselves since we don't include time.h
-
 typedef struct iztimes {
 	lutime_t atime, mtime, ctime;
 } iztimes; // access, modify, create times
@@ -1558,7 +1553,6 @@ typedef struct zlist {
 	int dosflag;                  // Set to force MSDOS file attributes
 	struct zlist far *nxt;        // Pointer to next header in list
 } TZipFileInfo;
-
 
 struct TState;
 typedef unsigned(*READFUNC)(TState &state, char *buf, unsigned size);
@@ -1595,8 +1589,6 @@ void copy_block(TState &state, char *buf, unsigned len, int header);
 #define send_code(state, c, tree) send_bits(state, tree[c].fc.code, tree[c].dl.len)
 
 #define d_code(dist) ((dist) < 256 ? state.ts.dist_code[dist] : state.ts.dist_code[256+((dist)>>7)])
-
-#define Max(a,b) (a >= b ? a : b)
 
 void ct_init(TState &state, unsigned short *attr) {
 	int n;        /* iterates over tree elements */
@@ -1715,7 +1707,6 @@ void pqdownheap(TState &state, ct_data *tree, int k) {
 	}
 	state.ts.heap[k] = v;
 }
-
 void gen_bitlen(TState &state, tree_desc *desc) {
 	ct_data *tree = desc->dyn_tree;
 	const int *extra = desc->extra_bits;
@@ -1790,7 +1781,6 @@ void gen_bitlen(TState &state, tree_desc *desc) {
 		}
 	}
 }
-
 void gen_codes(TState &state, ct_data *tree, int max_code) {
 	unsigned short next_code[MAX_BITS + 1]; /* next code value for each bit length */
 	unsigned short code = 0;              /* running code value */
@@ -1818,7 +1808,6 @@ void gen_codes(TState &state, ct_data *tree, int max_code) {
 		//Tracec(tree != state.ts.static_ltree, "\nn %3d %c l %2d c %4x (%x) ", n, (isgraph(n) ? n : ' '), len, tree[n].fc.code, next_code[len]-1);
 	}
 }
-
 void build_tree(TState &state, tree_desc *desc) {
 	ct_data *tree = desc->dyn_tree;
 	ct_data *stree = desc->static_tree;
@@ -1874,7 +1863,7 @@ void build_tree(TState &state, tree_desc *desc) {
 
 		/* Create a new node father of n and m */
 		tree[node].fc.freq = (unsigned short)(tree[n].fc.freq + tree[m].fc.freq);
-		state.ts.depth[node] = (unsigned char)(Max(state.ts.depth[n], state.ts.depth[m]) + 1);
+		state.ts.depth[node] = (unsigned char)(max(state.ts.depth[n], state.ts.depth[m]) + 1);
 		tree[n].dl.dad = tree[m].dl.dad = (unsigned short)node;
 		/* and insert the new node in the heap */
 		state.ts.heap[SMALLEST] = node++;
@@ -1892,7 +1881,6 @@ void build_tree(TState &state, tree_desc *desc) {
 	/* The field len is now set, we can generate the bit codes */
 	gen_codes(state, (ct_data *)tree, max_code);
 }
-
 void scan_tree(TState &state, ct_data *tree, int max_code) {
 	int n;                     /* iterates over all tree elements */
 	int prevlen = -1;          /* last emitted length */
@@ -1935,7 +1923,6 @@ void scan_tree(TState &state, ct_data *tree, int max_code) {
 		}
 	}
 }
-
 void send_tree(TState &state, ct_data *tree, int max_code) {
 	int n;                     /* iterates over all tree elements */
 	int prevlen = -1;          /* last emitted length */
@@ -1984,7 +1971,6 @@ void send_tree(TState &state, ct_data *tree, int max_code) {
 		}
 	}
 }
-
 int build_bl_tree(TState &state) {
 	int max_blindex;  /* index of last bit length code of non zero freq */
 
@@ -2011,7 +1997,6 @@ int build_bl_tree(TState &state) {
 
 	return max_blindex;
 }
-
 void send_all_trees(TState &state, int lcodes, int dcodes, int blcodes) {
 	int rank;                    /* index in bl_order */
 
@@ -2034,7 +2019,6 @@ void send_all_trees(TState &state, int lcodes, int dcodes, int blcodes) {
 	send_tree(state, (ct_data *)state.ts.dyn_dtree, dcodes - 1); /* send the distance tree */
 	Trace("\ndist tree: sent %ld", state.bs.bits_sent);
 }
-
 unsigned long flush_block(TState &state, char *buf, unsigned long stored_len, int eof) {
 	unsigned long opt_lenb, static_lenb; /* opt_len and static_len in bytes */
 	int max_blindex;  /* index of last bit length code of non zero freq */
@@ -2126,7 +2110,6 @@ unsigned long flush_block(TState &state, char *buf, unsigned long stored_len, in
 
 	return state.ts.cmpr_bytelen + (state.ts.cmpr_len_bits >> 3);
 }
-
 int ct_tally(TState &state, int dist, int lc) {
 	state.ts.l_buf[state.ts.last_lit++] = (unsigned char)lc;
 	if (dist == 0) {
@@ -2174,7 +2157,6 @@ int ct_tally(TState &state, int dist, int lc) {
 	* 64K-1 bytes.
 	*/
 }
-
 void compress_block(TState &state, ct_data *ltree, ct_data *dtree) {
 	unsigned dist;      /* distance of matched string */
 	int lc;             /* match length or unmatched char (if dist == 0) */
@@ -2217,7 +2199,6 @@ void compress_block(TState &state, ct_data *ltree, ct_data *dtree) {
 
 	send_code(state, END_BLOCK, ltree);
 }
-
 void set_file_type(TState &state) {
 	int n = 0;
 	unsigned ascii_freq = 0;
@@ -2227,7 +2208,6 @@ void set_file_type(TState &state) {
 	while (n < LITERALS) bin_freq += state.ts.dyn_ltree[n++].fc.freq;
 	*state.ts.file_type = (unsigned short)(bin_freq >(ascii_freq >> 2) ? BINARY : ASCII);
 }
-
 void bi_init(TState &state, char *tgt_buf, unsigned tgt_size, int flsh_allowed) {
 	state.bs.out_buf = tgt_buf;
 	state.bs.out_size = tgt_size;
@@ -2238,7 +2218,6 @@ void bi_init(TState &state, char *tgt_buf, unsigned tgt_size, int flsh_allowed) 
 	state.bs.bi_valid = 0;
 	state.bs.bits_sent = 0L;
 }
-
 void send_bits(TState &state, int value, int length) {
 	if(length <= 0 || length > 15)debugf("invalid length");
 	state.bs.bits_sent += (unsigned long)length;
@@ -2255,7 +2234,6 @@ void send_bits(TState &state, int value, int length) {
 		state.bs.bi_buf = (unsigned)value >> (length - state.bs.bi_valid);
 	}
 }
-
 unsigned bi_reverse(unsigned code, int len) {
 	register unsigned res = 0;
 	do {
@@ -2264,7 +2242,6 @@ unsigned bi_reverse(unsigned code, int len) {
 	} while (--len > 0);
 	return res >> 1;
 }
-
 void bi_windup(TState &state) {
 	if (state.bs.bi_valid > 8) {
 		PUTSHORT(state, state.bs.bi_buf);
@@ -2279,7 +2256,6 @@ void bi_windup(TState &state) {
 	state.bs.bi_valid = 0;
 	state.bs.bits_sent = (state.bs.bits_sent + 7) & ~7;
 }
-
 void copy_block(TState &state, char *block, unsigned len, int header) {
 	bi_windup(state);              /* align on byte boundary */
 
@@ -2302,10 +2278,8 @@ void copy_block(TState &state, char *block, unsigned len, int header) {
 	}
 	state.bs.bits_sent += (unsigned long)len << 3;
 }
-
 void fill_window(TState &state);
 unsigned long deflate_fast(TState &state);
-
 int  longest_match(TState &state, unsigned int cur_match);
 
 #define UPDATE_HASH(h,c) (h = (((h)<<H_SHIFT) ^ (c)) & HASH_MASK)
@@ -2372,7 +2346,6 @@ void lm_init(TState &state, int pack_level, unsigned short *flags) {
 	* not important since only literal bytes will be emitted.
 	*/
 }
-
 int longest_match(TState &state, unsigned int cur_match) {
 	unsigned chain_length = state.ds.max_chain_length;   /* max hash chain length */
 	register unsigned char far *scan = state.ds.window + state.ds.strstart; /* current string */
@@ -2431,7 +2404,7 @@ int longest_match(TState &state, unsigned int cur_match) {
 			*++scan == *++match && *++scan == *++match &&
 			scan < strend);
 
-		Assert(state, scan <= state.ds.window + (unsigned)(state.ds.window_size - 1), "wild scan");
+		if(scan > state.ds.window + (unsigned)(state.ds.window_size - 1))debugf("wild scan");
 
 		len = MAX_MATCH - (int)(strend - scan);
 		scan = strend - MAX_MATCH;
@@ -2603,7 +2576,6 @@ unsigned long deflate_fast(TState &state) {
 	}
 	return FLUSH_BLOCK(state, 1); /* eof */
 }
-
 unsigned long deflate(TState &state) {
 	unsigned int hash_head = NIL;       /* head of hash chain */
 	unsigned int prev_match;            /* previous match */
@@ -2708,7 +2680,6 @@ unsigned long deflate(TState &state) {
 
 	return FLUSH_BLOCK(state, 1); /* eof */
 }
-
 int putlocal(struct zlist far *z, WRITEFUNC wfunc, void *param) {
 	PUTLG(LOCSIG, f);
 	PUTSH(z->ver, f);
@@ -2729,7 +2700,6 @@ int putlocal(struct zlist far *z, WRITEFUNC wfunc, void *param) {
 	}
 	return ZE_OK;
 }
-
 int putextended(struct zlist far *z, WRITEFUNC wfunc, void *param) {
 	PUTLG(EXTLOCSIG, f);
 	PUTLG(z->crc, f);
@@ -2737,7 +2707,6 @@ int putextended(struct zlist far *z, WRITEFUNC wfunc, void *param) {
 	PUTLG(z->len, f);
 	return ZE_OK;
 }
-
 int putcentral(struct zlist far *z, WRITEFUNC wfunc, void *param) {
 	PUTLG(CENSIG, f);
 	PUTSH(z->vem, f);
@@ -2761,7 +2730,6 @@ int putcentral(struct zlist far *z, WRITEFUNC wfunc, void *param) {
 		return ZE_TEMP;
 	return ZE_OK;
 }
-
 int putend(int n, unsigned long s, unsigned long c, size_t m, char *z, WRITEFUNC wfunc, void *param) {
 	PUTLG(ENDSIG, f);
 	PUTSH(0, f);
@@ -2844,7 +2812,6 @@ unsigned long crc32(unsigned long crc, const unsigned char *buf, size_t len) {
 	if (len) do { DO1(buf); } while (--len);
 	return crc ^ 0xffffffffL;  // (instead of ~c for 64-bit machines)
 }
-
 bool HasZipSuffix(const TCHAR *fn) {
 	const TCHAR *ext = fn + _tcslen(fn);
 	while (ext>fn && *ext != '.') ext--;
@@ -2859,12 +2826,10 @@ bool HasZipSuffix(const TCHAR *fn) {
 	if (_tcsicmp(ext, _T(".tgz")) == 0) return true;
 	return false;
 }
-
 lutime_t filetime2timet(const FILETIME ft) {
 	__int64 i = *(__int64*)&ft;
 	return (lutime_t)((i - 116444736000000000) / 10000000);
 }
-
 void filetime2dosdatetime(const FILETIME ft, WORD *dosdate, WORD *dostime) {
 	SYSTEMTIME st; FileTimeToSystemTime(&ft, &st);
 	*dosdate = (WORD)(((st.wYear - 1980) & 0x7f) << 9);
@@ -2874,7 +2839,6 @@ void filetime2dosdatetime(const FILETIME ft, WORD *dosdate, WORD *dostime) {
 	*dostime |= (WORD)((st.wMinute & 0x3f) << 5);
 	*dostime |= (WORD)((st.wSecond * 2) & 0x1f);
 }
-
 ZRESULT GetFileInfo(HANDLE hf, unsigned long *attr, long *size, iztimes *times, unsigned long *timestamp) {
 	BY_HANDLE_FILE_INFORMATION bhi; BOOL res = GetFileInformationByHandle(hf, &bhi);
 	if (!res) return ZR_NOFILE;
@@ -3561,31 +3525,8 @@ int inflate_trees_fixed(
 struct inflate_blocks_state;
 typedef struct inflate_blocks_state inflate_blocks_statef;
 
-inflate_blocks_statef * inflate_blocks_new(
-	z_streamp z,
-	check_func c,               // check function
-	unsigned int w);                   // window size
-
-void inflate_blocks_reset(
-	inflate_blocks_statef *,
-	z_streamp,
-	unsigned long *);                  // check value on output
-
-int inflate_blocks_free(
-	inflate_blocks_statef *,
-	z_streamp);
-
 struct inflate_codes_state;
 typedef struct inflate_codes_state inflate_codes_statef;
-
-inflate_codes_statef *inflate_codes_new(
-	unsigned int, unsigned int,
-	const inflate_huft *, const inflate_huft *,
-	z_streamp);
-
-void inflate_codes_free(
-	inflate_codes_statef *,
-	z_streamp);
 
 typedef enum {
 	IBM_TYPE,     // get type bits (3, including end bit)
@@ -3660,7 +3601,6 @@ const unsigned int inflate_mask[17] = {
 	0x01ff, 0x03ff, 0x07ff, 0x0fff, 0x1fff, 0x3fff, 0x7fff, 0xffff
 };
 
-int inflate_flush(inflate_blocks_statef *, z_streamp, int);
 int inflate_fast(unsigned int, unsigned int, const inflate_huft *, const inflate_huft *, inflate_blocks_statef *, z_streamp);
 
 const unsigned int fixed_bl = 9;
@@ -4395,18 +4335,6 @@ int inflate_blocks_free(inflate_blocks_statef *s, z_streamp z) {
 	return Z_OK;
 }
 
-int huft_build(
-	unsigned int *,            // code lengths in bits
-	unsigned int,               // number of codes
-	unsigned int,               // number of "simple" codes
-	const unsigned int *,      // list of base values for non-simple codes
-	const unsigned int *,      // list of extra bits for non-simple codes
-	inflate_huft **,// result: starting table
-	unsigned int *,            // maximum lookup bits (returns actual) 
-	inflate_huft *,     // space for trees 
-	unsigned int *,             // hufts used in space 
-	unsigned int *);         // space for values 
-
 const unsigned int cplens[31] = { // Copy lengths for literal codes 257..285
 	3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
 	35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0 };
@@ -4644,7 +4572,6 @@ int inflate_trees_bits(
 	return r;
 }
 
-
 int inflate_trees_dynamic(
 	unsigned int nl,                // number of literal/length codes
 	unsigned int nd,                // number of distance codes
@@ -4701,10 +4628,6 @@ int inflate_trees_dynamic(
 	ZFREE(z, v);
 	return Z_OK;
 }
-
-
-
-
 
 int inflate_trees_fixed(
 	unsigned int *bl,               // literal desired/actual bit depth
@@ -5193,58 +5116,31 @@ typedef struct unz_file_info_internal_s {
 } unz_file_info_internal;
 
 typedef struct {
-	bool is_handle; // either a handle or memory
-	bool canseek;
-	// for handles:
-	HANDLE h; bool herr; unsigned long initial_offset; bool mustclosehandle;
-	// for memory:
-	void *buf; unsigned int len, pos; // if it's a memory block
+	HANDLE h;
+	bool herr;
+	unsigned long initial_offset;
 } LUFILE;
 
 int lufclose(LUFILE *stream) {
 	if (stream == NULL) return EOF;
-	if (stream->mustclosehandle) CloseHandle(stream->h);
+	CloseHandle(stream->h);
 	delete stream;
 	return 0;
 }
-int luferror(LUFILE *stream) {
-	if (stream->is_handle && stream->herr) return 1;
-	else return 0;
-}
 long int luftell(LUFILE *stream) {
-	if (stream->is_handle && stream->canseek) return SetFilePointer(stream->h, 0, NULL, FILE_CURRENT) - stream->initial_offset;
-	else if (stream->is_handle) return 0;
-	else return stream->pos;
+	return SetFilePointer(stream->h, 0, NULL, FILE_CURRENT) - stream->initial_offset;
 }
 int lufseek(LUFILE *stream, long offset, int whence) {
-	if (stream->is_handle && stream->canseek)
-	{
-		if (whence == SEEK_SET) SetFilePointer(stream->h, stream->initial_offset + offset, 0, FILE_BEGIN);
-		else if (whence == SEEK_CUR) SetFilePointer(stream->h, offset, NULL, FILE_CURRENT);
-		else if (whence == SEEK_END) SetFilePointer(stream->h, offset, NULL, FILE_END);
-		else return 19; // EINVAL
-		return 0;
-	}
-	else if (stream->is_handle) return 29; // ESPIPE
-	else
-	{
-		if (whence == SEEK_SET) stream->pos = offset;
-		else if (whence == SEEK_CUR) stream->pos += offset;
-		else if (whence == SEEK_END) stream->pos = stream->len + offset;
-		return 0;
-	}
+	if (whence == SEEK_SET) SetFilePointer(stream->h, stream->initial_offset + offset, 0, FILE_BEGIN);
+	else if (whence == SEEK_CUR) SetFilePointer(stream->h, offset, NULL, FILE_CURRENT);
+	else if (whence == SEEK_END) SetFilePointer(stream->h, offset, NULL, FILE_END);
+	else return 19;
+	return 0;
 }
 size_t lufread(void *ptr, size_t size, size_t n, LUFILE *stream) {
 	unsigned int toread = (unsigned int)(size*n);
-	if (stream->is_handle)
-	{
-		DWORD red; BOOL res = ReadFile(stream->h, ptr, toread, &red, NULL);
-		if (!res) stream->herr = true;
-		return red / size;
-	}
-	if (stream->pos + toread > stream->len) toread = stream->len - stream->pos;
-	memcpy(ptr, (char*)stream->buf + stream->pos, toread); DWORD red = toread;
-	stream->pos += red;
+	DWORD red; BOOL res = ReadFile(stream->h, ptr, toread, &red, NULL);
+	if (!res) stream->herr = true;
 	return red / size;
 }
 
@@ -5298,7 +5194,7 @@ int unzlocal_getByte(LUFILE *fin, int *pi) {
 	}
 	else
 	{
-		if (luferror(fin)) return UNZ_ERRNO;
+		if (fin->herr) return UNZ_ERRNO;
 		else return UNZ_EOF;
 	}
 }
@@ -5382,21 +5278,6 @@ unsigned long unzlocal_SearchCentralDir(LUFILE *fin) {
 	if (buf) free(buf);
 	return uPosFound;
 }
-int unzGoToFirstFile(unzFile file);
-int unzCloseCurrentFile(unzFile file);
-int unzClose(unzFile file) {
-	unz_s* s;
-	if (file == NULL)
-		return UNZ_PARAMERROR;
-	s = (unz_s*)file;
-
-	if (s->pfile_in_zip_read != NULL)
-		unzCloseCurrentFile(file);
-
-	lufclose(s->file);
-	if (s) free(s); // unused s=0;
-	return UNZ_OK;
-}
 int unzGetGlobalInfo(unzFile file, unz_global_info *pglobal_info) {
 	unz_s* s;
 	if (file == NULL)
@@ -5416,16 +5297,6 @@ void unzlocal_DosDateToTmuDate(unsigned long ulDosDate, tm_unz* ptm) {
 	ptm->tm_min = (unsigned int)((ulDosDate & 0x7E0) / 0x20);
 	ptm->tm_sec = (unsigned int)(2 * (ulDosDate & 0x1f));
 }
-int unzlocal_GetCurrentFileInfoInternal(unzFile file,
-	unz_file_info *pfile_info,
-	unz_file_info_internal
-	*pfile_info_internal,
-	char *szFileName,
-	unsigned long fileNameBufferSize,
-	void *extraField,
-	unsigned long extraFieldBufferSize,
-	char *szComment,
-	unsigned long commentBufferSize);
 int unzlocal_GetCurrentFileInfoInternal(unzFile file, unz_file_info *pfile_info,
 	unz_file_info_internal *pfile_info_internal, char *szFileName,
 	unsigned long fileNameBufferSize, void *extraField, unsigned long extraFieldBufferSize,
@@ -5726,6 +5597,44 @@ int unzlocal_CheckCurrentFileCoherencyHeader(unz_s *s, unsigned int *piSizeVar,
 
 	return err;
 }
+int unzCloseCurrentFile(unzFile file) {
+	int err = UNZ_OK;
+
+	unz_s* s;
+	file_in_zip_read_info_s* pfile_in_zip_read_info;
+	if (file == NULL)
+		return UNZ_PARAMERROR;
+	s = (unz_s*)file;
+	pfile_in_zip_read_info = s->pfile_in_zip_read;
+
+	if (pfile_in_zip_read_info == NULL)
+		return UNZ_PARAMERROR;
+
+
+	if (pfile_in_zip_read_info->rest_read_uncompressed == 0)
+	{
+		if (pfile_in_zip_read_info->crc32 != pfile_in_zip_read_info->crc32_wait)
+			err = UNZ_CRCERROR;
+	}
+
+
+	if (pfile_in_zip_read_info->read_buffer != 0)
+	{
+		void *buf = pfile_in_zip_read_info->read_buffer;
+		free(buf);
+		pfile_in_zip_read_info->read_buffer = 0;
+	}
+	pfile_in_zip_read_info->read_buffer = NULL;
+	if (pfile_in_zip_read_info->stream_initialised)
+		inflateEnd(&pfile_in_zip_read_info->stream);
+
+	pfile_in_zip_read_info->stream_initialised = 0;
+	if (pfile_in_zip_read_info != 0) free(pfile_in_zip_read_info); // unused pfile_in_zip_read_info=0;
+
+	s->pfile_in_zip_read = NULL;
+
+	return err;
+}
 int unzOpenCurrentFile(unzFile file) {
 	int err;
 	int Store;
@@ -5963,44 +5872,6 @@ int unzGetLocalExtrafield(unzFile file, void * buf, unsigned len) {
 
 	return (int)read_now;
 }
-int unzCloseCurrentFile(unzFile file) {
-	int err = UNZ_OK;
-
-	unz_s* s;
-	file_in_zip_read_info_s* pfile_in_zip_read_info;
-	if (file == NULL)
-		return UNZ_PARAMERROR;
-	s = (unz_s*)file;
-	pfile_in_zip_read_info = s->pfile_in_zip_read;
-
-	if (pfile_in_zip_read_info == NULL)
-		return UNZ_PARAMERROR;
-
-
-	if (pfile_in_zip_read_info->rest_read_uncompressed == 0)
-	{
-		if (pfile_in_zip_read_info->crc32 != pfile_in_zip_read_info->crc32_wait)
-			err = UNZ_CRCERROR;
-	}
-
-
-	if (pfile_in_zip_read_info->read_buffer != 0)
-	{
-		void *buf = pfile_in_zip_read_info->read_buffer;
-		free(buf);
-		pfile_in_zip_read_info->read_buffer = 0;
-	}
-	pfile_in_zip_read_info->read_buffer = NULL;
-	if (pfile_in_zip_read_info->stream_initialised)
-		inflateEnd(&pfile_in_zip_read_info->stream);
-
-	pfile_in_zip_read_info->stream_initialised = 0;
-	if (pfile_in_zip_read_info != 0) free(pfile_in_zip_read_info); // unused pfile_in_zip_read_info=0;
-
-	s->pfile_in_zip_read = NULL;
-
-	return err;
-}
 int unzGetGlobalComment(unzFile file, char *szComment, unsigned long uSizeBuf) {
 	unz_s* s;
 	unsigned long uReadThis;
@@ -6016,6 +5887,19 @@ int unzGetGlobalComment(unzFile file, char *szComment, unsigned long uSizeBuf) {
 	}
 	if ((szComment != NULL) && (uSizeBuf > s->gi.size_comment)) *(szComment + s->gi.size_comment) = '\0';
 	return (int)uReadThis;
+}
+int unzClose(unzFile file) {
+	unz_s* s;
+	if (file == NULL)
+		return UNZ_PARAMERROR;
+	s = (unz_s*)file;
+
+	if (s->pfile_in_zip_read != NULL)
+		unzCloseCurrentFile(file);
+
+	lufclose(s->file);
+	if (s) free(s); // unused s=0;
+	return UNZ_OK;
 }
 
 FILETIME timet2filetime(const lutime_t t) {
@@ -6058,17 +5942,12 @@ public:
 		if (h == INVALID_HANDLE_VALUE)return NULL;
 
 		DWORD res = SetFilePointer(h, 0, 0, FILE_CURRENT);
-		bool mustclosehandle = true;
-		bool canseek = (res != 0xFFFFFFFF);
 
 		LUFILE *lf = new LUFILE();
-		lf->is_handle = true;
-		lf->mustclosehandle = mustclosehandle;
-		lf->canseek = canseek;
 		lf->h = h;
 		lf->herr = false;
 		lf->initial_offset = 0;
-		if (canseek) lf->initial_offset = SetFilePointer(h, 0, NULL, FILE_CURRENT);
+		lf->initial_offset = SetFilePointer(h, 0, NULL, FILE_CURRENT);
 
 		int err = UNZ_OK;
 		unz_s us;
