@@ -1560,9 +1560,13 @@ typedef unsigned(*FLUSHFUNC)(void *param, const char *buf, unsigned *size);
 typedef unsigned(*WRITEFUNC)(void *param, const char *buf, unsigned size);
 struct TState {
 	void *param;
-	int level; bool seekable;
-	READFUNC readfunc; FLUSHFUNC flush_outbuf;
-	TTreeState ts; TBitState bs; TDeflateState ds;
+	int level;
+	bool seekable;
+	READFUNC readfunc;
+	FLUSHFUNC flush_outbuf;
+	TTreeState ts;
+	TBitState bs;
+	TDeflateState ds;
 	const char *err;
 };
 
@@ -2279,7 +2283,6 @@ void copy_block(TState &state, char *block, unsigned len, int header) {
 	state.bs.bits_sent += (unsigned long)len << 3;
 }
 void fill_window(TState &state);
-unsigned long deflate_fast(TState &state);
 int  longest_match(TState &state, unsigned int cur_match);
 
 #define UPDATE_HASH(h,c) (h = (((h)<<H_SHIFT) ^ (c)) & HASH_MASK)
@@ -2500,90 +2503,12 @@ void fill_window(TState &state) {
    flush_block(state,state.ds.block_start >= 0L ? (char*)&state.ds.window[(unsigned)state.ds.block_start] : \
                 (char*)NULL, (long)state.ds.strstart - state.ds.block_start, (eof))
 
-unsigned long deflate_fast(TState &state) {
-	unsigned int hash_head = NIL;       /* head of the hash chain */
-	int flush;                  /* set if current block must be flushed */
-	unsigned match_length = 0;  /* length of best match */
-
-	state.ds.prev_length = MIN_MATCH - 1;
-	while (state.ds.lookahead != 0) {
-		/* Insert the string window[strstart .. strstart+2] in the
-		* dictionary, and set hash_head to the head of the hash chain:
-		*/
-		if (state.ds.lookahead >= MIN_MATCH)
-			INSERT_STRING(state.ds.strstart, hash_head);
-
-		/* Find the longest match, discarding those <= prev_length.
-		* At this point we have always match_length < MIN_MATCH
-		*/
-		if (hash_head != NIL && state.ds.strstart - hash_head <= MAX_DIST) {
-			/* To simplify the code, we prevent matches with the string
-			* of window index 0 (in particular we have to avoid a match
-			* of the string with itself at the start of the input file).
-			*/
-			/* Do not look for matches beyond the end of the input.
-			* This is necessary to make deflate deterministic.
-			*/
-			if ((unsigned)state.ds.nice_match > state.ds.lookahead) state.ds.nice_match = (int)state.ds.lookahead;
-			match_length = longest_match(state, hash_head);
-			/* longest_match() sets match_start */
-			if (match_length > state.ds.lookahead) match_length = state.ds.lookahead;
-		}
-		if (match_length >= MIN_MATCH) {
-			check_match(state, state.ds.strstart, state.ds.match_start, match_length);
-
-			flush = ct_tally(state, state.ds.strstart - state.ds.match_start, match_length - MIN_MATCH);
-
-			state.ds.lookahead -= match_length;
-
-			/* Insert new strings in the hash table only if the match length
-			* is not too large. This saves time but degrades compression.
-			*/
-			if (match_length <= state.ds.max_insert_length
-				&& state.ds.lookahead >= MIN_MATCH) {
-				match_length--; /* string at strstart already in hash table */
-				do {
-					state.ds.strstart++;
-					INSERT_STRING(state.ds.strstart, hash_head);
-					/* strstart never exceeds WSIZE-MAX_MATCH, so there are
-					* always MIN_MATCH bytes ahead.
-					*/
-				} while (--match_length != 0);
-				state.ds.strstart++;
-			}
-			else {
-				state.ds.strstart += match_length;
-				match_length = 0;
-				state.ds.ins_h = state.ds.window[state.ds.strstart];
-				UPDATE_HASH(state.ds.ins_h, state.ds.window[state.ds.strstart + 1]);
-				if(MIN_MATCH != 3)debugf("Call UPDATE_HASH() MIN_MATCH-3 more times");
-			}
-		}
-		else {
-			/* No match, output a literal byte */
-			flush = ct_tally(state, 0, state.ds.window[state.ds.strstart]);
-			state.ds.lookahead--;
-			state.ds.strstart++;
-		}
-		if (flush) FLUSH_BLOCK(state, 0), state.ds.block_start = state.ds.strstart;
-
-		/* Make sure that we always have enough lookahead, except
-		* at the end of the input file. We need MAX_MATCH bytes
-		* for the next match, plus MIN_MATCH bytes to insert the
-		* string following the next match.
-		*/
-		if (state.ds.lookahead < MIN_LOOKAHEAD) fill_window(state);
-	}
-	return FLUSH_BLOCK(state, 1); /* eof */
-}
 unsigned long deflate(TState &state) {
 	unsigned int hash_head = NIL;       /* head of hash chain */
 	unsigned int prev_match;            /* previous match */
 	int flush;                  /* set if current block must be flushed */
 	int match_available = 0;    /* set if previous match exists */
 	register unsigned match_length = MIN_MATCH - 1; /* length of best match */
-
-	if (state.level <= 3) return deflate_fast(state); /* optimized for speed */
 
 													  /* Process the input block. */
 	while (state.ds.lookahead != 0) {
@@ -2889,130 +2814,216 @@ ZRESULT GetFileInfo(HANDLE hf, unsigned long *attr, long *size, iztimes *times, 
 	return ZR_OK;
 }
 
-bool has_seeded = false;
 class TZip {
 public:
-	TZip() : hfout(0), mustclosehfout(false), hmapout(0), zfis(0), obuf(0), hfin(0), writ(0), oerr(false), hasputcen(false), ooffset(0), state(0) {}
+	HANDLE hfout;
+	int error;
+
+	void Create(SGWINSTR filename) {
+		hfout = CreateFile(filename, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (hfout == INVALID_HANDLE_VALUE) {
+			hfout = 0;
+			error = SG_IO_ERROR;
+		}
+	}
+
+	int Add(const TCHAR *odstzn, void *src, unsigned int len, DWORD flags) {
+		if (error) return SG_IO_ERROR;
+
+		TCHAR dstzn[MAX_PATH];
+		_tcscpy(dstzn, odstzn);
+		if (*dstzn == 0) return ZR_ARGS;
+		TCHAR *d = dstzn; 
+		while (*d != 0) {
+			if (*d == '\\') *d = '/';
+			d++;
+		}
+		bool isdir = (flags == ZIP_FOLDER);
+		int method = DEFLATE;
+		if (isdir || HasZipSuffix(dstzn)) method = STORE;
+
+		// now open whatever was our input source:
+		ZRESULT openres;
+		if (flags == ZIP_FILENAME) openres = open_file((const TCHAR*)src);
+		else if (flags == ZIP_MEMORY) openres = open_mem(src, len);
+		else if (flags == ZIP_FOLDER) openres = open_dir();
+		else return ZR_ARGS;
+		if (openres != ZR_OK) return openres;
+
+		// Initialize the local header
+		TZipFileInfo zfi; zfi.nxt = NULL;
+		strcpy(zfi.name, "");
+#ifdef UNICODE
+		WideCharToMultiByte(CP_UTF8, 0, dstzn, -1, zfi.iname, MAX_PATH, 0, 0);
+#else
+		strcpy(zfi.iname, dstzn);
+#endif
+		zfi.nam = strlen(zfi.iname);
+		if (isdir) { strcat(zfi.iname, "/"); zfi.nam++; }
+		strcpy(zfi.zname, "");
+		zfi.extra = NULL; zfi.ext = 0;   // extra header to go after this compressed data, and its length
+		zfi.cextra = NULL; zfi.cext = 0; // extra header to go in the central end-of-zip directory, and its length
+		zfi.comment = NULL; zfi.com = 0; // comment, and its length
+		zfi.mark = 1;
+		zfi.dosflag = 0;
+		zfi.att = (unsigned short)BINARY;
+		zfi.vem = (unsigned short)0xB17; // 0xB00 is win32 os-code. 0x17 is 23 in decimal: zip 2.3
+		zfi.ver = (unsigned short)20;    // Needs PKUNZIP 2.0 to unzip it
+		zfi.tim = timestamp;
+		// Even though we write the header now, it will have to be rewritten, since we don't know compressed size or crc.
+		zfi.crc = 0;            // to be updated later
+		zfi.flg = 8;            // 8 means 'there is an extra header'. Assume for the moment that we need it.
+		zfi.lflg = zfi.flg;     // to be updated later
+		zfi.how = (unsigned short)method;  // to be updated later
+		zfi.siz = (unsigned long)(method == STORE && isize >= 0 ? isize : 0); // to be updated later
+		zfi.len = (unsigned long)(isize);  // to be updated later
+		zfi.dsk = 0;
+		zfi.atx = attr;
+		zfi.off = writ;         // offset within file of the start of this local record
+								// stuff the 'times' structure into zfi.extra
+
+								// nb. apparently there's a problem with PocketPC CE(zip)->CE(unzip) fails. And removing the following block fixes it up.
+		char xloc[EB_L_UT_SIZE]; zfi.extra = xloc;  zfi.ext = EB_L_UT_SIZE;
+		char xcen[EB_C_UT_SIZE]; zfi.cextra = xcen; zfi.cext = EB_C_UT_SIZE;
+		xloc[0] = 'U';
+		xloc[1] = 'T';
+		xloc[2] = EB_UT_LEN(3);       // length of data part of e.f.
+		xloc[3] = 0;
+		xloc[4] = EB_UT_FL_MTIME | EB_UT_FL_ATIME | EB_UT_FL_CTIME;
+		xloc[5] = (char)(times.mtime);
+		xloc[6] = (char)(times.mtime >> 8);
+		xloc[7] = (char)(times.mtime >> 16);
+		xloc[8] = (char)(times.mtime >> 24);
+		xloc[9] = (char)(times.atime);
+		xloc[10] = (char)(times.atime >> 8);
+		xloc[11] = (char)(times.atime >> 16);
+		xloc[12] = (char)(times.atime >> 24);
+		xloc[13] = (char)(times.ctime);
+		xloc[14] = (char)(times.ctime >> 8);
+		xloc[15] = (char)(times.ctime >> 16);
+		xloc[16] = (char)(times.ctime >> 24);
+		memcpy(zfi.cextra, zfi.extra, EB_C_UT_SIZE);
+		zfi.cextra[EB_LEN] = EB_UT_LEN(1);
+
+
+		// (1) Start by writing the local header:
+		int r = putlocal(&zfi, swrite, this);
+		if (r != ZE_OK) { iclose(); return ZR_WRITE; }
+		writ += 4 + LOCHEAD + (unsigned int)zfi.nam + (unsigned int)zfi.ext;
+		if (error != ZR_OK) { iclose(); return error; }
+
+		//(2) Write deflated/stored file to zip file
+		ZRESULT writeres = ZR_OK;
+		if (!isdir && method == DEFLATE) writeres = ideflate(&zfi);
+		else if (!isdir && method == STORE) writeres = istore();
+		else if (isdir) csize = 0;
+		iclose();
+		writ += csize;
+		if (error != ZR_OK) return error;
+		if (writeres != ZR_OK) return ZR_WRITE;
+
+		// (3) Either rewrite the local header with correct information...
+		bool first_header_has_size_right = (zfi.siz == csize);
+		zfi.crc = crc;
+		zfi.siz = csize;
+		zfi.len = isize;
+		zfi.how = (unsigned short)method;
+		if ((zfi.flg & 1) == 0) zfi.flg &= ~8; // clear the extended local header flag
+		zfi.lflg = zfi.flg;
+		// rewrite the local header:
+		SetFilePointer(hfout, zfi.off, NULL, FILE_BEGIN);
+		if ((r = putlocal(&zfi, swrite, this)) != ZE_OK) return ZR_WRITE;
+		SetFilePointer(hfout, writ, NULL, FILE_BEGIN);
+
+		// Keep a copy of the zipfileinfo, for our end-of-zip directory
+		char *cextra = new char[zfi.cext]; memcpy(cextra, zfi.cextra, zfi.cext); zfi.cextra = cextra;
+		TZipFileInfo *pzfi = new TZipFileInfo; memcpy(pzfi, &zfi, sizeof(zfi));
+		if (zfis == NULL) zfis = pzfi;
+		else { TZipFileInfo *z = zfis; while (z->nxt != NULL) z = z->nxt; z->nxt = pzfi; }
+		return ZR_OK;
+	}
+	int AddCentral() { // write central directory
+		int numentries = 0;
+		unsigned long pos_at_start_of_central = writ;
+		bool okay = true;
+		for (TZipFileInfo *zfi = zfis; zfi != NULL; )
+		{
+			if (okay)
+			{
+				int res = putcentral(zfi, swrite, this);
+				if (res != ZE_OK) okay = false;
+			}
+			writ += 4 + CENHEAD + (unsigned int)zfi->nam + (unsigned int)zfi->cext + (unsigned int)zfi->com;
+			numentries++;
+			//
+			TZipFileInfo *zfinext = zfi->nxt;
+			if (zfi->cextra != 0) delete[] zfi->cextra;
+			delete zfi;
+			zfi = zfinext;
+		}
+		unsigned long center_size = writ - pos_at_start_of_central;
+		if (okay)
+		{
+			int res = putend(numentries, center_size, pos_at_start_of_central, 0, NULL, swrite, this);
+			if (res != ZE_OK) okay = false;
+			writ += 4 + ENDHEAD + 0;
+		}
+		if (!okay) return ZR_WRITE;
+		return ZR_OK;
+	}
+
+	void Close() {
+		AddCentral();
+		if (hfout != 0) CloseHandle(hfout);
+		hfout = 0;
+	}
+
+	TZip() : hfout(0), zfis(0), hfin(0), writ(0), error(0), state(0) {}
 	~TZip() {
 		if (state != 0) delete state;
 		state = 0;
 	}
 
-	HANDLE hfout;             // if valid, we'll write here (for files or pipes)
-	bool mustclosehfout;      // if true, we are responsible for closing hfout
-	HANDLE hmapout;           // otherwise, we'll write here (for memmap)
-	unsigned ooffset;         // for hfout, this is where the pointer was initially
-	ZRESULT oerr;             // did a write operation give rise to an error?
 	unsigned writ;            // how far have we written. This is maintained by Add, not write(), to avoid confusion over seeks
-	bool ocanseek;            // can we seek?
-	char *obuf;               // this is where we've locked mmap to view.
-	unsigned int opos;        // current pos in the mmap
-	unsigned int mapsize;     // the size of the map we created
-	bool hasputcen;           // have we yet placed the central directory?
-							  //
 	TZipFileInfo *zfis;       // each file gets added onto this list, for writing the table at the end
 	TState *state;            // we use just one state object per zip, because it's big (500k)
 
-	ZRESULT Create(void *z, unsigned int len, DWORD flags) {
-		if (hfout != 0 || hmapout != 0 || obuf != 0 || writ != 0 || oerr != ZR_OK || hasputcen) return ZR_NOTINITED;
-		//
-		if (flags == ZIP_FILENAME)
-		{
-			const TCHAR *fn = (const TCHAR*)z;
-			hfout = CreateFile(fn, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-			if (hfout == INVALID_HANDLE_VALUE) { hfout = 0; return ZR_NOFILE; }
-			ocanseek = true;
-			ooffset = 0;
-			mustclosehfout = true;
-			return ZR_OK;
-		}
-		else if (flags == ZIP_MEMORY)
-		{
-			unsigned int size = len;
-			if (size == 0) return ZR_MEMSIZE;
-			if (z != 0) obuf = (char*)z;
-			else
-			{
-				hmapout = CreateFileMapping(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, size, NULL);
-				if (hmapout == NULL) return ZR_NOALLOC;
-				obuf = (char*)MapViewOfFile(hmapout, FILE_MAP_ALL_ACCESS, 0, 0, size);
-				if (obuf == 0) { CloseHandle(hmapout); hmapout = 0; return ZR_NOALLOC; }
-			}
-			ocanseek = true;
-			opos = 0; mapsize = size;
-			return ZR_OK;
-		}
-		else return ZR_ARGS;
+	static unsigned sread(TState &s, char *buf, unsigned size) {
+		TZip *zip = (TZip*)s.param;
+		return zip->read(buf, size);
+	}
+	static unsigned swrite(void *param, const char *buf, unsigned size) {
+		if (size == 0) return 0;
+		TZip *zip = (TZip*)param;
+		DWORD writ;
+		WriteFile(zip->hfout, buf, size, &writ, NULL);
+		return writ;
 	}
 	static unsigned sflush(void *param, const char *buf, unsigned *size) {
 		if (*size == 0) return 0;
 		TZip *zip = (TZip*)param;
-		unsigned int writ = zip->write(buf, *size);
+		DWORD writ;
+		WriteFile(zip->hfout, buf, *size, &writ, NULL);
 		if (writ != 0) *size = 0;
 		return writ;
 	}
-	static unsigned swrite(void *param, const char *buf, unsigned size) {
-		if (size == 0) return 0;
-		TZip *zip = (TZip*)param; return zip->write(buf, size);
-	}
-	unsigned int write(const char *buf, unsigned int size) {
-		const char *srcbuf = buf;
-		if (obuf != 0)
-		{
-			if (opos + size >= mapsize) { oerr = ZR_MEMSIZE; return 0; }
-			memcpy(obuf + opos, srcbuf, size);
-			opos += size;
-			return size;
-		}
-		else if (hfout != 0)
-		{
-			DWORD writ; WriteFile(hfout, srcbuf, size, &writ, NULL);
-			return writ;
-		}
-		oerr = ZR_NOTINITED; return 0;
-	}
-	bool oseek(unsigned int pos) {
-		if (!ocanseek) { oerr = ZR_SEEK; return false; }
-		if (obuf != 0)
-		{
-			if (pos >= mapsize) { oerr = ZR_MEMSIZE; return false; }
-			opos = pos;
-			return true;
-		}
-		else if (hfout != 0)
-		{
-			SetFilePointer(hfout, pos + ooffset, NULL, FILE_BEGIN);
-			return true;
-		}
-		oerr = ZR_NOTINITED; return 0;
-	}
-	ZRESULT GetMemory(void **pbuf, unsigned long *plen) {
-		if (!hasputcen) AddCentral(); hasputcen = true;
-		if (pbuf != NULL) *pbuf = (void*)obuf;
-		if (plen != NULL) *plen = writ;
-		if (obuf == NULL) return ZR_NOTMMAP;
-		return ZR_OK;
-	}
-	ZRESULT Close() {
-		ZRESULT res = ZR_OK; if (!hasputcen) res = AddCentral(); hasputcen = true;
-		if (obuf != 0 && hmapout != 0) UnmapViewOfFile(obuf); obuf = 0;
-		if (hmapout != 0) CloseHandle(hmapout); hmapout = 0;
-		if (hfout != 0 && mustclosehfout) CloseHandle(hfout); hfout = 0; mustclosehfout = false;
-		return res;
-	}
 
-	unsigned long attr; iztimes times; unsigned long timestamp;  // all open_* methods set these
-	bool iseekable; long isize, ired;         // size is not set until close() on pips
+	unsigned long attr;
+	iztimes times;
+	unsigned long timestamp;  // all open_* methods set these
+	bool iseekable;
+	long isize, ired;         // size is not set until close() on pips
 	unsigned long crc;                                 // crc is not set until close(). iwrit is cumulative
-	HANDLE hfin; bool selfclosehf;           // for input files and pipes
-	const char *bufin; unsigned int lenin, posin; // for memory
+	HANDLE hfin;
+	bool selfclosehf;           // for input files and pipes
+	const char *bufin;
+	unsigned int lenin, posin; // for memory
 												  // and a variable for what we've done with the input: (i.e. compressed it!)
 	unsigned long csize;                               // compressed size, set by the compression routines
 											 // and this is used by some of the compression routines
 	char buf[16384];
 
-
-	ZRESULT open_file(const TCHAR *fn) {
+	int open_file(const TCHAR *fn) {
 		hfin = 0; bufin = 0; selfclosehf = false; crc = CRCVAL_INITIAL; isize = 0; csize = 0; ired = 0;
 		if (fn == 0) return ZR_ARGS;
 		HANDLE hf = CreateFile(fn, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
@@ -3022,7 +3033,7 @@ public:
 		selfclosehf = true;
 		return ZR_OK;
 	}
-	ZRESULT open_handle(HANDLE hf, unsigned int len) {
+	int open_handle(HANDLE hf, unsigned int len) {
 		hfin = 0; bufin = 0; selfclosehf = false; crc = CRCVAL_INITIAL; isize = 0; csize = 0; ired = 0;
 		if (hf == 0 || hf == INVALID_HANDLE_VALUE) return ZR_ARGS;
 		DWORD res = SetFilePointer(hfout, 0, 0, FILE_CURRENT);
@@ -3051,7 +3062,7 @@ public:
 			return ZR_OK;
 		}
 	}
-	ZRESULT open_mem(void *src, unsigned int len) {
+	int open_mem(void *src, unsigned int len) {
 		hfin = 0; bufin = (const char*)src; selfclosehf = false; crc = CRCVAL_INITIAL; ired = 0; csize = 0; ired = 0;
 		lenin = len; posin = 0;
 		if (src == 0 || len == 0) return ZR_ARGS;
@@ -3067,7 +3078,7 @@ public:
 		timestamp = (WORD)dostime | (((DWORD)dosdate) << 16);
 		return ZR_OK;
 	}
-	ZRESULT open_dir() {
+	int open_dir() {
 		hfin = 0; bufin = 0; selfclosehf = false; crc = CRCVAL_INITIAL; isize = 0; csize = 0; ired = 0;
 		attr = 0x41C00010; // a readable writable directory, and again directory
 		isize = 0;
@@ -3080,10 +3091,6 @@ public:
 		times.ctime = times.atime;
 		timestamp = (WORD)dostime | (((DWORD)dosdate) << 16);
 		return ZR_OK;
-	}
-	static unsigned sread(TState &s, char *buf, unsigned size) {
-		TZip *zip = (TZip*)s.param;
-		return zip->read(buf, size);
 	}
 	unsigned read(char *buf, unsigned size) {
 		if (bufin != 0)
@@ -3106,9 +3113,9 @@ public:
 			crc = crc32(crc, (unsigned char*)buf, red);
 			return red;
 		}
-		else { oerr = ZR_NOTINITED; return 0; }
+		else { error = ZR_NOTINITED; return 0; }
 	}
-	ZRESULT iclose() {
+	int iclose() {
 		if (selfclosehf && hfin != 0) CloseHandle(hfin); hfin = 0;
 		bool mismatch = (isize != -1 && isize != ired);
 		isize = ired; // and crc has been being updated anyway
@@ -3116,13 +3123,17 @@ public:
 		else return ZR_OK;
 	}
 
-	ZRESULT ideflate(TZipFileInfo *zfi) {
+	int ideflate(TZipFileInfo *zfi) {
 		if (state == 0) state = new TState();
 		// It's a very big object! 500k! We allocate it on the heap, because PocketPC's
 		// stack breaks if we try to put it all on the stack. It will be deleted lazily
 		state->err = 0;
-		state->readfunc = sread; state->flush_outbuf = sflush;
-		state->param = this; state->level = 8; state->seekable = iseekable; state->err = NULL;
+		state->readfunc = sread;
+		state->flush_outbuf = sflush;
+		state->param = this;
+		state->level = 8;
+		state->seekable = iseekable;
+		state->err = NULL;
 		// the following line will make ct_init realise it has to perform the init
 		state->ts.static_dtree[0].dl.len = 0;
 		// Thanks to Alvin77 for this crucial fix:
@@ -3134,179 +3145,21 @@ public:
 		lm_init(*state, state->level, &zfi->flg);
 		unsigned long sz = deflate(*state);
 		csize = sz;
-		ZRESULT r = ZR_OK; if (state->err != NULL) r = ZR_FLATE;
+		ZRESULT r = ZR_OK;
+		if (state->err != NULL) r = ZR_FLATE;
 		return r;
 	}
-	ZRESULT istore(){
+	int istore(){
 		unsigned long size = 0;
 		for (;;) {
-			unsigned int cin = read(buf, 16384); if (cin <= 0 || cin == (unsigned int)EOF) break;
-			unsigned int cout = write(buf, cin); if (cout != cin) return ZR_MISSIZE;
+			unsigned int cin = read(buf, 16384);
+			if (cin <= 0 || cin == (unsigned int)EOF) break;
+			DWORD cout;
+			WriteFile(hfout, buf, cin, &cout, NULL);
+			if (cout != cin) return ZR_MISSIZE;
 			size += cin;
 		}
 		csize = size;
-		return ZR_OK;
-	}
-
-	ZRESULT Add(const TCHAR *odstzn, void *src, unsigned int len, DWORD flags) {
-		if (oerr) return ZR_FAILED;
-		if (hasputcen) return ZR_ENDED;
-
-		int passex = 0;
-
-		// zip has its own notion of what its names should look like: i.e. dir/file.stuff
-		TCHAR dstzn[MAX_PATH]; _tcscpy(dstzn, odstzn);
-		if (*dstzn == 0) return ZR_ARGS;
-		TCHAR *d = dstzn; while (*d != 0) { if (*d == '\\') *d = '/'; d++; }
-		bool isdir = (flags == ZIP_FOLDER);
-		bool needs_trailing_slash = (isdir && dstzn[_tcslen(dstzn) - 1] != '/');
-		int method = DEFLATE; if (isdir || HasZipSuffix(dstzn)) method = STORE;
-
-		// now open whatever was our input source:
-		ZRESULT openres;
-		if (flags == ZIP_FILENAME) openres = open_file((const TCHAR*)src);
-		else if (flags == ZIP_MEMORY) openres = open_mem(src, len);
-		else if (flags == ZIP_FOLDER) openres = open_dir();
-		else return ZR_ARGS;
-		if (openres != ZR_OK) return openres;
-
-		// A zip "entry" consists of a local header (which includes the file name),
-		// then the compressed data, and possibly an extended local header.
-
-		// Initialize the local header
-		TZipFileInfo zfi; zfi.nxt = NULL;
-		strcpy(zfi.name, "");
-#ifdef UNICODE
-		WideCharToMultiByte(CP_UTF8, 0, dstzn, -1, zfi.iname, MAX_PATH, 0, 0);
-#else
-		strcpy(zfi.iname, dstzn);
-#endif
-		zfi.nam = strlen(zfi.iname);
-		if (needs_trailing_slash) { strcat(zfi.iname, "/"); zfi.nam++; }
-		strcpy(zfi.zname, "");
-		zfi.extra = NULL; zfi.ext = 0;   // extra header to go after this compressed data, and its length
-		zfi.cextra = NULL; zfi.cext = 0; // extra header to go in the central end-of-zip directory, and its length
-		zfi.comment = NULL; zfi.com = 0; // comment, and its length
-		zfi.mark = 1;
-		zfi.dosflag = 0;
-		zfi.att = (unsigned short)BINARY;
-		zfi.vem = (unsigned short)0xB17; // 0xB00 is win32 os-code. 0x17 is 23 in decimal: zip 2.3
-		zfi.ver = (unsigned short)20;    // Needs PKUNZIP 2.0 to unzip it
-		zfi.tim = timestamp;
-		// Even though we write the header now, it will have to be rewritten, since we don't know compressed size or crc.
-		zfi.crc = 0;            // to be updated later
-		zfi.flg = 8;            // 8 means 'there is an extra header'. Assume for the moment that we need it.
-		zfi.lflg = zfi.flg;     // to be updated later
-		zfi.how = (unsigned short)method;  // to be updated later
-		zfi.siz = (unsigned long)(method == STORE && isize >= 0 ? isize + passex : 0); // to be updated later
-		zfi.len = (unsigned long)(isize);  // to be updated later
-		zfi.dsk = 0;
-		zfi.atx = attr;
-		zfi.off = writ + ooffset;         // offset within file of the start of this local record
-										  // stuff the 'times' structure into zfi.extra
-
-										  // nb. apparently there's a problem with PocketPC CE(zip)->CE(unzip) fails. And removing the following block fixes it up.
-		char xloc[EB_L_UT_SIZE]; zfi.extra = xloc;  zfi.ext = EB_L_UT_SIZE;
-		char xcen[EB_C_UT_SIZE]; zfi.cextra = xcen; zfi.cext = EB_C_UT_SIZE;
-		xloc[0] = 'U';
-		xloc[1] = 'T';
-		xloc[2] = EB_UT_LEN(3);       // length of data part of e.f.
-		xloc[3] = 0;
-		xloc[4] = EB_UT_FL_MTIME | EB_UT_FL_ATIME | EB_UT_FL_CTIME;
-		xloc[5] = (char)(times.mtime);
-		xloc[6] = (char)(times.mtime >> 8);
-		xloc[7] = (char)(times.mtime >> 16);
-		xloc[8] = (char)(times.mtime >> 24);
-		xloc[9] = (char)(times.atime);
-		xloc[10] = (char)(times.atime >> 8);
-		xloc[11] = (char)(times.atime >> 16);
-		xloc[12] = (char)(times.atime >> 24);
-		xloc[13] = (char)(times.ctime);
-		xloc[14] = (char)(times.ctime >> 8);
-		xloc[15] = (char)(times.ctime >> 16);
-		xloc[16] = (char)(times.ctime >> 24);
-		memcpy(zfi.cextra, zfi.extra, EB_C_UT_SIZE);
-		zfi.cextra[EB_LEN] = EB_UT_LEN(1);
-
-
-		// (1) Start by writing the local header:
-		int r = putlocal(&zfi, swrite, this);
-		if (r != ZE_OK) { iclose(); return ZR_WRITE; }
-		writ += 4 + LOCHEAD + (unsigned int)zfi.nam + (unsigned int)zfi.ext;
-		if (oerr != ZR_OK) { iclose(); return oerr; }
-
-		//(2) Write deflated/stored file to zip file
-		ZRESULT writeres = ZR_OK;
-		if (!isdir && method == DEFLATE) writeres = ideflate(&zfi);
-		else if (!isdir && method == STORE) writeres = istore();
-		else if (isdir) csize = 0;
-		iclose();
-		writ += csize;
-		if (oerr != ZR_OK) return oerr;
-		if (writeres != ZR_OK) return ZR_WRITE;
-
-		// (3) Either rewrite the local header with correct information...
-		bool first_header_has_size_right = (zfi.siz == csize + passex);
-		zfi.crc = crc;
-		zfi.siz = csize + passex;
-		zfi.len = isize;
-		if (ocanseek)
-		{
-			zfi.how = (unsigned short)method;
-			if ((zfi.flg & 1) == 0) zfi.flg &= ~8; // clear the extended local header flag
-			zfi.lflg = zfi.flg;
-			// rewrite the local header:
-			if (!oseek(zfi.off - ooffset)) return ZR_SEEK;
-			if ((r = putlocal(&zfi, swrite, this)) != ZE_OK) return ZR_WRITE;
-			if (!oseek(writ)) return ZR_SEEK;
-		}
-		else
-		{ // (4) ... or put an updated header at the end
-			if (zfi.how != (unsigned short)method) return ZR_NOCHANGE;
-			if (method == STORE && !first_header_has_size_right) return ZR_NOCHANGE;
-			if ((r = putextended(&zfi, swrite, this)) != ZE_OK) return ZR_WRITE;
-			writ += 16L;
-			zfi.flg = zfi.lflg; // if flg modified by inflate, for the central index
-		}
-		if (oerr != ZR_OK) return oerr;
-
-		// Keep a copy of the zipfileinfo, for our end-of-zip directory
-		char *cextra = new char[zfi.cext]; memcpy(cextra, zfi.cextra, zfi.cext); zfi.cextra = cextra;
-		TZipFileInfo *pzfi = new TZipFileInfo; memcpy(pzfi, &zfi, sizeof(zfi));
-		if (zfis == NULL) zfis = pzfi;
-		else { TZipFileInfo *z = zfis; while (z->nxt != NULL) z = z->nxt; z->nxt = pzfi; }
-		return ZR_OK;
-	}
-	ZRESULT AddCentral() { // write central directory
-		int numentries = 0;
-		unsigned long pos_at_start_of_central = writ;
-		//unsigned long tot_unc_size=0, tot_compressed_size=0;
-		bool okay = true;
-		for (TZipFileInfo *zfi = zfis; zfi != NULL; )
-		{
-			if (okay)
-			{
-				int res = putcentral(zfi, swrite, this);
-				if (res != ZE_OK) okay = false;
-			}
-			writ += 4 + CENHEAD + (unsigned int)zfi->nam + (unsigned int)zfi->cext + (unsigned int)zfi->com;
-			//tot_unc_size += zfi->len;
-			//tot_compressed_size += zfi->siz;
-			numentries++;
-			//
-			TZipFileInfo *zfinext = zfi->nxt;
-			if (zfi->cextra != 0) delete[] zfi->cextra;
-			delete zfi;
-			zfi = zfinext;
-		}
-		unsigned long center_size = writ - pos_at_start_of_central;
-		if (okay)
-		{
-			int res = putend(numentries, center_size, pos_at_start_of_central + ooffset, 0, NULL, swrite, this);
-			if (res != ZE_OK) okay = false;
-			writ += 4 + ENDHEAD + 0;
-		}
-		if (!okay) return ZR_WRITE;
 		return ZR_OK;
 	}
 };
@@ -3600,8 +3453,6 @@ const unsigned int inflate_mask[17] = {
 	0x0001, 0x0003, 0x0007, 0x000f, 0x001f, 0x003f, 0x007f, 0x00ff,
 	0x01ff, 0x03ff, 0x07ff, 0x0fff, 0x1fff, 0x3fff, 0x7fff, 0xffff
 };
-
-int inflate_fast(unsigned int, unsigned int, const inflate_huft *, const inflate_huft *, inflate_blocks_statef *, z_streamp);
 
 const unsigned int fixed_bl = 9;
 const unsigned int fixed_bd = 5;
@@ -4644,162 +4495,6 @@ int inflate_trees_fixed(
 
 #define GRABBITS(j) {while(k<(j)){b|=((unsigned long)NEXTBYTE)<<k;k+=8;}}
 #define UNGRAB {c=z->avail_in-n;c=(k>>3)<c?k>>3:c;n+=c;p-=c;k-=c<<3;}
-
-int inflate_fast(
-	unsigned int bl, unsigned int bd,
-	const inflate_huft *tl,
-	const inflate_huft *td, // need separate declaration for Borland C++
-	inflate_blocks_statef *s,
-	z_streamp z) {
-	const inflate_huft *t;      // temporary pointer 
-	unsigned int e;               // extra bits or operation 
-	unsigned long b;              // bit buffer 
-	unsigned int k;               // bits in bit buffer 
-	unsigned char *p;             // input data pointer 
-	unsigned int n;               // unsigned chars available there 
-	unsigned char *q;             // output window write pointer 
-	unsigned int m;               // unsigned chars to end of window or read pointer 
-	unsigned int ml;              // mask for literal/length tree
-	unsigned int md;              // mask for distance tree 
-	unsigned int c;               // unsigned chars to copy 
-	unsigned int d;               // distance back to copy from 
-	unsigned char *r;             // copy source pointer 
-
-						 // load input, output, bit values 
-	LOAD
-
-		// initialize masks 
-		ml = inflate_mask[bl];
-	md = inflate_mask[bd];
-
-	// do until not enough input or output space for fast loop 
-	do {                          // assume called with m >= 258 && n >= 10 
-								  // get literal/length code 
-		GRABBITS(20)                // max bits for literal/length code 
-			if ((e = (t = tl + ((unsigned int)b & ml))->exop) == 0)
-			{
-				DUMPBITS(t->bits)
-					LuTracevv((stderr, t->base >= 0x20 && t->base < 0x7f ?
-						"inflate:         * literal '%c'\n" :
-						"inflate:         * literal 0x%02x\n", t->base));
-				*q++ = (unsigned char)t->base;
-				m--;
-				continue;
-			}
-		for (;;) {
-			DUMPBITS(t->bits)
-				if (e & 16)
-				{
-					// get extra bits for length 
-					e &= 15;
-					c = t->base + ((unsigned int)b & inflate_mask[e]);
-					DUMPBITS(e)
-						LuTracevv((stderr, "inflate:         * length %u\n", c));
-
-					// decode distance base of block to copy 
-					GRABBITS(15);           // max bits for distance code 
-					e = (t = td + ((unsigned int)b & md))->exop;
-					for (;;) {
-						DUMPBITS(t->bits)
-							if (e & 16)
-							{
-								// get extra bits to add to distance base 
-								e &= 15;
-								GRABBITS(e)         // get extra bits (up to 13) 
-									d = t->base + ((unsigned int)b & inflate_mask[e]);
-								DUMPBITS(e)
-									LuTracevv((stderr, "inflate:         * distance %u\n", d));
-
-								// do the copy
-								m -= c;
-								r = q - d;
-								if (r < s->window)                  // wrap if needed
-								{
-									do {
-										r += s->end - s->window;        // force pointer in window
-									} while (r < s->window);          // covers invalid distances
-									e = (unsigned int)(s->end - r);
-									if (c > e)
-									{
-										c -= e;                         // wrapped copy
-										do {
-											*q++ = *r++;
-										} while (--e);
-										r = s->window;
-										do {
-											*q++ = *r++;
-										} while (--c);
-									}
-									else                              // normal copy
-									{
-										*q++ = *r++;  c--;
-										*q++ = *r++;  c--;
-										do {
-											*q++ = *r++;
-										} while (--c);
-									}
-								}
-								else                                /* normal copy */
-								{
-									*q++ = *r++;  c--;
-									*q++ = *r++;  c--;
-									do {
-										*q++ = *r++;
-									} while (--c);
-								}
-								break;
-							}
-							else if ((e & 64) == 0)
-							{
-								t += t->base;
-								e = (t += ((unsigned int)b & inflate_mask[e]))->exop;
-							}
-							else
-							{
-								z->msg = (char*)"invalid distance code";
-								UNGRAB
-									UPDATE
-									return Z_DATA_ERROR;
-							}
-					};
-					break;
-				}
-			if ((e & 64) == 0)
-			{
-				t += t->base;
-				if ((e = (t += ((unsigned int)b & inflate_mask[e]))->exop) == 0)
-				{
-					DUMPBITS(t->bits)
-						LuTracevv((stderr, t->base >= 0x20 && t->base < 0x7f ?
-							"inflate:         * literal '%c'\n" :
-							"inflate:         * literal 0x%02x\n", t->base));
-					*q++ = (unsigned char)t->base;
-					m--;
-					break;
-				}
-			}
-			else if (e & 32)
-			{
-				LuTracevv((stderr, "inflate:         * end of block\n"));
-				UNGRAB
-					UPDATE
-					return Z_STREAM_END;
-			}
-			else
-			{
-				z->msg = (char*)"invalid literal/length code";
-				UNGRAB
-					UPDATE
-					return Z_DATA_ERROR;
-			}
-		};
-	} while (m >= 258 && n >= 10);
-
-	// not enough input or output--restore pointers and return
-	UNGRAB
-		UPDATE
-		return Z_OK;
-}
 
 #define CRC_DO1(buf) crc = crc_table[((int)crc ^ (*buf++)) & 0xff] ^ (crc >> 8);
 #define CRC_DO2(buf)  CRC_DO1(buf); CRC_DO1(buf);
@@ -5925,7 +5620,7 @@ FILETIME dosdatetime2filetime(WORD dosdate, WORD dostime) {
 
 class TUnzip {
 public:
-	TUnzip() : uf(0), unzbuf(0), currentfile(-1), czei(-1) {}
+	TUnzip() : uf(0), unzbuf(0), currentfile(-1) {}
 	~TUnzip() {
 		if (unzbuf != 0) delete[] unzbuf;
 		unzbuf = 0;
@@ -5934,8 +5629,6 @@ public:
 	unzFile uf;
 	char *unzbuf;
 	int currentfile;
-	ZIPENTRY cze;
-	int czei;
 
 	ZRESULT Open(void *z) {
 		HANDLE h = CreateFile((const TCHAR*)z, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
@@ -5946,7 +5639,6 @@ public:
 		LUFILE *lf = new LUFILE();
 		lf->h = h;
 		lf->herr = false;
-		lf->initial_offset = 0;
 		lf->initial_offset = SetFilePointer(h, 0, NULL, FILE_CURRENT);
 
 		int err = UNZ_OK;
@@ -5985,8 +5677,6 @@ public:
 	}
 	ZRESULT Get(int index, ZIPENTRY *ze) {
 		if (index<-1 || index >= (int)uf->gi.number_entry) return ZR_ARGS;
-		if (currentfile != -1) unzCloseCurrentFile(uf); currentfile = -1;
-		if (index == czei && index != -1) { memcpy(ze, &cze, sizeof(ZIPENTRY)); return ZR_OK; }
 		if (index == -1) {
 			ze->index = uf->gi.number_entry;
 			ze->name[0] = 0;
@@ -6088,7 +5778,6 @@ public:
 		}
 
 		if (extra != 0) delete[] extra;
-		memcpy(&cze, ze, sizeof(ZIPENTRY)); czei = index;
 		return ZR_OK;
 	}
 	ZRESULT Find(const TCHAR *tname, int *index, ZIPENTRY *ze) {
@@ -6114,7 +5803,6 @@ public:
 		return ZR_OK;
 	}
 	ZRESULT Unzip(int index, void *dst, unsigned int len, DWORD flags) {
-		if (flags != ZIP_MEMORY && flags != ZIP_FILENAME) return ZR_ARGS;
 		if (flags == ZIP_MEMORY) {
 			if (index != currentfile) {
 				if (currentfile != -1) unzCloseCurrentFile(uf); currentfile = -1;
@@ -6131,48 +5819,50 @@ public:
 			if (res>0) return ZR_MORE;
 			return ZR_FLATE;
 		}
+		if (flags == ZIP_FILENAME) {
+			if (currentfile != -1) unzCloseCurrentFile(uf); currentfile = -1;
+			if (index >= (int)uf->gi.number_entry) return ZR_ARGS;
+			if (index < (int)uf->num_file) unzGoToFirstFile(uf);
+			while ((int)uf->num_file < index) unzGoToNextFile(uf);
+			ZIPENTRY ze;
+			Get(index, &ze);
+			if ((ze.attr&FILE_ATTRIBUTE_DIRECTORY) != 0) {
+				makePath(_shorten((LPWSTR)dst));
+			}
+			HANDLE h;
+			const TCHAR *ufn = (const TCHAR*)dst;
+			const TCHAR *name = ufn; const TCHAR *c = name; while (*c != 0) { if (*c == '/' || *c == '\\') name = c + 1; c++; }
+			TCHAR dir[MAX_PATH]; _tcscpy(dir, ufn); if (name == ufn) *dir = 0; else dir[name - ufn] = 0;
+			TCHAR fn[MAX_PATH];
+			bool isabsolute = (dir[0] == '/' || dir[0] == '\\' || (dir[0] != 0 && dir[1] == ':'));
+			wsprintf(fn, _T("%s%s"), dir, name);
+			makePath(_shorten((LPWSTR)dir));
 
-		if (currentfile != -1) unzCloseCurrentFile(uf); currentfile = -1;
-		if (index >= (int)uf->gi.number_entry) return ZR_ARGS;
-		if (index<(int)uf->num_file) unzGoToFirstFile(uf);
-		while ((int)uf->num_file<index) unzGoToNextFile(uf);
-		ZIPENTRY ze;
-		Get(index, &ze);
-		if ((ze.attr&FILE_ATTRIBUTE_DIRECTORY) != 0) {
-			makePath(_shorten((LPWSTR)dst));
-		}
-		HANDLE h;
-		const TCHAR *ufn = (const TCHAR*)dst;
-		const TCHAR *name = ufn; const TCHAR *c = name; while (*c != 0) { if (*c == '/' || *c == '\\') name = c + 1; c++; }
-		TCHAR dir[MAX_PATH]; _tcscpy(dir, ufn); if (name == ufn) *dir = 0; else dir[name - ufn] = 0;
-		TCHAR fn[MAX_PATH];
-		bool isabsolute = (dir[0] == '/' || dir[0] == '\\' || (dir[0] != 0 && dir[1] == ':'));
-		wsprintf(fn, _T("%s%s"), dir, name);
-		makePath(_shorten((LPWSTR)dir));
+			h = CreateFile(fn, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, ze.attr, NULL);
+			if (h == INVALID_HANDLE_VALUE) return ZR_NOFILE;
+			unzOpenCurrentFile(uf);
+			if (unzbuf == 0) unzbuf = new char[16384]; DWORD haderr = 0;
 
-		h = CreateFile(fn, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, ze.attr, NULL);
-		if (h == INVALID_HANDLE_VALUE) return ZR_NOFILE;
-		unzOpenCurrentFile(uf);
-		if (unzbuf == 0) unzbuf = new char[16384]; DWORD haderr = 0;
-		
-		for (; haderr == 0;) {
-			bool reached_eof;
-			int res = unzReadCurrentFile(uf, unzbuf, 16384, &reached_eof);
-			if (res<0) { haderr = ZR_FLATE; break; }
-			if (res>0) { DWORD writ; BOOL bres = WriteFile(h, unzbuf, res, &writ, NULL); if (!bres) { haderr = ZR_WRITE; break; } }
-			if (reached_eof) break;
-			if (res == 0) { haderr = ZR_FLATE; break; }
+			for (; haderr == 0;) {
+				bool reached_eof;
+				int res = unzReadCurrentFile(uf, unzbuf, 16384, &reached_eof);
+				if (res < 0) { haderr = ZR_FLATE; break; }
+				if (res > 0) { DWORD writ; BOOL bres = WriteFile(h, unzbuf, res, &writ, NULL); if (!bres) { haderr = ZR_WRITE; break; } }
+				if (reached_eof) break;
+				if (res == 0) { haderr = ZR_FLATE; break; }
+			}
+			if (!haderr) SetFileTime(h, &ze.ctime, &ze.atime, &ze.mtime);
+			CloseHandle(h);
+			unzCloseCurrentFile(uf);
+			if (haderr != 0) return haderr;
+			return ZR_OK;
 		}
-		if (!haderr) SetFileTime(h, &ze.ctime, &ze.atime, &ze.mtime);
-		CloseHandle(h);
-		unzCloseCurrentFile(uf);
-		if (haderr != 0) return haderr;
-		return ZR_OK;
 	}
 	ZRESULT Close() {
 		if (currentfile != -1) unzCloseCurrentFile(uf);
 		currentfile = -1;
-		if (uf != 0) unzClose(uf); uf = 0;
+		if (uf != 0) unzClose(uf);
+		uf = 0;
 		return ZR_OK;
 	}
 };
@@ -6182,22 +5872,9 @@ public:
 
 
 vector<HANDLE> zipList, unzipList;
-bool isZip(HZIP hz) {
-	for (auto handle : zipList) {
-		if (handle == hz)return true;
-	}
-	return false;
-}
-bool isUnzip(HZIP hz) {
-	for (auto handle : unzipList) {
-		if (handle == hz)return true;
-	}
-	return false;
-}
-
 HANDLE createZip(SGstring file) {
 	TZip *zip = new TZip();
-	zip->Create(_widen(file), 0, ZIP_FILENAME);
+	zip->Create(_widen(file));
 	zipList.push_back(zip);
 	return zip;
 }

@@ -721,6 +721,12 @@ extern "C" {
 	SGvoid setIcon(SGtext ico);
 
 	/**
+	* Convert rgb to bgr or vice versa.
+	* @Param src is the picture source.
+	*/
+	void convertColor(bitMap src);
+
+	/**
 	* Copy picture to a new area of memory.
 	* @Param src is the copy source.
 	* @Return the new area.
@@ -1832,7 +1838,7 @@ extern "C" {
 
 	/**
 	* Create zip file if the zip file isn't exist.
-	* @Param zip is the path of the zip file.
+	* @Param file is the path of the zip file.
 	*/
 	HANDLE createZip(SGstring file);
 
@@ -1868,15 +1874,15 @@ extern "C" {
 
 	/**
 	* Open zip file for unzip.
-	* @Param zip is the path of the zip file.
+	* @Param file is the path of the zip file.
 	*/
 	HANDLE createUnzip(SGstring file);
 
 	/**
 	* Read zip file and get the idxth file in the zip file.
 	* @Param h is the zip handle from createUnzip.
-	* @Param src is the idxth file in the zip file..
-	* @Param dst reveives the result and should be allocated first.
+	* @Param idx is the idxth file in the zip file..
+	* @Param path reveives the result and should be allocated first.
 	*/
 	void readUnzip(HANDLE h, int idx, SGstring path);
 
