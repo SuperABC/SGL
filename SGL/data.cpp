@@ -1236,6 +1236,61 @@ void setArrayElement(struct JSON *json, int idx, struct JSON *j) {
 DECLARE_HANDLE(HZIP);
 typedef DWORD ZRESULT;
 
+const unsigned long crc_table[256] = {
+	0x00000000L, 0x77073096L, 0xee0e612cL, 0x990951baL, 0x076dc419L,
+	0x706af48fL, 0xe963a535L, 0x9e6495a3L, 0x0edb8832L, 0x79dcb8a4L,
+	0xe0d5e91eL, 0x97d2d988L, 0x09b64c2bL, 0x7eb17cbdL, 0xe7b82d07L,
+	0x90bf1d91L, 0x1db71064L, 0x6ab020f2L, 0xf3b97148L, 0x84be41deL,
+	0x1adad47dL, 0x6ddde4ebL, 0xf4d4b551L, 0x83d385c7L, 0x136c9856L,
+	0x646ba8c0L, 0xfd62f97aL, 0x8a65c9ecL, 0x14015c4fL, 0x63066cd9L,
+	0xfa0f3d63L, 0x8d080df5L, 0x3b6e20c8L, 0x4c69105eL, 0xd56041e4L,
+	0xa2677172L, 0x3c03e4d1L, 0x4b04d447L, 0xd20d85fdL, 0xa50ab56bL,
+	0x35b5a8faL, 0x42b2986cL, 0xdbbbc9d6L, 0xacbcf940L, 0x32d86ce3L,
+	0x45df5c75L, 0xdcd60dcfL, 0xabd13d59L, 0x26d930acL, 0x51de003aL,
+	0xc8d75180L, 0xbfd06116L, 0x21b4f4b5L, 0x56b3c423L, 0xcfba9599L,
+	0xb8bda50fL, 0x2802b89eL, 0x5f058808L, 0xc60cd9b2L, 0xb10be924L,
+	0x2f6f7c87L, 0x58684c11L, 0xc1611dabL, 0xb6662d3dL, 0x76dc4190L,
+	0x01db7106L, 0x98d220bcL, 0xefd5102aL, 0x71b18589L, 0x06b6b51fL,
+	0x9fbfe4a5L, 0xe8b8d433L, 0x7807c9a2L, 0x0f00f934L, 0x9609a88eL,
+	0xe10e9818L, 0x7f6a0dbbL, 0x086d3d2dL, 0x91646c97L, 0xe6635c01L,
+	0x6b6b51f4L, 0x1c6c6162L, 0x856530d8L, 0xf262004eL, 0x6c0695edL,
+	0x1b01a57bL, 0x8208f4c1L, 0xf50fc457L, 0x65b0d9c6L, 0x12b7e950L,
+	0x8bbeb8eaL, 0xfcb9887cL, 0x62dd1ddfL, 0x15da2d49L, 0x8cd37cf3L,
+	0xfbd44c65L, 0x4db26158L, 0x3ab551ceL, 0xa3bc0074L, 0xd4bb30e2L,
+	0x4adfa541L, 0x3dd895d7L, 0xa4d1c46dL, 0xd3d6f4fbL, 0x4369e96aL,
+	0x346ed9fcL, 0xad678846L, 0xda60b8d0L, 0x44042d73L, 0x33031de5L,
+	0xaa0a4c5fL, 0xdd0d7cc9L, 0x5005713cL, 0x270241aaL, 0xbe0b1010L,
+	0xc90c2086L, 0x5768b525L, 0x206f85b3L, 0xb966d409L, 0xce61e49fL,
+	0x5edef90eL, 0x29d9c998L, 0xb0d09822L, 0xc7d7a8b4L, 0x59b33d17L,
+	0x2eb40d81L, 0xb7bd5c3bL, 0xc0ba6cadL, 0xedb88320L, 0x9abfb3b6L,
+	0x03b6e20cL, 0x74b1d29aL, 0xead54739L, 0x9dd277afL, 0x04db2615L,
+	0x73dc1683L, 0xe3630b12L, 0x94643b84L, 0x0d6d6a3eL, 0x7a6a5aa8L,
+	0xe40ecf0bL, 0x9309ff9dL, 0x0a00ae27L, 0x7d079eb1L, 0xf00f9344L,
+	0x8708a3d2L, 0x1e01f268L, 0x6906c2feL, 0xf762575dL, 0x806567cbL,
+	0x196c3671L, 0x6e6b06e7L, 0xfed41b76L, 0x89d32be0L, 0x10da7a5aL,
+	0x67dd4accL, 0xf9b9df6fL, 0x8ebeeff9L, 0x17b7be43L, 0x60b08ed5L,
+	0xd6d6a3e8L, 0xa1d1937eL, 0x38d8c2c4L, 0x4fdff252L, 0xd1bb67f1L,
+	0xa6bc5767L, 0x3fb506ddL, 0x48b2364bL, 0xd80d2bdaL, 0xaf0a1b4cL,
+	0x36034af6L, 0x41047a60L, 0xdf60efc3L, 0xa867df55L, 0x316e8eefL,
+	0x4669be79L, 0xcb61b38cL, 0xbc66831aL, 0x256fd2a0L, 0x5268e236L,
+	0xcc0c7795L, 0xbb0b4703L, 0x220216b9L, 0x5505262fL, 0xc5ba3bbeL,
+	0xb2bd0b28L, 0x2bb45a92L, 0x5cb36a04L, 0xc2d7ffa7L, 0xb5d0cf31L,
+	0x2cd99e8bL, 0x5bdeae1dL, 0x9b64c2b0L, 0xec63f226L, 0x756aa39cL,
+	0x026d930aL, 0x9c0906a9L, 0xeb0e363fL, 0x72076785L, 0x05005713L,
+	0x95bf4a82L, 0xe2b87a14L, 0x7bb12baeL, 0x0cb61b38L, 0x92d28e9bL,
+	0xe5d5be0dL, 0x7cdcefb7L, 0x0bdbdf21L, 0x86d3d2d4L, 0xf1d4e242L,
+	0x68ddb3f8L, 0x1fda836eL, 0x81be16cdL, 0xf6b9265bL, 0x6fb077e1L,
+	0x18b74777L, 0x88085ae6L, 0xff0f6a70L, 0x66063bcaL, 0x11010b5cL,
+	0x8f659effL, 0xf862ae69L, 0x616bffd3L, 0x166ccf45L, 0xa00ae278L,
+	0xd70dd2eeL, 0x4e048354L, 0x3903b3c2L, 0xa7672661L, 0xd06016f7L,
+	0x4969474dL, 0x3e6e77dbL, 0xaed16a4aL, 0xd9d65adcL, 0x40df0b66L,
+	0x37d83bf0L, 0xa9bcae53L, 0xdebb9ec5L, 0x47b2cf7fL, 0x30b5ffe9L,
+	0xbdbdf21cL, 0xcabac28aL, 0x53b39330L, 0x24b4a3a6L, 0xbad03605L,
+	0xcdd70693L, 0x54de5729L, 0x23d967bfL, 0xb3667a2eL, 0xc4614ab8L,
+	0x5d681b02L, 0x2a6f2b94L, 0xb40bbe37L, 0xc30c8ea1L, 0x5a05df1bL,
+	0x2d02ef8dL
+};
+
 #define ZR_OK         0x00000000     // nb. the pseudo-code zr-recent is never returned,
 #define ZR_RECENT     0x00000001     // but can be passed to FormatZipMessage.
 #define ZR_GENMASK    0x0000FF00
@@ -1575,13 +1630,7 @@ void __cdecl Tracec(bool, const char *x, ...) { va_list paramList; va_start(para
 
 void init_block(TState &);
 void pqdownheap(TState &, ct_data *tree, int k);
-void gen_bitlen(TState &, tree_desc *desc);
 void gen_codes(TState &state, ct_data *tree, int max_code);
-void build_tree(TState &, tree_desc *desc);
-void scan_tree(TState &, ct_data *tree, int max_code);
-void send_tree(TState &state, ct_data *tree, int max_code);
-int  build_bl_tree(TState &);
-void send_all_trees(TState &state, int lcodes, int dcodes, int blcodes);
 void compress_block(TState &state, ct_data *ltree, ct_data *dtree);
 void set_file_type(TState &);
 void send_bits(TState &state, int value, int length);
@@ -2669,72 +2718,10 @@ int putend(int n, unsigned long s, unsigned long c, size_t m, char *z, WRITEFUNC
 	return ZE_OK;
 }
 
-const unsigned long crc_table[256] = {
-	0x00000000L, 0x77073096L, 0xee0e612cL, 0x990951baL, 0x076dc419L,
-	0x706af48fL, 0xe963a535L, 0x9e6495a3L, 0x0edb8832L, 0x79dcb8a4L,
-	0xe0d5e91eL, 0x97d2d988L, 0x09b64c2bL, 0x7eb17cbdL, 0xe7b82d07L,
-	0x90bf1d91L, 0x1db71064L, 0x6ab020f2L, 0xf3b97148L, 0x84be41deL,
-	0x1adad47dL, 0x6ddde4ebL, 0xf4d4b551L, 0x83d385c7L, 0x136c9856L,
-	0x646ba8c0L, 0xfd62f97aL, 0x8a65c9ecL, 0x14015c4fL, 0x63066cd9L,
-	0xfa0f3d63L, 0x8d080df5L, 0x3b6e20c8L, 0x4c69105eL, 0xd56041e4L,
-	0xa2677172L, 0x3c03e4d1L, 0x4b04d447L, 0xd20d85fdL, 0xa50ab56bL,
-	0x35b5a8faL, 0x42b2986cL, 0xdbbbc9d6L, 0xacbcf940L, 0x32d86ce3L,
-	0x45df5c75L, 0xdcd60dcfL, 0xabd13d59L, 0x26d930acL, 0x51de003aL,
-	0xc8d75180L, 0xbfd06116L, 0x21b4f4b5L, 0x56b3c423L, 0xcfba9599L,
-	0xb8bda50fL, 0x2802b89eL, 0x5f058808L, 0xc60cd9b2L, 0xb10be924L,
-	0x2f6f7c87L, 0x58684c11L, 0xc1611dabL, 0xb6662d3dL, 0x76dc4190L,
-	0x01db7106L, 0x98d220bcL, 0xefd5102aL, 0x71b18589L, 0x06b6b51fL,
-	0x9fbfe4a5L, 0xe8b8d433L, 0x7807c9a2L, 0x0f00f934L, 0x9609a88eL,
-	0xe10e9818L, 0x7f6a0dbbL, 0x086d3d2dL, 0x91646c97L, 0xe6635c01L,
-	0x6b6b51f4L, 0x1c6c6162L, 0x856530d8L, 0xf262004eL, 0x6c0695edL,
-	0x1b01a57bL, 0x8208f4c1L, 0xf50fc457L, 0x65b0d9c6L, 0x12b7e950L,
-	0x8bbeb8eaL, 0xfcb9887cL, 0x62dd1ddfL, 0x15da2d49L, 0x8cd37cf3L,
-	0xfbd44c65L, 0x4db26158L, 0x3ab551ceL, 0xa3bc0074L, 0xd4bb30e2L,
-	0x4adfa541L, 0x3dd895d7L, 0xa4d1c46dL, 0xd3d6f4fbL, 0x4369e96aL,
-	0x346ed9fcL, 0xad678846L, 0xda60b8d0L, 0x44042d73L, 0x33031de5L,
-	0xaa0a4c5fL, 0xdd0d7cc9L, 0x5005713cL, 0x270241aaL, 0xbe0b1010L,
-	0xc90c2086L, 0x5768b525L, 0x206f85b3L, 0xb966d409L, 0xce61e49fL,
-	0x5edef90eL, 0x29d9c998L, 0xb0d09822L, 0xc7d7a8b4L, 0x59b33d17L,
-	0x2eb40d81L, 0xb7bd5c3bL, 0xc0ba6cadL, 0xedb88320L, 0x9abfb3b6L,
-	0x03b6e20cL, 0x74b1d29aL, 0xead54739L, 0x9dd277afL, 0x04db2615L,
-	0x73dc1683L, 0xe3630b12L, 0x94643b84L, 0x0d6d6a3eL, 0x7a6a5aa8L,
-	0xe40ecf0bL, 0x9309ff9dL, 0x0a00ae27L, 0x7d079eb1L, 0xf00f9344L,
-	0x8708a3d2L, 0x1e01f268L, 0x6906c2feL, 0xf762575dL, 0x806567cbL,
-	0x196c3671L, 0x6e6b06e7L, 0xfed41b76L, 0x89d32be0L, 0x10da7a5aL,
-	0x67dd4accL, 0xf9b9df6fL, 0x8ebeeff9L, 0x17b7be43L, 0x60b08ed5L,
-	0xd6d6a3e8L, 0xa1d1937eL, 0x38d8c2c4L, 0x4fdff252L, 0xd1bb67f1L,
-	0xa6bc5767L, 0x3fb506ddL, 0x48b2364bL, 0xd80d2bdaL, 0xaf0a1b4cL,
-	0x36034af6L, 0x41047a60L, 0xdf60efc3L, 0xa867df55L, 0x316e8eefL,
-	0x4669be79L, 0xcb61b38cL, 0xbc66831aL, 0x256fd2a0L, 0x5268e236L,
-	0xcc0c7795L, 0xbb0b4703L, 0x220216b9L, 0x5505262fL, 0xc5ba3bbeL,
-	0xb2bd0b28L, 0x2bb45a92L, 0x5cb36a04L, 0xc2d7ffa7L, 0xb5d0cf31L,
-	0x2cd99e8bL, 0x5bdeae1dL, 0x9b64c2b0L, 0xec63f226L, 0x756aa39cL,
-	0x026d930aL, 0x9c0906a9L, 0xeb0e363fL, 0x72076785L, 0x05005713L,
-	0x95bf4a82L, 0xe2b87a14L, 0x7bb12baeL, 0x0cb61b38L, 0x92d28e9bL,
-	0xe5d5be0dL, 0x7cdcefb7L, 0x0bdbdf21L, 0x86d3d2d4L, 0xf1d4e242L,
-	0x68ddb3f8L, 0x1fda836eL, 0x81be16cdL, 0xf6b9265bL, 0x6fb077e1L,
-	0x18b74777L, 0x88085ae6L, 0xff0f6a70L, 0x66063bcaL, 0x11010b5cL,
-	0x8f659effL, 0xf862ae69L, 0x616bffd3L, 0x166ccf45L, 0xa00ae278L,
-	0xd70dd2eeL, 0x4e048354L, 0x3903b3c2L, 0xa7672661L, 0xd06016f7L,
-	0x4969474dL, 0x3e6e77dbL, 0xaed16a4aL, 0xd9d65adcL, 0x40df0b66L,
-	0x37d83bf0L, 0xa9bcae53L, 0xdebb9ec5L, 0x47b2cf7fL, 0x30b5ffe9L,
-	0xbdbdf21cL, 0xcabac28aL, 0x53b39330L, 0x24b4a3a6L, 0xbad03605L,
-	0xcdd70693L, 0x54de5729L, 0x23d967bfL, 0xb3667a2eL, 0xc4614ab8L,
-	0x5d681b02L, 0x2a6f2b94L, 0xb40bbe37L, 0xc30c8ea1L, 0x5a05df1bL,
-	0x2d02ef8dL
-};
-
-#define CRC32(c, b) (crc_table[((int)(c) ^ (b)) & 0xff] ^ ((c) >> 8))
-#define DO1(buf)  crc = CRC32(crc, *buf++)
-#define DO2(buf)  DO1(buf); DO1(buf)
-#define DO4(buf)  DO2(buf); DO2(buf)
-#define DO8(buf)  DO4(buf); DO4(buf)
-
 unsigned long crc32(unsigned long crc, const unsigned char *buf, size_t len) {
 	if (buf == NULL) return 0L;
 	crc = crc ^ 0xffffffffL;
-	while (len >= 8) { DO8(buf); len -= 8; }
-	if (len) do { DO1(buf); } while (--len);
+	if (len) do { crc = crc_table[((int)(crc) ^ (*buf++)) & 0xff] ^ ((crc) >> 8); } while (--len);
 	return crc ^ 0xffffffffL;  // (instead of ~c for 64-bit machines)
 }
 bool HasZipSuffix(const TCHAR *fn) {
@@ -2815,178 +2802,25 @@ ZRESULT GetFileInfo(HANDLE hf, unsigned long *attr, long *size, iztimes *times, 
 }
 
 class TZip {
-public:
-	HANDLE hfout;
-	int error;
+private:
+	unsigned writeLength;
+	TZipFileInfo *fileList;
+	TState *state;
 
-	void Create(SGWINSTR filename) {
-		hfout = CreateFile(filename, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
-		if (hfout == INVALID_HANDLE_VALUE) {
-			hfout = 0;
-			error = SG_IO_ERROR;
-		}
-	}
-
-	int Add(const TCHAR *odstzn, void *src, unsigned int len, DWORD flags) {
-		if (error) return SG_IO_ERROR;
-
-		TCHAR dstzn[MAX_PATH];
-		_tcscpy(dstzn, odstzn);
-		if (*dstzn == 0) return ZR_ARGS;
-		TCHAR *d = dstzn; 
-		while (*d != 0) {
-			if (*d == '\\') *d = '/';
-			d++;
-		}
-		bool isdir = (flags == ZIP_FOLDER);
-		int method = DEFLATE;
-		if (isdir || HasZipSuffix(dstzn)) method = STORE;
-
-		// now open whatever was our input source:
-		ZRESULT openres;
-		if (flags == ZIP_FILENAME) openres = open_file((const TCHAR*)src);
-		else if (flags == ZIP_MEMORY) openres = open_mem(src, len);
-		else if (flags == ZIP_FOLDER) openres = open_dir();
-		else return ZR_ARGS;
-		if (openres != ZR_OK) return openres;
-
-		// Initialize the local header
-		TZipFileInfo zfi; zfi.nxt = NULL;
-		strcpy(zfi.name, "");
-#ifdef UNICODE
-		WideCharToMultiByte(CP_UTF8, 0, dstzn, -1, zfi.iname, MAX_PATH, 0, 0);
-#else
-		strcpy(zfi.iname, dstzn);
-#endif
-		zfi.nam = strlen(zfi.iname);
-		if (isdir) { strcat(zfi.iname, "/"); zfi.nam++; }
-		strcpy(zfi.zname, "");
-		zfi.extra = NULL; zfi.ext = 0;   // extra header to go after this compressed data, and its length
-		zfi.cextra = NULL; zfi.cext = 0; // extra header to go in the central end-of-zip directory, and its length
-		zfi.comment = NULL; zfi.com = 0; // comment, and its length
-		zfi.mark = 1;
-		zfi.dosflag = 0;
-		zfi.att = (unsigned short)BINARY;
-		zfi.vem = (unsigned short)0xB17; // 0xB00 is win32 os-code. 0x17 is 23 in decimal: zip 2.3
-		zfi.ver = (unsigned short)20;    // Needs PKUNZIP 2.0 to unzip it
-		zfi.tim = timestamp;
-		// Even though we write the header now, it will have to be rewritten, since we don't know compressed size or crc.
-		zfi.crc = 0;            // to be updated later
-		zfi.flg = 8;            // 8 means 'there is an extra header'. Assume for the moment that we need it.
-		zfi.lflg = zfi.flg;     // to be updated later
-		zfi.how = (unsigned short)method;  // to be updated later
-		zfi.siz = (unsigned long)(method == STORE && isize >= 0 ? isize : 0); // to be updated later
-		zfi.len = (unsigned long)(isize);  // to be updated later
-		zfi.dsk = 0;
-		zfi.atx = attr;
-		zfi.off = writ;         // offset within file of the start of this local record
-								// stuff the 'times' structure into zfi.extra
-
-								// nb. apparently there's a problem with PocketPC CE(zip)->CE(unzip) fails. And removing the following block fixes it up.
-		char xloc[EB_L_UT_SIZE]; zfi.extra = xloc;  zfi.ext = EB_L_UT_SIZE;
-		char xcen[EB_C_UT_SIZE]; zfi.cextra = xcen; zfi.cext = EB_C_UT_SIZE;
-		xloc[0] = 'U';
-		xloc[1] = 'T';
-		xloc[2] = EB_UT_LEN(3);       // length of data part of e.f.
-		xloc[3] = 0;
-		xloc[4] = EB_UT_FL_MTIME | EB_UT_FL_ATIME | EB_UT_FL_CTIME;
-		xloc[5] = (char)(times.mtime);
-		xloc[6] = (char)(times.mtime >> 8);
-		xloc[7] = (char)(times.mtime >> 16);
-		xloc[8] = (char)(times.mtime >> 24);
-		xloc[9] = (char)(times.atime);
-		xloc[10] = (char)(times.atime >> 8);
-		xloc[11] = (char)(times.atime >> 16);
-		xloc[12] = (char)(times.atime >> 24);
-		xloc[13] = (char)(times.ctime);
-		xloc[14] = (char)(times.ctime >> 8);
-		xloc[15] = (char)(times.ctime >> 16);
-		xloc[16] = (char)(times.ctime >> 24);
-		memcpy(zfi.cextra, zfi.extra, EB_C_UT_SIZE);
-		zfi.cextra[EB_LEN] = EB_UT_LEN(1);
-
-
-		// (1) Start by writing the local header:
-		int r = putlocal(&zfi, swrite, this);
-		if (r != ZE_OK) { iclose(); return ZR_WRITE; }
-		writ += 4 + LOCHEAD + (unsigned int)zfi.nam + (unsigned int)zfi.ext;
-		if (error != ZR_OK) { iclose(); return error; }
-
-		//(2) Write deflated/stored file to zip file
-		ZRESULT writeres = ZR_OK;
-		if (!isdir && method == DEFLATE) writeres = ideflate(&zfi);
-		else if (!isdir && method == STORE) writeres = istore();
-		else if (isdir) csize = 0;
-		iclose();
-		writ += csize;
-		if (error != ZR_OK) return error;
-		if (writeres != ZR_OK) return ZR_WRITE;
-
-		// (3) Either rewrite the local header with correct information...
-		bool first_header_has_size_right = (zfi.siz == csize);
-		zfi.crc = crc;
-		zfi.siz = csize;
-		zfi.len = isize;
-		zfi.how = (unsigned short)method;
-		if ((zfi.flg & 1) == 0) zfi.flg &= ~8; // clear the extended local header flag
-		zfi.lflg = zfi.flg;
-		// rewrite the local header:
-		SetFilePointer(hfout, zfi.off, NULL, FILE_BEGIN);
-		if ((r = putlocal(&zfi, swrite, this)) != ZE_OK) return ZR_WRITE;
-		SetFilePointer(hfout, writ, NULL, FILE_BEGIN);
-
-		// Keep a copy of the zipfileinfo, for our end-of-zip directory
-		char *cextra = new char[zfi.cext]; memcpy(cextra, zfi.cextra, zfi.cext); zfi.cextra = cextra;
-		TZipFileInfo *pzfi = new TZipFileInfo; memcpy(pzfi, &zfi, sizeof(zfi));
-		if (zfis == NULL) zfis = pzfi;
-		else { TZipFileInfo *z = zfis; while (z->nxt != NULL) z = z->nxt; z->nxt = pzfi; }
-		return ZR_OK;
-	}
-	int AddCentral() { // write central directory
-		int numentries = 0;
-		unsigned long pos_at_start_of_central = writ;
-		bool okay = true;
-		for (TZipFileInfo *zfi = zfis; zfi != NULL; )
-		{
-			if (okay)
-			{
-				int res = putcentral(zfi, swrite, this);
-				if (res != ZE_OK) okay = false;
-			}
-			writ += 4 + CENHEAD + (unsigned int)zfi->nam + (unsigned int)zfi->cext + (unsigned int)zfi->com;
-			numentries++;
-			//
-			TZipFileInfo *zfinext = zfi->nxt;
-			if (zfi->cextra != 0) delete[] zfi->cextra;
-			delete zfi;
-			zfi = zfinext;
-		}
-		unsigned long center_size = writ - pos_at_start_of_central;
-		if (okay)
-		{
-			int res = putend(numentries, center_size, pos_at_start_of_central, 0, NULL, swrite, this);
-			if (res != ZE_OK) okay = false;
-			writ += 4 + ENDHEAD + 0;
-		}
-		if (!okay) return ZR_WRITE;
-		return ZR_OK;
-	}
-
-	void Close() {
-		AddCentral();
-		if (hfout != 0) CloseHandle(hfout);
-		hfout = 0;
-	}
-
-	TZip() : hfout(0), zfis(0), hfin(0), writ(0), error(0), state(0) {}
-	~TZip() {
-		if (state != 0) delete state;
-		state = 0;
-	}
-
-	unsigned writ;            // how far have we written. This is maintained by Add, not write(), to avoid confusion over seeks
-	TZipFileInfo *zfis;       // each file gets added onto this list, for writing the table at the end
-	TState *state;            // we use just one state object per zip, because it's big (500k)
+	unsigned long attr;
+	iztimes times;
+	unsigned long timestamp;  // all open_* methods set these
+	bool iseekable;
+	long isize, ired;         // size is not set until close() on pips
+	unsigned long crc;                                 // crc is not set until close(). iwrit is cumulative
+	HANDLE hfin;
+	bool selfclosehf;           // for input files and pipes
+	const char *bufin;
+	unsigned int lenin, posin; // for memory
+							   // and a variable for what we've done with the input: (i.e. compressed it!)
+	unsigned long csize;                               // compressed size, set by the compression routines
+													   // and this is used by some of the compression routines
+	char buf[16384];
 
 	static unsigned sread(TState &s, char *buf, unsigned size) {
 		TZip *zip = (TZip*)s.param;
@@ -3007,21 +2841,6 @@ public:
 		if (writ != 0) *size = 0;
 		return writ;
 	}
-
-	unsigned long attr;
-	iztimes times;
-	unsigned long timestamp;  // all open_* methods set these
-	bool iseekable;
-	long isize, ired;         // size is not set until close() on pips
-	unsigned long crc;                                 // crc is not set until close(). iwrit is cumulative
-	HANDLE hfin;
-	bool selfclosehf;           // for input files and pipes
-	const char *bufin;
-	unsigned int lenin, posin; // for memory
-												  // and a variable for what we've done with the input: (i.e. compressed it!)
-	unsigned long csize;                               // compressed size, set by the compression routines
-											 // and this is used by some of the compression routines
-	char buf[16384];
 
 	int open_file(const TCHAR *fn) {
 		hfin = 0; bufin = 0; selfclosehf = false; crc = CRCVAL_INITIAL; isize = 0; csize = 0; ired = 0;
@@ -3122,7 +2941,6 @@ public:
 		if (mismatch) return ZR_MISSIZE;
 		else return ZR_OK;
 	}
-
 	int ideflate(TZipFileInfo *zfi) {
 		if (state == 0) state = new TState();
 		// It's a very big object! 500k! We allocate it on the heap, because PocketPC's
@@ -3149,7 +2967,7 @@ public:
 		if (state->err != NULL) r = ZR_FLATE;
 		return r;
 	}
-	int istore(){
+	int istore() {
 		unsigned long size = 0;
 		for (;;) {
 			unsigned int cin = read(buf, 16384);
@@ -3160,6 +2978,167 @@ public:
 			size += cin;
 		}
 		csize = size;
+		return ZR_OK;
+	}
+
+public:
+	TZip() : hfout(0), fileList(0), hfin(0), writeLength(0), error(0), state(0) {}
+	~TZip() {
+		if (state != 0) delete state;
+		state = 0;
+	}
+
+	HANDLE hfout;
+	int error;
+
+	void Create(SGWINSTR filename) {
+		hfout = CreateFile(filename, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+		if (hfout == INVALID_HANDLE_VALUE) {
+			hfout = 0;
+			error = SG_IO_ERROR;
+		}
+	}
+	int Add(const TCHAR *odstzn, void *src, unsigned int len, DWORD flags) {
+		if (error) return SG_IO_ERROR;
+
+		TCHAR dstzn[MAX_PATH];
+		_tcscpy(dstzn, odstzn);
+		if (*dstzn == 0) return ZR_ARGS;
+		TCHAR *d = dstzn; 
+		while (*d != 0) {
+			if (*d == '\\') *d = '/';
+			d++;
+		}
+		bool isdir = (flags == ZIP_FOLDER);
+		int method = DEFLATE;
+		if (isdir || HasZipSuffix(dstzn)) method = STORE;
+
+		// now open whatever was our input source:
+		ZRESULT openres;
+		if (flags == ZIP_FILENAME) openres = open_file((const TCHAR*)src);
+		else if (flags == ZIP_MEMORY) openres = open_mem(src, len);
+		else if (flags == ZIP_FOLDER) openres = open_dir();
+		else return ZR_ARGS;
+		if (openres != ZR_OK) return openres;
+
+		// Initialize the local header
+		TZipFileInfo zfi; zfi.nxt = NULL;
+		strcpy(zfi.name, "");
+#ifdef UNICODE
+		WideCharToMultiByte(CP_UTF8, 0, dstzn, -1, zfi.iname, MAX_PATH, 0, 0);
+#else
+		strcpy(zfi.iname, dstzn);
+#endif
+		zfi.nam = strlen(zfi.iname);
+		if (isdir) { strcat(zfi.iname, "/"); zfi.nam++; }
+		strcpy(zfi.zname, "");
+		zfi.extra = NULL; zfi.ext = 0;   // extra header to go after this compressed data, and its length
+		zfi.cextra = NULL; zfi.cext = 0; // extra header to go in the central end-of-zip directory, and its length
+		zfi.comment = NULL; zfi.com = 0; // comment, and its length
+		zfi.mark = 1;
+		zfi.dosflag = 0;
+		zfi.att = (unsigned short)BINARY;
+		zfi.vem = (unsigned short)0xB17; // 0xB00 is win32 os-code. 0x17 is 23 in decimal: zip 2.3
+		zfi.ver = (unsigned short)20;    // Needs PKUNZIP 2.0 to unzip it
+		zfi.tim = timestamp;
+		// Even though we write the header now, it will have to be rewritten, since we don't know compressed size or crc.
+		zfi.crc = 0;            // to be updated later
+		zfi.flg = 8;            // 8 means 'there is an extra header'. Assume for the moment that we need it.
+		zfi.lflg = zfi.flg;     // to be updated later
+		zfi.how = (unsigned short)method;  // to be updated later
+		zfi.siz = (unsigned long)(method == STORE && isize >= 0 ? isize : 0); // to be updated later
+		zfi.len = (unsigned long)(isize);  // to be updated later
+		zfi.dsk = 0;
+		zfi.atx = attr;
+		zfi.off = writeLength;         // offset within file of the start of this local record
+								// stuff the 'times' structure into zfi.extra
+
+								// nb. apparently there's a problem with PocketPC CE(zip)->CE(unzip) fails. And removing the following block fixes it up.
+		char xloc[EB_L_UT_SIZE]; zfi.extra = xloc;  zfi.ext = EB_L_UT_SIZE;
+		char xcen[EB_C_UT_SIZE]; zfi.cextra = xcen; zfi.cext = EB_C_UT_SIZE;
+		xloc[0] = 'U';
+		xloc[1] = 'T';
+		xloc[2] = EB_UT_LEN(3);       // length of data part of e.f.
+		xloc[3] = 0;
+		xloc[4] = EB_UT_FL_MTIME | EB_UT_FL_ATIME | EB_UT_FL_CTIME;
+		xloc[5] = (char)(times.mtime);
+		xloc[6] = (char)(times.mtime >> 8);
+		xloc[7] = (char)(times.mtime >> 16);
+		xloc[8] = (char)(times.mtime >> 24);
+		xloc[9] = (char)(times.atime);
+		xloc[10] = (char)(times.atime >> 8);
+		xloc[11] = (char)(times.atime >> 16);
+		xloc[12] = (char)(times.atime >> 24);
+		xloc[13] = (char)(times.ctime);
+		xloc[14] = (char)(times.ctime >> 8);
+		xloc[15] = (char)(times.ctime >> 16);
+		xloc[16] = (char)(times.ctime >> 24);
+		memcpy(zfi.cextra, zfi.extra, EB_C_UT_SIZE);
+		zfi.cextra[EB_LEN] = EB_UT_LEN(1);
+
+
+		// (1) Start by writing the local header:
+		int r = putlocal(&zfi, swrite, this);
+		if (r != ZE_OK) { iclose(); return ZR_WRITE; }
+		writeLength += 4 + LOCHEAD + (unsigned int)zfi.nam + (unsigned int)zfi.ext;
+		if (error != ZR_OK) { iclose(); return error; }
+
+		//(2) Write deflated/stored file to zip file
+		ZRESULT writeres = ZR_OK;
+		if (!isdir && method == DEFLATE) writeres = ideflate(&zfi);
+		else if (!isdir && method == STORE) writeres = istore();
+		else if (isdir) csize = 0;
+		iclose();
+		writeLength += csize;
+		if (error != ZR_OK) return error;
+		if (writeres != ZR_OK) return ZR_WRITE;
+
+		// (3) Either rewrite the local header with correct information...
+		bool first_header_has_size_right = (zfi.siz == csize);
+		zfi.crc = crc;
+		zfi.siz = csize;
+		zfi.len = isize;
+		zfi.how = (unsigned short)method;
+		if ((zfi.flg & 1) == 0) zfi.flg &= ~8; // clear the extended local header flag
+		zfi.lflg = zfi.flg;
+		// rewrite the local header:
+		SetFilePointer(hfout, zfi.off, NULL, FILE_BEGIN);
+		if ((r = putlocal(&zfi, swrite, this)) != ZE_OK) return ZR_WRITE;
+		SetFilePointer(hfout, writeLength, NULL, FILE_BEGIN);
+
+		// Keep a copy of the zipfileinfo, for our end-of-zip directory
+		char *cextra = new char[zfi.cext]; memcpy(cextra, zfi.cextra, zfi.cext); zfi.cextra = cextra;
+		TZipFileInfo *pzfi = new TZipFileInfo; memcpy(pzfi, &zfi, sizeof(zfi));
+		if (fileList == NULL) fileList = pzfi;
+		else { TZipFileInfo *z = fileList; while (z->nxt != NULL) z = z->nxt; z->nxt = pzfi; }
+		return ZR_OK;
+	}
+	int Close() {
+		int numentries = 0;
+		unsigned long pos_at_start_of_central = writeLength;
+		bool okay = true;
+		for (TZipFileInfo *zfi = fileList; zfi != NULL; ) {
+			if (okay) {
+				int res = putcentral(zfi, swrite, this);
+				if (res != ZE_OK) okay = false;
+			}
+			writeLength += 4 + CENHEAD + (unsigned int)zfi->nam + (unsigned int)zfi->cext + (unsigned int)zfi->com;
+			numentries++;
+			//
+			TZipFileInfo *zfinext = zfi->nxt;
+			if (zfi->cextra != 0) delete[] zfi->cextra;
+			delete zfi;
+			zfi = zfinext;
+		}
+		unsigned long center_size = writeLength - pos_at_start_of_central;
+		if (okay) {
+			int res = putend(numentries, center_size, pos_at_start_of_central, 0, NULL, swrite, this);
+			if (res != ZE_OK) okay = false;
+			writeLength += 4 + ENDHEAD + 0;
+		}
+		if (!okay) return ZR_WRITE;
+		if (hfout != 0) CloseHandle(hfout);
+		hfout = 0;
 		return ZR_OK;
 	}
 };
@@ -3278,17 +3257,6 @@ typedef struct z_stream_s {
 
 typedef z_stream *z_streamp;
 
-int inflate(z_streamp strm, int flush);
-
-int inflateEnd(z_streamp strm);
-
-int inflateReset(z_streamp strm);
-
-unsigned long adler32(unsigned long adler, const unsigned char *buf, unsigned int len);
-
-unsigned long ucrc32(unsigned long crc, const unsigned char *buf, unsigned int len);
-
-const char   *zError(int err);
 const char * const z_errmsg[10] = { // indexed by 2-zlib_error
 	"need dictionary",     // Z_NEED_DICT       2
 	"stream end",          // Z_STREAM_END      1
@@ -3303,9 +3271,6 @@ const char * const z_errmsg[10] = { // indexed by 2-zlib_error
 
 #define ERR_MSG(err) z_errmsg[Z_NEED_DICT-(err)]
 
-#define ERR_RETURN(strm,err) \
-  return (strm->msg = (char*)ERR_MSG(err), (err))
-
 #define STORED_BLOCK 0
 #define STATIC_TREES 1
 #define DYN_TREES    2
@@ -3316,18 +3281,7 @@ const char * const z_errmsg[10] = { // indexed by 2-zlib_error
 
 #define OS_CODE  0x0b
 
-#define zmemzero(dest, len) memset(dest, 0, len)
-
-#define LuAssert(cond,msg)
-#define LuTrace(x)
-#define LuTracev(x)
-#define LuTracevv(x)
-#define LuTracec(c,x)
-#define LuTracecv(c,x)
-
 typedef unsigned long(*check_func) (unsigned long check, const unsigned char *buf, unsigned int len);
-void * zcalloc(void * opaque, unsigned items, unsigned size);
-void   zcfree(void * opaque, void * ptr);
 
 #define ZALLOC(strm, items, size) \
            (*((strm)->zalloc))((strm)->opaque, (items), (size))
@@ -3350,30 +3304,9 @@ struct inflate_huft_s {
 
 #define MANY 1440
 
-int inflate_trees_bits(
-	unsigned int *,                    // 19 code lengths
-	unsigned int *,                    // bits tree desired/actual depth
-	inflate_huft * *,       // bits tree result
-	inflate_huft *,             // space for trees
-	z_streamp);                // for messages
-
-int inflate_trees_dynamic(
-	unsigned int,                       // number of literal/length codes
-	unsigned int,                       // number of distance codes
-	unsigned int *,                    // that many (total) code lengths
-	unsigned int *,                    // literal desired/actual bit depth
-	unsigned int *,                    // distance desired/actual bit depth
-	inflate_huft * *,       // literal/length tree result
-	inflate_huft * *,       // distance tree result
-	inflate_huft *,             // space for trees
-	z_streamp);                // for messages
-
-int inflate_trees_fixed(
-	unsigned int *,                    // literal desired/actual bit depth
-	unsigned int *,                    // distance desired/actual bit depth
-	const inflate_huft * *,       // literal/length tree result
-	const inflate_huft * *,       // distance tree result
-	z_streamp);                // for memory allocation
+int inflate_trees_bits(unsigned int *c, unsigned int *bb, inflate_huft * *tb, inflate_huft *hp, z_streamp z);
+int inflate_trees_dynamic(unsigned int nl, unsigned int nd, unsigned int *c, unsigned int *bl, unsigned int *bd, inflate_huft * *tl, inflate_huft * *td, inflate_huft *hp, z_streamp z);
+int inflate_trees_fixed(unsigned int *bl, unsigned int *bd, const inflate_huft * * tl, const inflate_huft * *td, z_streamp);
 
 struct inflate_blocks_state;
 typedef struct inflate_blocks_state inflate_blocks_statef;
@@ -3719,7 +3652,6 @@ inflate_codes_statef *inflate_codes_new(
 		c->dbits = (unsigned char)bd;
 		c->ltree = tl;
 		c->dtree = td;
-		LuTracev((stderr, "inflate:       codes new\n"));
 	}
 	return c;
 }
@@ -3769,9 +3701,6 @@ int inflate_codes(inflate_blocks_statef *s, z_streamp z, int r) {
 			if (e == 0)               // literal 
 			{
 				c->sub.lit = t->base;
-				LuTracevv((stderr, t->base >= 0x20 && t->base < 0x7f ?
-					"inflate:         literal '%c'\n" :
-					"inflate:         literal 0x%02x\n", t->base));
 				c->mode = LIT;
 				break;
 			}
@@ -3790,7 +3719,6 @@ int inflate_codes(inflate_blocks_statef *s, z_streamp z, int r) {
 			}
 			if (e & 32)               // end of block 
 			{
-				LuTracevv((stderr, "inflate:         end of block\n"));
 				c->mode = WASH;
 				break;
 			}
@@ -3805,7 +3733,6 @@ int inflate_codes(inflate_blocks_statef *s, z_streamp z, int r) {
 			DUMPBITS(j)
 				c->sub.code.need = c->dbits;
 			c->sub.code.tree = c->dtree;
-			LuTracevv((stderr, "inflate:         length %u\n", c->len));
 			c->mode = DIST;
 		case DIST:          // i: get distance next 
 			j = c->sub.code.need;
@@ -3835,7 +3762,6 @@ int inflate_codes(inflate_blocks_statef *s, z_streamp z, int r) {
 			NEEDBITS(j)
 				c->sub.copy.dist += (unsigned int)b & inflate_mask[j];
 			DUMPBITS(j)
-				LuTracevv((stderr, "inflate:         distance %u\n", c->sub.copy.dist));
 			c->mode = COPY;
 		case COPY:          // o: copying unsigned chars in window, waiting for space 
 			f = q - c->sub.copy.dist;
@@ -3882,7 +3808,6 @@ int inflate_codes(inflate_blocks_statef *s, z_streamp z, int r) {
 
 void inflate_codes_free(inflate_codes_statef *c, z_streamp z) {
 	ZFREE(z, c);
-	LuTracev((stderr, "inflate:       codes free\n"));
 }
 
 const unsigned int border[] = { // Order of the bit length code lengths
@@ -3901,7 +3826,6 @@ void inflate_blocks_reset(inflate_blocks_statef *s, z_streamp z, unsigned long *
 	s->read = s->write = s->window;
 	if (s->checkfn != Z_NULL)
 		z->adler = s->check = (*s->checkfn)(0L, (const unsigned char *)Z_NULL, 0);
-	LuTracev((stderr, "inflate:   blocks reset\n"));
 }
 
 inflate_blocks_statef *inflate_blocks_new(z_streamp z, check_func c, unsigned int w) {
@@ -3925,7 +3849,6 @@ inflate_blocks_statef *inflate_blocks_new(z_streamp z, check_func c, unsigned in
 	s->end = s->window + w;
 	s->checkfn = c;
 	s->mode = IBM_TYPE;
-	LuTracev((stderr, "inflate:   blocks allocated\n"));
 	inflate_blocks_reset(s, z, Z_NULL);
 	return s;
 }
@@ -3952,16 +3875,12 @@ int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r) {
 			switch (t >> 1)
 			{
 			case 0:                         // stored 
-				LuTracev((stderr, "inflate:     stored block%s\n",
-					s->last ? " (last)" : ""));
 				DUMPBITS(3)
 					t = k & 7;                    // go to unsigned char boundary 
 				DUMPBITS(t)
 					s->mode = IBM_LENS;               // get length of stored block
 				break;
 			case 1:                         // fixed 
-				LuTracev((stderr, "inflate:     fixed codes block%s\n",
-					s->last ? " (last)" : ""));
 				{
 					unsigned int bl, bd;
 					const inflate_huft *tl, *td;
@@ -3978,8 +3897,6 @@ int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r) {
 					s->mode = IBM_CODES;
 				break;
 			case 2:                         // dynamic 
-				LuTracev((stderr, "inflate:     dynamic codes block%s\n",
-					s->last ? " (last)" : ""));
 				DUMPBITS(3)
 					s->mode = IBM_TABLE;
 				break;
@@ -4002,7 +3919,6 @@ int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r) {
 				}
 			s->sub.left = (unsigned int)b & 0xffff;
 			b = k = 0;                      // dump bits 
-			LuTracev((stderr, "inflate:       stored length %u\n", s->sub.left));
 			s->mode = s->sub.left ? IBM_STORED : (s->last ? IBM_DRY : IBM_TYPE);
 			break;
 		case IBM_STORED:
@@ -4017,9 +3933,6 @@ int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r) {
 			q += t;  m -= t;
 			if ((s->sub.left -= t) != 0)
 				break;
-			LuTracev((stderr, "inflate:       stored end, %lu total out\n",
-				z->total_out + (q >= s->read ? q - s->read :
-				(s->end - s->read) + (q - s->window))));
 			s->mode = s->last ? IBM_DRY : IBM_TYPE;
 			break;
 		case IBM_TABLE:
@@ -4042,7 +3955,6 @@ int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r) {
 			}
 			DUMPBITS(14)
 				s->sub.trees.index = 0;
-			LuTracev((stderr, "inflate:       table sizes ok\n"));
 			s->mode = IBM_BTREE;
 		case IBM_BTREE:
 			while (s->sub.trees.index < 4 + (s->sub.trees.table >> 10))
@@ -4067,7 +3979,6 @@ int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r) {
 				LEAVE
 			}
 			s->sub.trees.index = 0;
-			LuTracev((stderr, "inflate:       bits tree ok\n"));
 			s->mode = IBM_DTREE;
 		case IBM_DTREE:
 			while (t = s->sub.trees.table,
@@ -4134,7 +4045,6 @@ int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r) {
 					r = t;
 					LEAVE
 				}
-				LuTracev((stderr, "inflate:       trees ok\n"));
 				if ((c = inflate_codes_new(bl, bd, tl, td, z)) == Z_NULL)
 				{
 					r = Z_MEM_ERROR;
@@ -4151,9 +4061,6 @@ int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r) {
 			r = Z_OK;
 			inflate_codes_free(s->sub.decode.codes, z);
 			LOAD
-				LuTracev((stderr, "inflate:       codes end, %lu total out\n",
-					z->total_out + (q >= s->read ? q - s->read :
-					(s->end - s->read) + (q - s->window))));
 			if (!s->last)
 			{
 				s->mode = IBM_TYPE;
@@ -4182,7 +4089,6 @@ int inflate_blocks_free(inflate_blocks_statef *s, z_streamp z) {
 	ZFREE(z, s->window);
 	ZFREE(z, s->hufts);
 	ZFREE(z, s);
-	LuTracev((stderr, "inflate:   blocks freed\n"));
 	return Z_OK;
 }
 
@@ -4203,8 +4109,7 @@ const unsigned int cpdext[30] = { // Extra bits for distance codes
 
 #define BMAX 15
 
-int huft_build(
-	unsigned int *b,               // code lengths in bits (all assumed <= BMAX)
+int huft_build(unsigned int *b,               // code lengths in bits (all assumed <= BMAX)
 	unsigned int n,                 // number of codes (assumed <= 288)
 	unsigned int s,                 // number of simple-valued codes (0..s-1)
 	const unsigned int *d,         // list of base values for non-simple codes
@@ -4398,12 +4303,7 @@ int huft_build(
 }
 
 
-int inflate_trees_bits(
-	unsigned int *c,               // 19 code lengths
-	unsigned int *bb,              // bits tree desired/actual depth
-	inflate_huft * *tb, // bits tree result
-	inflate_huft *hp,       // space for trees
-	z_streamp z) {
+int inflate_trees_bits(	unsigned int *c, unsigned int *bb, inflate_huft * *tb, inflate_huft *hp, z_streamp z) {
 	int r;
 	unsigned int hn = 0;          // hufts used in space 
 	unsigned int *v;             // work area for huft_build 
@@ -4422,17 +4322,7 @@ int inflate_trees_bits(
 	ZFREE(z, v);
 	return r;
 }
-
-int inflate_trees_dynamic(
-	unsigned int nl,                // number of literal/length codes
-	unsigned int nd,                // number of distance codes
-	unsigned int *c,               // that many (total) code lengths
-	unsigned int *bl,              // literal desired/actual bit depth
-	unsigned int *bd,              // distance desired/actual bit depth
-	inflate_huft * *tl, // literal/length tree result
-	inflate_huft * *td, // distance tree result
-	inflate_huft *hp,       // space for trees
-	z_streamp z) {
+int inflate_trees_dynamic(unsigned int nl, unsigned int nd, unsigned int *c, unsigned int *bl, unsigned int *bd, inflate_huft * *tl, inflate_huft * *td, inflate_huft *hp, z_streamp z) {
 	int r;
 	unsigned int hn = 0;          // hufts used in space 
 	unsigned int *v;             // work area for huft_build 
@@ -4479,13 +4369,7 @@ int inflate_trees_dynamic(
 	ZFREE(z, v);
 	return Z_OK;
 }
-
-int inflate_trees_fixed(
-	unsigned int *bl,               // literal desired/actual bit depth
-	unsigned int *bd,               // distance desired/actual bit depth
-	const inflate_huft * * tl,     // literal/length tree result
-	const inflate_huft * *td,     // distance tree result
-	z_streamp) {
+int inflate_trees_fixed(unsigned int *bl, unsigned int *bd, const inflate_huft * * tl, const inflate_huft * *td, z_streamp) {
 	*bl = fixed_bl;
 	*bd = fixed_bd;
 	*tl = fixed_tl;
@@ -4496,27 +4380,15 @@ int inflate_trees_fixed(
 #define GRABBITS(j) {while(k<(j)){b|=((unsigned long)NEXTBYTE)<<k;k+=8;}}
 #define UNGRAB {c=z->avail_in-n;c=(k>>3)<c?k>>3:c;n+=c;p-=c;k-=c<<3;}
 
-#define CRC_DO1(buf) crc = crc_table[((int)crc ^ (*buf++)) & 0xff] ^ (crc >> 8);
-#define CRC_DO2(buf)  CRC_DO1(buf); CRC_DO1(buf);
-#define CRC_DO4(buf)  CRC_DO2(buf); CRC_DO2(buf);
-#define CRC_DO8(buf)  CRC_DO4(buf); CRC_DO4(buf);
-
 unsigned long ucrc32(unsigned long crc, const unsigned char *buf, unsigned int len) {
 	if (buf == Z_NULL) return 0L;
 	crc = crc ^ 0xffffffffL;
-	while (len >= 8) { CRC_DO8(buf); len -= 8; }
-	if (len) do { CRC_DO1(buf); } while (--len);
+	if (len) do { crc = crc_table[((int)crc ^ (*buf++)) & 0xff] ^ (crc >> 8); } while (--len);
 	return crc ^ 0xffffffffL;
 }
 
 #define BASE 65521L // largest prime smaller than 65536
 #define NMAX 5552
-
-#define AD_DO1(buf,i)  {s1 += buf[i]; s2 += s1;}
-#define AD_DO2(buf,i)  AD_DO1(buf,i); AD_DO1(buf,i+1);
-#define AD_DO4(buf,i)  AD_DO2(buf,i); AD_DO2(buf,i+2);
-#define AD_DO8(buf,i)  AD_DO4(buf,i); AD_DO4(buf,i+4);
-#define AD_DO16(buf)   AD_DO8(buf,0); AD_DO8(buf,8);
 
 unsigned long adler32(unsigned long adler, const unsigned char *buf, unsigned int len) {
 	unsigned long s1 = adler & 0xffff;
@@ -4528,11 +4400,6 @@ unsigned long adler32(unsigned long adler, const unsigned char *buf, unsigned in
 	while (len > 0) {
 		k = len < NMAX ? len : NMAX;
 		len -= k;
-		while (k >= 16) {
-			AD_DO16(buf);
-			buf += 16;
-			k -= 16;
-		}
 		if (k != 0) do {
 			s1 += *buf++;
 			s2 += s1;
@@ -4541,9 +4408,6 @@ unsigned long adler32(unsigned long adler, const unsigned char *buf, unsigned in
 		s2 %= BASE;
 	}
 	return (s2 << 16) | s1;
-}
-const char * zError(int err) {
-	return ERR_MSG(err);
 }
 void * zcalloc(void * opaque, unsigned items, unsigned size) {
 	if (opaque) items += size - size; // make compiler happy
@@ -4602,7 +4466,6 @@ int inflateReset(z_streamp z) {
 	z->msg = Z_NULL;
 	z->state->mode = z->state->nowrap ? IM_BLOCKS : IM_METHOD;
 	inflate_blocks_reset(z->state->blocks, z, Z_NULL);
-	LuTracev((stderr, "inflate: reset\n"));
 	return Z_OK;
 }
 int inflateEnd(z_streamp z) {
@@ -4612,7 +4475,6 @@ int inflateEnd(z_streamp z) {
 		inflate_blocks_free(z->state->blocks, z);
 	ZFREE(z, z->state);
 	z->state = Z_NULL;
-	LuTracev((stderr, "inflate: end\n"));
 	return Z_OK;
 }
 int inflateInit2(z_streamp z) {
@@ -4670,7 +4532,6 @@ int inflateInit2(z_streamp z) {
 		inflateEnd(z);
 		return Z_MEM_ERROR;
 	}
-	LuTracev((stderr, "inflate: allocated\n"));
 
 	// reset state 
 	inflateReset(z);
@@ -4717,7 +4578,6 @@ int inflate(z_streamp z, int f) {
 			z->state->sub.marker = 5;       // can't try inflateSync 
 			break;
 		}
-		LuTracev((stderr, "inflate: zlib header ok\n"));
 		if (!(b & PRESET_DICT))
 		{
 			z->state->mode = IM_BLOCKS;
@@ -4790,7 +4650,6 @@ int inflate(z_streamp z, int f) {
 			z->state->sub.marker = 5;       // can't try inflateSync 
 			break;
 		}
-		LuTracev((stderr, "inflate: zlib check ok\n"));
 		z->state->mode = IM_DONE;
 	case IM_DONE:
 		return Z_STREAM_END;
@@ -4876,9 +4735,6 @@ typedef struct {
 	file_in_zip_read_info_s* pfile_in_zip_read; // structure about the current file if we are decompressing it
 } unz_s, *unzFile;
 
-long unztell(unzFile file);
-int unzeof(unzFile file);
-int unzGetLocalExtrafield(unzFile file, void * buf, unsigned len);
 int unzlocal_getByte(LUFILE *fin, int *pi) {
 	unsigned char c;
 	int err = (int)lufread(&c, 1, 1, fin);
@@ -4972,14 +4828,6 @@ unsigned long unzlocal_SearchCentralDir(LUFILE *fin) {
 	}
 	if (buf) free(buf);
 	return uPosFound;
-}
-int unzGetGlobalInfo(unzFile file, unz_global_info *pglobal_info) {
-	unz_s* s;
-	if (file == NULL)
-		return UNZ_PARAMERROR;
-	s = (unz_s*)file;
-	*pglobal_info = s->gi;
-	return UNZ_OK;
 }
 void unzlocal_DosDateToTmuDate(unsigned long ulDosDate, tm_unz* ptm) {
 	unsigned long uDate;
@@ -5501,87 +5349,6 @@ int unzReadCurrentFile(unzFile file, void * buf, unsigned len, bool *reached_eof
 
 	if (err == Z_OK) return iRead;
 	return err;
-}
-long unztell(unzFile file) {
-	unz_s* s;
-	file_in_zip_read_info_s* pfile_in_zip_read_info;
-	if (file == NULL)
-		return UNZ_PARAMERROR;
-	s = (unz_s*)file;
-	pfile_in_zip_read_info = s->pfile_in_zip_read;
-
-	if (pfile_in_zip_read_info == NULL)
-		return UNZ_PARAMERROR;
-
-	return (long)pfile_in_zip_read_info->stream.total_out;
-}
-int unzeof(unzFile file) {
-	unz_s* s;
-	file_in_zip_read_info_s* pfile_in_zip_read_info;
-	if (file == NULL)
-		return UNZ_PARAMERROR;
-	s = (unz_s*)file;
-	pfile_in_zip_read_info = s->pfile_in_zip_read;
-
-	if (pfile_in_zip_read_info == NULL)
-		return UNZ_PARAMERROR;
-
-	if (pfile_in_zip_read_info->rest_read_uncompressed == 0)
-		return 1;
-	else
-		return 0;
-}
-int unzGetLocalExtrafield(unzFile file, void * buf, unsigned len) {
-	unz_s* s;
-	file_in_zip_read_info_s* pfile_in_zip_read_info;
-	unsigned int read_now;
-	unsigned long size_to_read;
-
-	if (file == NULL)
-		return UNZ_PARAMERROR;
-	s = (unz_s*)file;
-	pfile_in_zip_read_info = s->pfile_in_zip_read;
-
-	if (pfile_in_zip_read_info == NULL)
-		return UNZ_PARAMERROR;
-
-	size_to_read = (pfile_in_zip_read_info->size_local_extrafield -
-		pfile_in_zip_read_info->pos_local_extrafield);
-
-	if (buf == NULL)
-		return (int)size_to_read;
-
-	if (len>size_to_read)
-		read_now = (unsigned int)size_to_read;
-	else
-		read_now = (unsigned int)len;
-
-	if (read_now == 0)
-		return 0;
-
-	if (lufseek(pfile_in_zip_read_info->file, pfile_in_zip_read_info->offset_local_extrafield + pfile_in_zip_read_info->pos_local_extrafield, SEEK_SET) != 0)
-		return UNZ_ERRNO;
-
-	if (lufread(buf, (unsigned int)size_to_read, 1, pfile_in_zip_read_info->file) != 1)
-		return UNZ_ERRNO;
-
-	return (int)read_now;
-}
-int unzGetGlobalComment(unzFile file, char *szComment, unsigned long uSizeBuf) {
-	unz_s* s;
-	unsigned long uReadThis;
-	if (file == NULL) return UNZ_PARAMERROR;
-	s = (unz_s*)file;
-	uReadThis = uSizeBuf;
-	if (uReadThis>s->gi.size_comment) uReadThis = s->gi.size_comment;
-	if (lufseek(s->file, s->central_pos + 22, SEEK_SET) != 0) return UNZ_ERRNO;
-	if (uReadThis>0)
-	{
-		*szComment = '\0';
-		if (lufread(szComment, (unsigned int)uReadThis, 1, s->file) != 1) return UNZ_ERRNO;
-	}
-	if ((szComment != NULL) && (uSizeBuf > s->gi.size_comment)) *(szComment + s->gi.size_comment) = '\0';
-	return (int)uReadThis;
 }
 int unzClose(unzFile file) {
 	unz_s* s;
