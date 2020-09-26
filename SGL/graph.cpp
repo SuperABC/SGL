@@ -844,7 +844,7 @@ SGint deleteGraphRegion(int id) {
 	else {
 		delete graphs[id];
 		graphs[id] = NULL;
-		return SG_NO_ERORR;
+		return SG_NO_ERROR;
 	}
 }
 SGvoid clearGraphBuffer(int id) {

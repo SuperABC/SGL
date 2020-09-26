@@ -916,7 +916,7 @@ public:
 		}
 
 		if (drawingWidget == -1)widgetCover(-1, x, y, x, y);
-		return SG_NO_ERORR;
+		return SG_NO_ERROR;
 	}
 	::rgb getPixel(int x, int y) {
 		::rgb im, ret;
@@ -1039,7 +1039,7 @@ public:
 			}
 		}
 
-		return SG_NO_ERORR;
+		return SG_NO_ERROR;
 	}
 	void putTriangle(int x1, int y1, int x2, int y2, int x3, int y3, int mode) {
 		::rgb c;
@@ -1368,7 +1368,7 @@ public:
 			line++;
 		}
 		free(start);
-		return SG_NO_ERORR;
+		return SG_NO_ERROR;
 	}
 	int putStringConstraint(const char *str, int x, int y, int start, int constraint) {
 
@@ -1431,7 +1431,7 @@ public:
 			memcpy(bitmap->data + bitmap->sizeX * i * 3, buffer->data + (buffer->sizeX * (i + top) + left) * 3, deltaX * 3 * sizeof(char));
 		}
 
-		return SG_NO_ERORR;
+		return SG_NO_ERROR;
 	}
 	void putImage(int left, int top, bitMap *bitmap, int op) {
 		int x1, x2, y1, y2, i, j;
@@ -1553,7 +1553,7 @@ public:
 			}
 		}
 
-		return SG_NO_ERORR;
+		return SG_NO_ERROR;
 	}
 	void funcMap(int x1, int x2, int y1, int y2, float(*vect)(float x)) {
 		int tmp = 0, pre, i, j;
@@ -1731,7 +1731,7 @@ public:
 			memcpy(text->content + (i*text->width), changed->content + (top + i) * changed->width + left, text->width * sizeof(short));
 		}
 
-		return SG_NO_ERORR;
+		return SG_NO_ERROR;
 	}
 	void putText(int left, int top, textMap *text) {
 		int x1, x2, y1, y2, i;
@@ -1758,7 +1758,7 @@ public:
 	int showFps() {
 		if (sglMode != BIT_MAP)return SG_INVALID_MODE;
 		fps = 1;
-		return SG_NO_ERORR;
+		return SG_NO_ERROR;
 	}
 
 	void drawPanel() {

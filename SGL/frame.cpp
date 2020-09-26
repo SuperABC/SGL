@@ -925,7 +925,7 @@ int selectFile(char name[], SGWINSTR start, SGWINSTR format, int idx) {
 	if (strFilename[0]) {
 		strcpy(name, _shorten(strFilename));
 		free(strFilename);
-		return SG_NO_ERORR;
+		return SG_NO_ERROR;
 	}
 	else {
 		free(strFilename);
@@ -952,7 +952,7 @@ int selectSave(char name[], SGWINSTR start, SGWINSTR format, SGWINSTR def, int i
 	if (strFilename[0]) {
 		strcpy(name, _shorten(strFilename));
 		free(strFilename);
-		return SG_NO_ERORR;
+		return SG_NO_ERROR;
 	}
 	else {
 		free(strFilename);
@@ -963,7 +963,7 @@ int makePath(SGtext path) {
 	if (!PathFileExists(_widen(path))) {
 		_wmkdir(String(path).widen());
 	}
-	return SG_NO_ERORR;
+	return SG_NO_ERROR;
 }
 int fileExist(SGtext path) {
 	return PathFileExists(_widen(path));
@@ -980,7 +980,7 @@ int selectDir(char name[], char start[]) {
 	if (szBuffer[0]) {
 		strcpy(name, _shorten(szBuffer));
 		free(szBuffer);
-		return SG_NO_ERORR;
+		return SG_NO_ERROR;
 	}
 	else {
 		free(szBuffer);
@@ -1047,7 +1047,7 @@ int playMci(int id) {
 	strcat(cmd, endTime);
 	if (_mciSend(cmd)) {
 		free(cmd);
-		return SG_NO_ERORR;
+		return SG_NO_ERROR;
 	}
 	free(cmd);
 	return SG_MEDIA_ERROR;
@@ -1073,7 +1073,7 @@ int stopMci(int id) {
 		return SG_MEDIA_ERROR;
 	}
 	free(cmd);
-	return SG_NO_ERORR;
+	return SG_NO_ERROR;
 }
 int pauseMci(int id) {
 	char randstr[6];
@@ -1085,7 +1085,7 @@ int pauseMci(int id) {
 	strcat(cmd, randstr);
 	if (_mciSend(cmd)) {
 		free(cmd);
-		return SG_NO_ERORR;
+		return SG_NO_ERROR;
 	}
 	free(cmd);
 	return SG_MEDIA_ERROR;
@@ -1100,7 +1100,7 @@ int resumeMci(int id) {
 	strcat(cmd, randstr);
 	if (_mciSend(cmd)) {
 		free(cmd);
-		return SG_NO_ERORR;
+		return SG_NO_ERROR;
 	}
 	free(cmd);
 	return SG_MEDIA_ERROR;
@@ -1123,7 +1123,7 @@ int copyText(SGtext src) {
 	SetClipboardData(CF_TEXT, hg);
 	CloseClipboard();
 
-	return SG_NO_ERORR;
+	return SG_NO_ERROR;
 }
 char *pasteText() {
 	HGLOBAL hg;
@@ -1205,11 +1205,11 @@ SOCKET acceptOne(SOCKET server) {
 }
 int socketSend(SOCKET s, SGtext buffer) {
 	if (send(s, buffer, (int)strlen(buffer) + 1, 0) == SOCKET_ERROR)return SG_CONNECTION_FAILED;
-	return SG_NO_ERORR;
+	return SG_NO_ERROR;
 }
 int socketReceive(SOCKET s, SGstring buffer, int len) {
 	if (recv(s, buffer, len, 0) == SOCKET_ERROR)return SG_CONNECTION_FAILED;
-	return SG_NO_ERORR;
+	return SG_NO_ERROR;
 }
 void closeSocket(SOCKET s) {
 	closesocket(s);
@@ -1283,7 +1283,7 @@ int _stringPrintf(SGtext format, va_list ap, char *buffer) {
 	}
 
 	strcpy(buffer, buf.data());
-	return SG_NO_ERORR;
+	return SG_NO_ERROR;
 }
 int _stringLength(SGtext format, va_list ap) {
 	int len = 0;
@@ -1592,22 +1592,22 @@ int deletePanelItem(int id) {
 		if (panel->normalPanel[i]->id == id) {
 			free(panel->normalPanel[i]);
 			panel->normalPanel[i] = NULL;
-			return SG_NO_ERORR;
+			return SG_NO_ERROR;
 		}
 		if (panel->shiftPanel[i]->id == id) {
 			free(panel->shiftPanel[i]);
 			panel->shiftPanel[i] = NULL;
-			return SG_NO_ERORR;
+			return SG_NO_ERROR;
 		}
 		if (panel->ctrlPanel[i]->id == id) {
 			free(panel->ctrlPanel[i]);
 			panel->ctrlPanel[i] = NULL;
-			return SG_NO_ERORR;
+			return SG_NO_ERROR;
 		}
 		if (panel->shiftctrlPanel[i]->id == id) {
 			free(panel->shiftctrlPanel[i]);
 			panel->shiftctrlPanel[i] = NULL;
-			return SG_NO_ERORR;
+			return SG_NO_ERROR;
 		}
 	}
 	return SG_OBJECT_NOT_FOUND;
@@ -2185,7 +2185,7 @@ int showWidget(SGtext name) {
 	Widget *tmp = _getByName(name);
 	if (tmp) {
 		tmp->show();
-		return SG_NO_ERORR;
+		return SG_NO_ERROR;
 	}
 	else return SG_OBJECT_NOT_FOUND;
 }
@@ -2196,13 +2196,13 @@ int ceaseWidget(SGtext name) {
 		if (_windowList[tmp->window]->backgroundRefresh)
 			_windowList[tmp->window]->backgroundRefresh(
 				tmp->pos.x, tmp->pos.y, tmp->pos.x + tmp->size.x, tmp->pos.y + tmp->size.y);
-		return SG_NO_ERORR;
+		return SG_NO_ERROR;
 	}
 	else return SG_OBJECT_NOT_FOUND;
 }
 int deleteWidget(SGtext name) {
 	_deleteByName(name);
-	return SG_NO_ERORR;
+	return SG_NO_ERROR;
 }
 widget *getSubWidget(SGtext parent, SGtext sub) {
 	Widget *root = _getByName(parent);
@@ -2297,7 +2297,7 @@ int moveWidget(SGtext name, int xDelta, int yDelta) {
 			_moveSub(tmp, xDelta, yDelta);
 		}
 		tmp->show();
-		return SG_NO_ERORR;
+		return SG_NO_ERROR;
 	}
 	else return SG_OBJECT_NOT_FOUND;
 }
@@ -2400,7 +2400,7 @@ int _addSeparator(struct _menu *super, int id) {
 		while (super->sub[i++]);
 		i--;
 		super->sub[i] = (struct _item *) - 1;
-		return SG_NO_ERORR;
+		return SG_NO_ERROR;
 	}
 	else {
 		for (i = 0; i < SG_MAX_MENU_ITEM_NUM; i++) {
@@ -2679,7 +2679,7 @@ int finishPopupMenu(int id) {
 	}
 	if (i == _popupNum)return SG_OBJECT_NOT_FOUND;
 	_createMenu(MT_POPUP, NULL, _popupMenuInfo[i].hm);
-	return SG_NO_ERORR;
+	return SG_NO_ERROR;
 }
 int showPopupMenu(int menu, int x, int y) {
 	int i;
@@ -2703,7 +2703,7 @@ int showPopupMenu(int menu, int x, int y) {
 	TrackPopupMenu(_popupMenuInfo[i].hm, TPM_LEFTALIGN,
 		p.x, p.y, 0, _windowList[_currentWindow]->getHwnd(), NULL);
 
-	return SG_NO_ERORR;
+	return SG_NO_ERROR;
 }
 
 

@@ -140,7 +140,7 @@ int subObjectCont(struct JSON *obj, char *name, SGtext json, int i) {
 			setBoolContent(content, label, true);
 			while (json[i] != '}' && json[i++] != ',');
 		}
-		else if(json[i] == 'f') {
+		else if (json[i] == 'f') {
 			i += 5;
 			setBoolContent(content, label, false);
 			while (json[i] != '}' && json[i++] != ',');
@@ -1236,13 +1236,7 @@ void setArrayElement(struct JSON *json, int idx, struct JSON *j) {
 DECLARE_HANDLE(HZIP);
 typedef DWORD ZRESULT;
 
-const unsigned long crc_table[256] = {
-	0x00000000L, 0x77073096L, 0xee0e612cL, 0x990951baL, 0x076dc419L,
-	0x706af48fL, 0xe963a535L, 0x9e6495a3L, 0x0edb8832L, 0x79dcb8a4L,
-	0xe0d5e91eL, 0x97d2d988L, 0x09b64c2bL, 0x7eb17cbdL, 0xe7b82d07L,
-	0x90bf1d91L, 0x1db71064L, 0x6ab020f2L, 0xf3b97148L, 0x84be41deL,
-	0x1adad47dL, 0x6ddde4ebL, 0xf4d4b551L, 0x83d385c7L, 0x136c9856L,
-	0x646ba8c0L, 0xfd62f97aL, 0x8a65c9ecL, 0x14015c4fL, 0x63066cd9L,
+const unsigned long crc_table[256] = {	0x00000000L, 0x77073096L, 0xee0e612cL, 0x990951baL, 0x076dc419L,	0x706af48fL, 0xe963a535L, 0x9e6495a3L, 0x0edb8832L, 0x79dcb8a4L,	0xe0d5e91eL, 0x97d2d988L, 0x09b64c2bL, 0x7eb17cbdL, 0xe7b82d07L,	0x90bf1d91L, 0x1db71064L, 0x6ab020f2L, 0xf3b97148L, 0x84be41deL,	0x1adad47dL, 0x6ddde4ebL, 0xf4d4b551L, 0x83d385c7L, 0x136c9856L,	0x646ba8c0L, 0xfd62f97aL, 0x8a65c9ecL, 0x14015c4fL, 0x63066cd9L,
 	0xfa0f3d63L, 0x8d080df5L, 0x3b6e20c8L, 0x4c69105eL, 0xd56041e4L,
 	0xa2677172L, 0x3c03e4d1L, 0x4b04d447L, 0xd20d85fdL, 0xa50ab56bL,
 	0x35b5a8faL, 0x42b2986cL, 0xdbbbc9d6L, 0xacbcf940L, 0x32d86ce3L,
@@ -1291,51 +1285,6 @@ const unsigned long crc_table[256] = {
 	0x2d02ef8dL
 };
 
-#define ZR_OK         0x00000000     // nb. the pseudo-code zr-recent is never returned,
-#define ZR_RECENT     0x00000001     // but can be passed to FormatZipMessage.
-#define ZR_GENMASK    0x0000FF00
-#define ZR_NODUPH     0x00000100     // couldn't duplicate the handle
-#define ZR_NOFILE     0x00000200     // couldn't create/open the file
-#define ZR_NOALLOC    0x00000300     // failed to allocate some resource
-#define ZR_WRITE      0x00000400     // a general error writing to the file
-#define ZR_NOTFOUND   0x00000500     // couldn't find that file in the zip
-#define ZR_MORE       0x00000600     // there's still more data to be unzipped
-#define ZR_CORRUPT    0x00000700     // the zipfile is corrupt or not a zipfile
-#define ZR_READ       0x00000800     // a general error reading the file
-#define ZR_CALLERMASK 0x00FF0000
-#define ZR_ARGS       0x00010000     // general mistake with the arguments
-#define ZR_NOTMMAP    0x00020000     // tried to ZipGetMemory, but that only works on mmap zipfiles, which yours wasn't
-#define ZR_MEMSIZE    0x00030000     // the memory size is too small
-#define ZR_FAILED     0x00040000     // the thing was already failed when you called this function
-#define ZR_ENDED      0x00050000     // the zip creation has already been closed
-#define ZR_MISSIZE    0x00060000     // the indicated input file size turned out mistaken
-#define ZR_PARTIALUNZ 0x00070000     // the file had already been partially unzipped
-#define ZR_ZMODE      0x00080000     // tried to mix creating/opening a zip 
-#define ZR_BUGMASK    0xFF000000
-#define ZR_NOTINITED  0x01000000     // initialisation didn't work
-#define ZR_SEEK       0x02000000     // trying to seek in an unseekable file
-#define ZR_NOCHANGE   0x04000000     // changed its mind on storage, but not allowed
-#define ZR_FLATE      0x05000000     // an internal error in the de/inflation code
-
-#define ZE_MISS         -1      // used by procname(), zipbare()
-#define ZE_OK           0       // success
-#define ZE_EOF          2       // unexpected end of zip file
-#define ZE_FORM         3       // zip file structure error
-#define ZE_MEM          4       // out of memory
-#define ZE_LOGIC        5       // internal logic error
-#define ZE_BIG          6       // entry too large to split
-#define ZE_NOTE         7       // invalid comment format
-#define ZE_TEST         8       // zip test (-T) failed or out of memory
-#define ZE_ABORT        9       // user interrupt or termination
-#define ZE_TEMP         10      // error using a temp file
-#define ZE_READ         11      // read or seek error
-#define ZE_NONE         12      // nothing to do
-#define ZE_NAME         13      // missing or empty zip file
-#define ZE_WRITE        14      // error writing to a file
-#define ZE_CREAT        15      // couldn't open to write
-#define ZE_PARMS        16      // bad command line
-#define ZE_OPEN         18      // could not open a specified file to read
-#define ZE_MAXERR       18      // the highest error number
 #define UNKNOWN (-1)
 #define BINARY  0
 #define ASCII   1
@@ -1432,7 +1381,6 @@ typedef struct config {
 	unsigned short max_chain;
 } config;
 const config configuration_table[10] = {
-	//  good lazy nice chain
 	{ 0,    0,  0,    0 },  // 0 store only
 	{ 4,    4,  8,    4 },  // 1 maximum speed, no lazy matches
 	{ 4,    5, 16,    8 },  // 2
@@ -1442,7 +1390,8 @@ const config configuration_table[10] = {
 	{ 8,   16, 128, 128 },  // 6
 	{ 8,   32, 128, 256 },  // 7
 	{ 32, 128, 258, 1024 }, // 8
-	{ 32, 258, 258, 4096 } };// 9 maximum compression */
+	{ 32, 258, 258, 4096 }
+};// 9 maximum compression */
 
 typedef struct ct_data {
 	union {
@@ -1476,92 +1425,52 @@ public:
 		last_flags = 0;
 	}
 
-	ct_data dyn_ltree[HEAP_SIZE];    // literal and length tree
-	ct_data dyn_dtree[2 * D_CODES + 1];  // distance tree
-	ct_data static_ltree[L_CODES + 2]; // the static literal tree...
-									   // ... Since the bit lengths are imposed, there is no need for the L_CODES
-									   // extra codes used during heap construction. However the codes 286 and 287
-									   // are needed to build a canonical tree (see ct_init below).
-	ct_data static_dtree[D_CODES]; // the static distance tree...
-								   // ... (Actually a trivial tree since all codes use 5 bits.)
-	ct_data bl_tree[2 * BL_CODES + 1];  // Huffman tree for the bit lengths
+	ct_data dyn_ltree[HEAP_SIZE];
+	ct_data dyn_dtree[2 * D_CODES + 1];
+	ct_data static_ltree[L_CODES + 2];
+	ct_data static_dtree[D_CODES];
+	ct_data bl_tree[2 * BL_CODES + 1];
 
 	tree_desc l_desc;
 	tree_desc d_desc;
 	tree_desc bl_desc;
 
-	unsigned short bl_count[MAX_BITS + 1];  // number of codes at each bit length for an optimal tree
+	unsigned short bl_count[MAX_BITS + 1];
 
-	int heap[2 * L_CODES + 1]; // heap used to build the Huffman trees
-	int heap_len;               // number of elements in the heap
-	int heap_max;               // element of largest frequency
-								// The sons of heap[n] are heap[2*n] and heap[2*n+1]. heap[0] is not used.
-								// The same heap array is used to build all trees.
-
+	int heap[2 * L_CODES + 1];
+	int heap_len; 
+	int heap_max;
 	unsigned char depth[2 * L_CODES + 1];
-	// Depth of each subtree used as tie breaker for trees of equal frequency
-
 	unsigned char length_code[MAX_MATCH - MIN_MATCH + 1];
-	// length code for each normalized match length (0 == MIN_MATCH)
-
 	unsigned char dist_code[512];
-	// distance codes. The first 256 values correspond to the distances
-	// 3 .. 258, the last 256 values correspond to the top 8 bits of
-	// the 15 bit distances.
-
 	int base_length[LENGTH_CODES];
-	// First normalized length for each code (0 = MIN_MATCH)
-
 	int base_dist[D_CODES];
-	// First normalized distance for each code (0 = distance of 1)
-
-	unsigned char far l_buf[LIT_BUFSIZE];  // buffer for literals/lengths
-	unsigned short far d_buf[DIST_BUFSIZE]; // buffer for distances
-
+	unsigned char far l_buf[LIT_BUFSIZE];
+	unsigned short far d_buf[DIST_BUFSIZE];
 	unsigned char flag_buf[(LIT_BUFSIZE / 8)];
-	// flag_buf is a bit array distinguishing literals from lengths in
-	// l_buf, and thus indicating the presence or absence of a distance.
 
-	unsigned last_lit;    // running index in l_buf
-	unsigned last_dist;   // running index in d_buf
-	unsigned last_flags;  // running index in flag_buf
-	unsigned char flags;            // current flags not yet saved in flag_buf
-	unsigned char flag_bit;         // current bit used in flags
-						  // bits are filled in flags starting at bit 0 (least significant).
-						  // Note: these flags are overkill in the current code since we don't
-						  // take advantage of DIST_BUFSIZE == LIT_BUFSIZE.
-
-	unsigned long opt_len;          // bit length of current block with optimal trees
-	unsigned long static_len;       // bit length of current block with static trees
-
-	unsigned long cmpr_bytelen;     // total byte length of compressed file
-	unsigned long cmpr_len_bits;    // number of bits past 'cmpr_bytelen'
-
-	unsigned long input_len;        // total byte length of input file
-						  // input_len is for debugging only since we can get it by other means.
-
-	unsigned short *file_type;       // pointer to UNKNOWN, BINARY or ASCII
-						  //  int *file_method;     // pointer to DEFLATE or STORE
+	unsigned last_lit;
+	unsigned last_dist;
+	unsigned last_flags;
+	unsigned char flags;
+	unsigned char flag_bit;
+	unsigned long opt_len;
+	unsigned long static_len;
+	unsigned long cmpr_bytelen;
+	unsigned long cmpr_len_bits;
+	unsigned long input_len;
+	unsigned short *file_type;
 };
 class TBitState {
 public:
 
 	int flush_flg;
-	//
 	unsigned bi_buf;
-	// Output buffer. bits are inserted starting at the bottom (least significant
-	// bits). The width of bi_buf must be at least 16 bits.
 	int bi_valid;
-	// Number of valid bits in bi_buf.  All bits above the last valid bit
-	// are always zero.
 	char *out_buf;
-	// Current output buffer.
 	unsigned out_offset;
-	// Current offset in output buffer.
-	// On 16 bit machines, the buffer is limited to 64K.
 	unsigned out_size;
-	// Size of current output buffer
-	unsigned long bits_sent;   // bit length of the compressed data  only needed for debugging???
+	unsigned long bits_sent;
 };
 class TDeflateState {
 public:
@@ -1575,10 +1484,10 @@ public:
 	int sliding;
 	unsigned ins_h;
 	unsigned int prev_length;
-	unsigned strstart;         // start of string to insert
-	unsigned match_start; // start of matching string
-	int      eofile;           // flag set at end of input file
-	unsigned lookahead;        // number of valid bytes ahead in window
+	unsigned strstart;
+	unsigned match_start;
+	int eofile;
+	unsigned lookahead;
 
 	unsigned max_chain_length;
 	unsigned int max_lazy_match;
@@ -1586,11 +1495,10 @@ public:
 	int nice_match;
 };
 
-typedef __int64 lutime_t;       // define it ourselves since we don't include time.h
+typedef __int64 lutime_t;
 typedef struct iztimes {
 	lutime_t atime, mtime, ctime;
-} iztimes; // access, modify, create times
-
+} iztimes;
 typedef struct zlist {
 	unsigned short vem, ver, flg, how;       // See central header in zipfile.c for what vem..off are
 	unsigned long tim, crc, siz, len;
@@ -1625,9 +1533,6 @@ struct TState {
 	const char *err;
 };
 
-void __cdecl Trace(const char *x, ...) { va_list paramList; va_start(paramList, x); paramList; va_end(paramList); }
-void __cdecl Tracec(bool, const char *x, ...) { va_list paramList; va_start(paramList, x); paramList; va_end(paramList); }
-
 void init_block(TState &);
 void pqdownheap(TState &, ct_data *tree, int k);
 void gen_codes(TState &state, ct_data *tree, int max_code);
@@ -1638,9 +1543,7 @@ unsigned bi_reverse(unsigned code, int len);
 void bi_windup(TState &state);
 void copy_block(TState &state, char *buf, unsigned len, int header);
 
-
 #define send_code(state, c, tree) send_bits(state, tree[c].fc.code, tree[c].dl.len)
-
 #define d_code(dist) ((dist) < 256 ? state.ts.dist_code[dist] : state.ts.dist_code[256+((dist)>>7)])
 
 void ct_init(TState &state, unsigned short *attr) {
@@ -1651,13 +1554,11 @@ void ct_init(TState &state, unsigned short *attr) {
 	int dist;     /* distance index */
 
 	state.ts.file_type = attr;
-	//state.ts.file_method = method;
 	state.ts.cmpr_bytelen = state.ts.cmpr_len_bits = 0L;
 	state.ts.input_len = 0L;
 
-	if (state.ts.static_dtree[0].dl.len != 0) return; /* ct_init already called */
+	if (state.ts.static_dtree[0].dl.len != 0) return;
 
-													  /* Initialize the mapping length (0..255) -> length code (0..28) */
 	length = 0;
 	for (code = 0; code < LENGTH_CODES - 1; code++) {
 		state.ts.base_length[code] = length;
@@ -1665,14 +1566,9 @@ void ct_init(TState &state, unsigned short *attr) {
 			state.ts.length_code[length++] = (unsigned char)code;
 		}
 	}
-	if(length != 256)debugf("ct_init: length != 256");
-	/* Note that the length 255 (match length 258) can be represented
-	* in two different ways: code 284 + 5 bits or code 285, so we
-	* overwrite length_code[255] to use the best encoding:
-	*/
+	if (length != 256)debugf("ct_init: length != 256");
 	state.ts.length_code[length - 1] = (unsigned char)code;
 
-	/* Initialize the mapping dist (0..32K) -> dist code (0..29) */
 	dist = 0;
 	for (code = 0; code < 16; code++) {
 		state.ts.base_dist[code] = dist;
@@ -1680,43 +1576,33 @@ void ct_init(TState &state, unsigned short *attr) {
 			state.ts.dist_code[dist++] = (unsigned char)code;
 		}
 	}
-	if(dist != 256)debugf("ct_init: dist != 256");
-	dist >>= 7; /* from now on, all distances are divided by 128 */
+	if (dist != 256)debugf("ct_init: dist != 256");
+	dist >>= 7;
 	for (; code < D_CODES; code++) {
 		state.ts.base_dist[code] = dist << 7;
 		for (n = 0; n < (1 << (extra_dbits[code] - 7)); n++) {
 			state.ts.dist_code[256 + dist++] = (unsigned char)code;
 		}
 	}
-	if(dist != 256)debugf("ct_init: 256+dist != 512");
+	if (dist != 256)debugf("ct_init: 256+dist != 512");
 
-	/* Construct the codes of the static literal tree */
 	for (bits = 0; bits <= MAX_BITS; bits++) state.ts.bl_count[bits] = 0;
 	n = 0;
 	while (n <= 143) state.ts.static_ltree[n++].dl.len = 8, state.ts.bl_count[8]++;
 	while (n <= 255) state.ts.static_ltree[n++].dl.len = 9, state.ts.bl_count[9]++;
 	while (n <= 279) state.ts.static_ltree[n++].dl.len = 7, state.ts.bl_count[7]++;
 	while (n <= 287) state.ts.static_ltree[n++].dl.len = 8, state.ts.bl_count[8]++;
-	/* fc.codes 286 and 287 do not exist, but we must include them in the
-	* tree construction to get a canonical Huffman tree (longest code
-	* all ones)
-	*/
+
 	gen_codes(state, (ct_data *)state.ts.static_ltree, L_CODES + 1);
 
-	/* The static distance tree is trivial: */
 	for (n = 0; n < D_CODES; n++) {
 		state.ts.static_dtree[n].dl.len = 5;
 		state.ts.static_dtree[n].fc.code = (unsigned short)bi_reverse(n, 5);
 	}
-
-	/* Initialize the first block of the first file: */
 	init_block(state);
 }
-
 void init_block(TState &state) {
-	int n; /* iterates over tree elements */
-
-		   /* Initialize the trees. */
+	int n;
 	for (n = 0; n < L_CODES; n++) state.ts.dyn_ltree[n].fc.freq = 0;
 	for (n = 0; n < D_CODES; n++) state.ts.dyn_dtree[n].fc.freq = 0;
 	for (n = 0; n < BL_CODES; n++) state.ts.bl_tree[n].fc.freq = 0;
@@ -1733,29 +1619,22 @@ void init_block(TState &state) {
     state.ts.heap[SMALLEST] = state.ts.heap[state.ts.heap_len--]; \
     pqdownheap(state,tree, SMALLEST); \
 }
-
 #define smaller(tree, n, m) \
    (tree[n].fc.freq < tree[m].fc.freq || \
    (tree[n].fc.freq == tree[m].fc.freq && state.ts.depth[n] <= state.ts.depth[m]))
 
 void pqdownheap(TState &state, ct_data *tree, int k) {
 	int v = state.ts.heap[k];
-	int j = k << 1;  /* left son of k */
-	int htemp;       /* required because of bug in SASC compiler */
+	int j = k << 1;
+	int htemp;
 
 	while (j <= state.ts.heap_len) {
-		/* Set j to the smallest of the two sons: */
 		if (j < state.ts.heap_len && smaller(tree, state.ts.heap[j + 1], state.ts.heap[j])) j++;
-
-		/* Exit if v is smaller than both sons */
 		htemp = state.ts.heap[j];
 		if (smaller(tree, v, htemp)) break;
 
-		/* Exchange v with the smallest son */
 		state.ts.heap[k] = htemp;
 		k = j;
-
-		/* And continue down the tree, setting j to the left son of k */
 		j <<= 1;
 	}
 	state.ts.heap[k] = v;
@@ -1767,18 +1646,15 @@ void gen_bitlen(TState &state, tree_desc *desc) {
 	int max_code = desc->max_code;
 	int max_length = desc->max_length;
 	ct_data *stree = desc->static_tree;
-	int h;              /* heap index */
-	int n, m;           /* iterate over the tree elements */
-	int bits;           /* bit length */
-	int xbits;          /* extra bits */
-	unsigned short f;              /* frequency */
-	int overflow = 0;   /* number of elements with bit length too large */
+	int h;
+	int n, m;
+	int bits;
+	int xbits;
+	unsigned short f;
+	int overflow = 0;
 
 	for (bits = 0; bits <= MAX_BITS; bits++) state.ts.bl_count[bits] = 0;
 
-	/* In a first pass, compute the optimal bit lengths (which may
-	* overflow in the case of the bit length tree).
-	*/
 	tree[state.ts.heap[state.ts.heap_max]].dl.len = 0; /* root of the heap */
 
 	for (h = state.ts.heap_max + 1; h < HEAP_SIZE; h++) {
@@ -1786,9 +1662,7 @@ void gen_bitlen(TState &state, tree_desc *desc) {
 		bits = tree[tree[n].dl.dad].dl.len + 1;
 		if (bits > max_length) bits = max_length, overflow++;
 		tree[n].dl.len = (unsigned short)bits;
-		/* We overwrite tree[n].dl.dad which is no longer needed */
-
-		if (n > max_code) continue; /* not a leaf node */
+		if (n > max_code) continue;
 
 		state.ts.bl_count[bits]++;
 		xbits = 0;
@@ -1798,35 +1672,21 @@ void gen_bitlen(TState &state, tree_desc *desc) {
 		if (stree) state.ts.static_len += (unsigned long)f * (stree[n].dl.len + xbits);
 	}
 	if (overflow == 0) return;
-
-	Trace("\nbit length overflow\n");
-	/* This happens for example on obj2 and pic of the Calgary corpus */
-
-	/* Find the first bit length which could increase: */
 	do {
 		bits = max_length - 1;
 		while (state.ts.bl_count[bits] == 0) bits--;
-		state.ts.bl_count[bits]--;           /* move one leaf down the tree */
-		state.ts.bl_count[bits + 1] += (unsigned short)2; /* move one overflow item as its brother */
+		state.ts.bl_count[bits]--;
+		state.ts.bl_count[bits + 1] += (unsigned short)2;
 		state.ts.bl_count[max_length]--;
-		/* The brother of the overflow item also moves one step up,
-		* but this does not affect bl_count[max_length]
-		*/
 		overflow -= 2;
 	} while (overflow > 0);
 
-	/* Now recompute all bit lengths, scanning in increasing frequency.
-	* h is still equal to HEAP_SIZE. (It is simpler to reconstruct all
-	* lengths instead of fixing only the wrong ones. This idea is taken
-	* from 'ar' written by Haruhiko Okumura.)
-	*/
 	for (bits = max_length; bits != 0; bits--) {
 		n = state.ts.bl_count[bits];
 		while (n != 0) {
 			m = state.ts.heap[--h];
 			if (m > max_code) continue;
 			if (tree[m].dl.len != (unsigned short)bits) {
-				Trace("code %d bits %d->%d\n", m, tree[m].dl.len, bits);
 				state.ts.opt_len += ((long)bits - (long)tree[m].dl.len)*(long)tree[m].fc.freq;
 				tree[m].dl.len = (unsigned short)bits;
 			}
@@ -1835,44 +1695,27 @@ void gen_bitlen(TState &state, tree_desc *desc) {
 	}
 }
 void gen_codes(TState &state, ct_data *tree, int max_code) {
-	unsigned short next_code[MAX_BITS + 1]; /* next code value for each bit length */
-	unsigned short code = 0;              /* running code value */
-	int bits;                  /* bit index */
-	int n;                     /* code index */
+	unsigned short next_code[MAX_BITS + 1];
+	unsigned short code = 0;
+	int bits, n;
 
-							   /* The distribution counts are first used to generate the code values
-							   * without bit reversal.
-							   */
 	for (bits = 1; bits <= MAX_BITS; bits++) {
 		next_code[bits] = code = (unsigned short)((code + state.ts.bl_count[bits - 1]) << 1);
 	}
-	/* Check that the bit counts in bl_count are consistent. The last code
-	* must be all ones.
-	*/
-	if(code + state.ts.bl_count[MAX_BITS] - 1 != (1 << ((unsigned short)MAX_BITS)) - 1)debugf("inconsistent bit counts");
-	Trace("\ngen_codes: max_code %d ", max_code);
-
+	if (code + state.ts.bl_count[MAX_BITS] - 1 != (1 << ((unsigned short)MAX_BITS)) - 1)debugf("inconsistent bit counts");
 	for (n = 0; n <= max_code; n++) {
 		int len = tree[n].dl.len;
 		if (len == 0) continue;
-		/* Now reverse the bits */
 		tree[n].fc.code = (unsigned short)bi_reverse(next_code[len]++, len);
-
-		//Tracec(tree != state.ts.static_ltree, "\nn %3d %c l %2d c %4x (%x) ", n, (isgraph(n) ? n : ' '), len, tree[n].fc.code, next_code[len]-1);
 	}
 }
 void build_tree(TState &state, tree_desc *desc) {
 	ct_data *tree = desc->dyn_tree;
 	ct_data *stree = desc->static_tree;
 	int elems = desc->elems;
-	int n, m;          /* iterate over heap elements */
-	int max_code = -1; /* largest code with non zero frequency */
-	int node = elems;  /* next internal node of the tree */
-
-					   /* Construct the initial heap, with least frequent element in
-					   * heap[SMALLEST]. The sons of heap[n] are heap[2*n] and heap[2*n+1].
-					   * heap[0] is not used.
-					   */
+	int n, m;
+	int max_code = -1;
+	int node = elems;
 	state.ts.heap_len = 0, state.ts.heap_max = HEAP_SIZE;
 
 	for (n = 0; n < elems; n++) {
@@ -1884,252 +1727,163 @@ void build_tree(TState &state, tree_desc *desc) {
 			tree[n].dl.len = 0;
 		}
 	}
-
-	/* The pkzip format requires that at least one distance code exists,
-	* and that at least one bit should be sent even if there is only one
-	* possible code. So to avoid special checks later on we force at least
-	* two codes of non zero frequency.
-	*/
 	while (state.ts.heap_len < 2) {
 		int newcp = state.ts.heap[++state.ts.heap_len] = (max_code < 2 ? ++max_code : 0);
 		tree[newcp].fc.freq = 1;
 		state.ts.depth[newcp] = 0;
 		state.ts.opt_len--; if (stree) state.ts.static_len -= stree[newcp].dl.len;
-		/* new is 0 or 1 so it does not have extra bits */
 	}
 	desc->max_code = max_code;
 
-	/* The elements heap[heap_len/2+1 .. heap_len] are leaves of the tree,
-	* establish sub-heaps of increasing lengths:
-	*/
 	for (n = state.ts.heap_len / 2; n >= 1; n--) pqdownheap(state, tree, n);
-
-	/* Construct the Huffman tree by repeatedly combining the least two
-	* frequent nodes.
-	*/
 	do {
-		pqremove(tree, n);   /* n = node of least frequency */
-		m = state.ts.heap[SMALLEST];  /* m = node of next least frequency */
+		pqremove(tree, n);
+		m = state.ts.heap[SMALLEST];
 
-		state.ts.heap[--state.ts.heap_max] = n; /* keep the nodes sorted by frequency */
+		state.ts.heap[--state.ts.heap_max] = n;
 		state.ts.heap[--state.ts.heap_max] = m;
 
-		/* Create a new node father of n and m */
 		tree[node].fc.freq = (unsigned short)(tree[n].fc.freq + tree[m].fc.freq);
 		state.ts.depth[node] = (unsigned char)(max(state.ts.depth[n], state.ts.depth[m]) + 1);
 		tree[n].dl.dad = tree[m].dl.dad = (unsigned short)node;
-		/* and insert the new node in the heap */
 		state.ts.heap[SMALLEST] = node++;
 		pqdownheap(state, tree, SMALLEST);
 
 	} while (state.ts.heap_len >= 2);
 
 	state.ts.heap[--state.ts.heap_max] = state.ts.heap[SMALLEST];
-
-	/* At this point, the fields freq and dad are set. We can now
-	* generate the bit lengths.
-	*/
 	gen_bitlen(state, (tree_desc *)desc);
-
-	/* The field len is now set, we can generate the bit codes */
 	gen_codes(state, (ct_data *)tree, max_code);
 }
 void scan_tree(TState &state, ct_data *tree, int max_code) {
-	int n;                     /* iterates over all tree elements */
-	int prevlen = -1;          /* last emitted length */
-	int curlen;                /* length of current code */
-	int nextlen = tree[0].dl.len; /* length of next code */
-	int count = 0;             /* repeat count of the current code */
-	int max_count = 7;         /* max repeat count */
-	int min_count = 4;         /* min repeat count */
+	int n;
+	int prevlen = -1;
+	int curlen;
+	int nextlen = tree[0].dl.len;
+	int count = 0;
+	int max_count = 7;
+	int min_count = 4;
 
 	if (nextlen == 0) max_count = 138, min_count = 3;
 	tree[max_code + 1].dl.len = (unsigned short)-1; /* guard */
 
 	for (n = 0; n <= max_code; n++) {
 		curlen = nextlen; nextlen = tree[n + 1].dl.len;
-		if (++count < max_count && curlen == nextlen) {
-			continue;
-		}
-		else if (count < min_count) {
-			state.ts.bl_tree[curlen].fc.freq = (unsigned short)(state.ts.bl_tree[curlen].fc.freq + count);
-		}
+		if (++count < max_count && curlen == nextlen) continue;
+		else if (count < min_count) state.ts.bl_tree[curlen].fc.freq = (unsigned short)(state.ts.bl_tree[curlen].fc.freq + count);
 		else if (curlen != 0) {
 			if (curlen != prevlen) state.ts.bl_tree[curlen].fc.freq++;
 			state.ts.bl_tree[REP_3_6].fc.freq++;
 		}
-		else if (count <= 10) {
-			state.ts.bl_tree[REPZ_3_10].fc.freq++;
-		}
-		else {
-			state.ts.bl_tree[REPZ_11_138].fc.freq++;
-		}
+		else if (count <= 10)state.ts.bl_tree[REPZ_3_10].fc.freq++;
+		else state.ts.bl_tree[REPZ_11_138].fc.freq++;
 		count = 0; prevlen = curlen;
 		if (nextlen == 0) {
-			max_count = 138, min_count = 3;
+			max_count = 138;
+			min_count = 3;
 		}
 		else if (curlen == nextlen) {
-			max_count = 6, min_count = 3;
+			max_count = 6;
+			min_count = 3;
 		}
 		else {
-			max_count = 7, min_count = 4;
+			max_count = 7;
+			min_count = 4;
 		}
 	}
 }
 void send_tree(TState &state, ct_data *tree, int max_code) {
-	int n;                     /* iterates over all tree elements */
-	int prevlen = -1;          /* last emitted length */
-	int curlen;                /* length of current code */
-	int nextlen = tree[0].dl.len; /* length of next code */
-	int count = 0;             /* repeat count of the current code */
-	int max_count = 7;         /* max repeat count */
-	int min_count = 4;         /* min repeat count */
-
-							   /* tree[max_code+1].dl.len = -1; */  /* guard already set */
+	int n;
+	int prevlen = -1;
+	int curlen;
+	int nextlen = tree[0].dl.len;
+	int count = 0;
+	int max_count = 7;
+	int min_count = 4;
 	if (nextlen == 0) max_count = 138, min_count = 3;
 
 	for (n = 0; n <= max_code; n++) {
 		curlen = nextlen; nextlen = tree[n + 1].dl.len;
-		if (++count < max_count && curlen == nextlen) {
-			continue;
-		}
-		else if (count < min_count) {
-			do { send_code(state, curlen, state.ts.bl_tree); } while (--count != 0);
-
-		}
+		if (++count < max_count && curlen == nextlen)continue;
+		else if (count < min_count)do { send_code(state, curlen, state.ts.bl_tree); } while (--count != 0);
 		else if (curlen != 0) {
 			if (curlen != prevlen) {
-				send_code(state, curlen, state.ts.bl_tree); count--;
+				send_code(state, curlen, state.ts.bl_tree);
+				count--;
 			}
-			if(count < 3 || count > 6)debugf(" 3_6?");
-			send_code(state, REP_3_6, state.ts.bl_tree); send_bits(state, count - 3, 2);
-
+			if (count < 3 || count > 6)debugf(" 3_6?");
+			send_code(state, REP_3_6, state.ts.bl_tree);
+			send_bits(state, count - 3, 2);
 		}
 		else if (count <= 10) {
-			send_code(state, REPZ_3_10, state.ts.bl_tree); send_bits(state, count - 3, 3);
-
+			send_code(state, REPZ_3_10, state.ts.bl_tree);
+			send_bits(state, count - 3, 3);
 		}
 		else {
-			send_code(state, REPZ_11_138, state.ts.bl_tree); send_bits(state, count - 11, 7);
+			send_code(state, REPZ_11_138, state.ts.bl_tree);
+			send_bits(state, count - 11, 7);
 		}
 		count = 0; prevlen = curlen;
 		if (nextlen == 0) {
-			max_count = 138, min_count = 3;
+			max_count = 138;
+			min_count = 3;
 		}
 		else if (curlen == nextlen) {
-			max_count = 6, min_count = 3;
+			max_count = 6;
+			min_count = 3;
 		}
 		else {
-			max_count = 7, min_count = 4;
+			max_count = 7;
+			min_count = 4;
 		}
 	}
 }
 int build_bl_tree(TState &state) {
-	int max_blindex;  /* index of last bit length code of non zero freq */
+	int max_blindex;
 
-					  /* Determine the bit length frequencies for literal and distance trees */
 	scan_tree(state, (ct_data *)state.ts.dyn_ltree, state.ts.l_desc.max_code);
 	scan_tree(state, (ct_data *)state.ts.dyn_dtree, state.ts.d_desc.max_code);
-
-	/* Build the bit length tree: */
 	build_tree(state, (tree_desc *)(&state.ts.bl_desc));
-	/* opt_len now includes the length of the tree representations, except
-	* the lengths of the bit lengths codes and the 5+5+4 bits for the counts.
-	*/
 
-	/* Determine the number of bit length codes to send. The pkzip format
-	* requires that at least 4 bit length codes be sent. (appnote.txt says
-	* 3 but the actual value used is 4.)
-	*/
 	for (max_blindex = BL_CODES - 1; max_blindex >= 3; max_blindex--) {
 		if (state.ts.bl_tree[bl_order[max_blindex]].dl.len != 0) break;
 	}
-	/* Update opt_len to include the bit length tree and counts */
 	state.ts.opt_len += 3 * (max_blindex + 1) + 5 + 5 + 4;
-	Trace("\ndyn trees: dyn %ld, stat %ld", state.ts.opt_len, state.ts.static_len);
-
 	return max_blindex;
 }
 void send_all_trees(TState &state, int lcodes, int dcodes, int blcodes) {
-	int rank;                    /* index in bl_order */
+	int rank;
 
-	if(lcodes < 257 || dcodes < 1 || blcodes < 4)debugf("not enough codes");
-	if(lcodes > L_CODES || dcodes > D_CODES || blcodes > BL_CODES)debugf("too many codes");
-	Trace("\nbl counts: ");
+	if (lcodes < 257 || dcodes < 1 || blcodes < 4)debugf("not enough codes");
+	if (lcodes > L_CODES || dcodes > D_CODES || blcodes > BL_CODES)debugf("too many codes");
 	send_bits(state, lcodes - 257, 5);
-	/* not +255 as stated in appnote.txt 1.93a or -256 in 2.04c */
 	send_bits(state, dcodes - 1, 5);
-	send_bits(state, blcodes - 4, 4); /* not -3 as stated in appnote.txt */
+	send_bits(state, blcodes - 4, 4);
 	for (rank = 0; rank < blcodes; rank++) {
-		Trace("\nbl code %2d ", bl_order[rank]);
 		send_bits(state, state.ts.bl_tree[bl_order[rank]].dl.len, 3);
 	}
-	Trace("\nbl tree: sent %ld", state.bs.bits_sent);
 
-	send_tree(state, (ct_data *)state.ts.dyn_ltree, lcodes - 1); /* send the literal tree */
-	Trace("\nlit tree: sent %ld", state.bs.bits_sent);
-
-	send_tree(state, (ct_data *)state.ts.dyn_dtree, dcodes - 1); /* send the distance tree */
-	Trace("\ndist tree: sent %ld", state.bs.bits_sent);
+	send_tree(state, (ct_data *)state.ts.dyn_ltree, lcodes - 1);
+	send_tree(state, (ct_data *)state.ts.dyn_dtree, dcodes - 1);
 }
 unsigned long flush_block(TState &state, char *buf, unsigned long stored_len, int eof) {
-	unsigned long opt_lenb, static_lenb; /* opt_len and static_len in bytes */
-	int max_blindex;  /* index of last bit length code of non zero freq */
+	unsigned long opt_lenb, static_lenb;
+	int max_blindex;
 
-	state.ts.flag_buf[state.ts.last_flags] = state.ts.flags; /* Save the flags for the last 8 items */
-
-															 /* Check if the file is ascii or binary */
+	state.ts.flag_buf[state.ts.last_flags] = state.ts.flags;
 	if (*state.ts.file_type == (unsigned short)UNKNOWN) set_file_type(state);
 
-	/* Construct the literal and distance trees */
 	build_tree(state, (tree_desc *)(&state.ts.l_desc));
-	Trace("\nlit data: dyn %ld, stat %ld", state.ts.opt_len, state.ts.static_len);
-
 	build_tree(state, (tree_desc *)(&state.ts.d_desc));
-	Trace("\ndist data: dyn %ld, stat %ld", state.ts.opt_len, state.ts.static_len);
-	/* At this point, opt_len and static_len are the total bit lengths of
-	* the compressed block data, excluding the tree representations.
-	*/
-
-	/* Build the bit length tree for the above two trees, and get the index
-	* in bl_order of the last bit length code to send.
-	*/
 	max_blindex = build_bl_tree(state);
 
-	/* Determine the best encoding. Compute first the block length in bytes */
 	opt_lenb = (state.ts.opt_len + 3 + 7) >> 3;
 	static_lenb = (state.ts.static_len + 3 + 7) >> 3;
-	state.ts.input_len += stored_len; /* for debugging only */
-
-	Trace("\nopt %lu(%lu) stat %lu(%lu) stored %lu lit %u dist %u ",
-		opt_lenb, state.ts.opt_len, static_lenb, state.ts.static_len, stored_len,
-		state.ts.last_lit, state.ts.last_dist);
+	state.ts.input_len += stored_len;
 
 	if (static_lenb <= opt_lenb) opt_lenb = static_lenb;
 
-	// Originally, zip allowed the file to be transformed from a compressed
-	// into a stored file in the case where compression failed, there
-	// was only one block, and it was allowed to change. I've removed this
-	// possibility since the code's cleaner if no changes are allowed.
-	//if (stored_len <= opt_lenb && eof && state.ts.cmpr_bytelen == 0L
-	//   && state.ts.cmpr_len_bits == 0L && state.seekable)
-	//{   // && state.ts.file_method != NULL
-	//    // Since LIT_BUFSIZE <= 2*WSIZE, the input data must be there:
-	//    Assert(state,buf!=NULL,"block vanished");
-	//    copy_block(state,buf, (unsigned)stored_len, 0); // without header
-	//    state.ts.cmpr_bytelen = stored_len;
-	//    Assert(state,false,"unimplemented *state.ts.file_method = STORE;");
-	//    //*state.ts.file_method = STORE;
-	//}
-	//else
 	if (stored_len + 4 <= opt_lenb && buf != (char*)NULL) {
-		/* 4: two words for the lengths */
-		/* The test buf != NULL is only necessary if LIT_BUFSIZE > WSIZE.
-		* Otherwise we can't have processed more than WSIZE input bytes since
-		* the last block flush, because compression would have been
-		* successful. If LIT_BUFSIZE <= WSIZE, it is never too late to
-		* transform a block into a stored block.
-		*/
 		send_bits(state, (STORED_BLOCK << 1) + eof, 3);  /* send block type */
 		state.ts.cmpr_bytelen += ((state.ts.cmpr_len_bits + 3 + 7) >> 3) + stored_len + 4;
 		state.ts.cmpr_len_bits = 0L;
@@ -2151,28 +1905,23 @@ unsigned long flush_block(TState &state, char *buf, unsigned long stored_len, in
 		state.ts.cmpr_bytelen += state.ts.cmpr_len_bits >> 3;
 		state.ts.cmpr_len_bits &= 7L;
 	}
-	if(((state.ts.cmpr_bytelen << 3) + state.ts.cmpr_len_bits) != state.bs.bits_sent)debugf("bad compressed size");
+	if (((state.ts.cmpr_bytelen << 3) + state.ts.cmpr_len_bits) != state.bs.bits_sent)debugf("bad compressed size");
 	init_block(state);
 
 	if (eof) {
-		// Assert(state,input_len == isize, "bad input size");
 		bi_windup(state);
-		state.ts.cmpr_len_bits += 7;  /* align on byte boundary */
+		state.ts.cmpr_len_bits += 7;
 	}
-	Trace("\n");
-
 	return state.ts.cmpr_bytelen + (state.ts.cmpr_len_bits >> 3);
 }
 int ct_tally(TState &state, int dist, int lc) {
 	state.ts.l_buf[state.ts.last_lit++] = (unsigned char)lc;
 	if (dist == 0) {
-		/* lc is the unmatched char */
 		state.ts.dyn_ltree[lc].fc.freq++;
 	}
 	else {
-		/* Here, lc is the match length - MIN_MATCH */
-		dist--;             /* dist = match distance - 1 */
-		if((unsigned short)dist >= (unsigned short)MAX_DIST ||
+		dist--;
+		if ((unsigned short)dist >= (unsigned short)MAX_DIST ||
 			(unsigned short)lc > (unsigned short)(MAX_MATCH - MIN_MATCH) ||
 			(unsigned short)d_code(dist) >= (unsigned short)D_CODES)debugf("ct_tally: bad match");
 
@@ -2184,14 +1933,11 @@ int ct_tally(TState &state, int dist, int lc) {
 	}
 	state.ts.flag_bit <<= 1;
 
-	/* Output the flags if they fill a byte: */
 	if ((state.ts.last_lit & 7) == 0) {
 		state.ts.flag_buf[state.ts.last_flags++] = state.ts.flags;
 		state.ts.flags = 0, state.ts.flag_bit = 1;
 	}
-	/* Try to guess if it is profitable to stop the current block here */
 	if (state.level > 2 && (state.ts.last_lit & 0xfff) == 0) {
-		/* Compute an upper bound for the compressed length */
 		unsigned long out_length = (unsigned long)state.ts.last_lit * 8L;
 		unsigned long in_length = (unsigned long)state.ds.strstart - state.ds.block_start;
 		int dcode;
@@ -2199,54 +1945,45 @@ int ct_tally(TState &state, int dist, int lc) {
 			out_length += (unsigned long)state.ts.dyn_dtree[dcode].fc.freq*(5L + extra_dbits[dcode]);
 		}
 		out_length >>= 3;
-		Trace("\nlast_lit %u, last_dist %u, in %ld, out ~%ld(%ld%%) ",
-			state.ts.last_lit, state.ts.last_dist, in_length, out_length,
-			100L - out_length * 100L / in_length);
 		if (state.ts.last_dist < state.ts.last_lit / 2 && out_length < in_length / 2) return 1;
 	}
 	return (state.ts.last_lit == LIT_BUFSIZE - 1 || state.ts.last_dist == DIST_BUFSIZE);
-	/* We avoid equality with LIT_BUFSIZE because of wraparound at 64K
-	* on 16 bit machines and because stored blocks are restricted to
-	* 64K-1 bytes.
-	*/
 }
 void compress_block(TState &state, ct_data *ltree, ct_data *dtree) {
-	unsigned dist;      /* distance of matched string */
-	int lc;             /* match length or unmatched char (if dist == 0) */
-	unsigned lx = 0;    /* running index in l_buf */
-	unsigned dx = 0;    /* running index in d_buf */
-	unsigned fx = 0;    /* running index in flag_buf */
-	unsigned char flag = 0;       /* current flags */
-	unsigned code;      /* the code to send */
-	int extra;          /* number of extra bits to send */
+	unsigned dist;
+	int lc;
+	unsigned lx = 0;
+	unsigned dx = 0;
+	unsigned fx = 0;
+	unsigned char flag = 0;
+	unsigned code;
+	int extra;
 
 	if (state.ts.last_lit != 0) do {
 		if ((lx & 7) == 0) flag = state.ts.flag_buf[fx++];
 		lc = state.ts.l_buf[lx++];
 		if ((flag & 1) == 0) {
-			send_code(state, lc, ltree); /* send a literal byte */
+			send_code(state, lc, ltree);
 		}
 		else {
-			/* Here, lc is the match length - MIN_MATCH */
 			code = state.ts.length_code[lc];
-			send_code(state, code + LITERALS + 1, ltree); /* send the length code */
+			send_code(state, code + LITERALS + 1, ltree);
 			extra = extra_lbits[code];
 			if (extra != 0) {
 				lc -= state.ts.base_length[code];
-				send_bits(state, lc, extra);        /* send the extra length bits */
+				send_bits(state, lc, extra);
 			}
 			dist = state.ts.d_buf[dx++];
-			/* Here, dist is the match distance - 1 */
 			code = d_code(dist);
-			if(code >= D_CODES)debugf("bad d_code");
+			if (code >= D_CODES)debugf("bad d_code");
 
-			send_code(state, code, dtree);       /* send the distance code */
+			send_code(state, code, dtree);
 			extra = extra_dbits[code];
 			if (extra != 0) {
 				dist -= state.ts.base_dist[code];
-				send_bits(state, dist, extra);   /* send the extra distance bits */
+				send_bits(state, dist, extra);
 			}
-		} /* literal or match pair ? */
+		}
 		flag >>= 1;
 	} while (lx < state.ts.last_lit);
 
@@ -2272,13 +2009,9 @@ void bi_init(TState &state, char *tgt_buf, unsigned tgt_size, int flsh_allowed) 
 	state.bs.bits_sent = 0L;
 }
 void send_bits(TState &state, int value, int length) {
-	if(length <= 0 || length > 15)debugf("invalid length");
+	if (length <= 0 || length > 15)debugf("invalid length");
 	state.bs.bits_sent += (unsigned long)length;
-	/* If not enough room in bi_buf, use (bi_valid) bits from bi_buf and
-	* (Buf_size - bi_valid) bits from value to flush the filled bi_buf,
-	* then fill in the rest of (value), leaving (length - (Buf_size-bi_valid))
-	* unused bits in bi_buf.
-	*/
+
 	state.bs.bi_buf |= (value << state.bs.bi_valid);
 	state.bs.bi_valid += length;
 	if (state.bs.bi_valid > (int)Buf_size) {
@@ -2310,7 +2043,7 @@ void bi_windup(TState &state) {
 	state.bs.bits_sent = (state.bs.bits_sent + 7) & ~7;
 }
 void copy_block(TState &state, char *block, unsigned len, int header) {
-	bi_windup(state);              /* align on byte boundary */
+	bi_windup(state);
 
 	if (header) {
 		PUTSHORT(state, (unsigned short)len);
@@ -2344,25 +2077,17 @@ int  longest_match(TState &state, unsigned int cur_match);
 void lm_init(TState &state, int pack_level, unsigned short *flags) {
 	register unsigned j;
 
-	if(pack_level < 1 || pack_level > 8)debugf("bad pack level");
+	if (pack_level < 1 || pack_level > 8)debugf("bad pack level");
 
-	/* Do not slide the window if the whole input is already in memory
-	* (window_size > 0)
-	*/
 	state.ds.sliding = 0;
 	if (state.ds.window_size == 0L) {
 		state.ds.sliding = 1;
 		state.ds.window_size = (unsigned long)2L * WSIZE;
 	}
 
-	/* Initialize the hash table (avoiding 64K overflow for 16 bit systems).
-	* prev[] will be initialized on the fly.
-	*/
 	state.ds.head[HASH_SIZE - 1] = NIL;
 	memset((char*)state.ds.head, NIL, (unsigned)(HASH_SIZE - 1) * sizeof(*state.ds.head));
 
-	/* Set the default configuration parameters:
-	*/
 	state.ds.max_lazy_match = configuration_table[pack_level].max_lazy;
 	state.ds.good_match = configuration_table[pack_level].good_length;
 	state.ds.nice_match = configuration_table[pack_level].nice_length;
@@ -2373,13 +2098,11 @@ void lm_init(TState &state, int pack_level, unsigned short *flags) {
 	else if (pack_level >= 8) {
 		*flags |= SLOW;
 	}
-	/* ??? reduce max_chain_length for binary files */
-
 	state.ds.strstart = 0;
 	state.ds.block_start = 0L;
 
 	j = WSIZE;
-	j <<= 1; // Can read 64K in one step
+	j <<= 1;
 	state.ds.lookahead = state.readfunc(state, (char*)state.ds.window, j);
 
 	if (state.ds.lookahead == 0 || state.ds.lookahead == (unsigned)EOF) {
@@ -2387,68 +2110,40 @@ void lm_init(TState &state, int pack_level, unsigned short *flags) {
 		return;
 	}
 	state.ds.eofile = 0;
-	/* Make sure that we always have enough lookahead. This is important
-	* if input comes from a device such as a tty.
-	*/
 	if (state.ds.lookahead < MIN_LOOKAHEAD) fill_window(state);
 
 	state.ds.ins_h = 0;
 	for (j = 0; j<MIN_MATCH - 1; j++) UPDATE_HASH(state.ds.ins_h, state.ds.window[j]);
-	/* If lookahead < MIN_MATCH, ins_h is garbage, but this is
-	* not important since only literal bytes will be emitted.
-	*/
 }
 int longest_match(TState &state, unsigned int cur_match) {
-	unsigned chain_length = state.ds.max_chain_length;   /* max hash chain length */
-	register unsigned char far *scan = state.ds.window + state.ds.strstart; /* current string */
-	register unsigned char far *match;                    /* matched string */
-	register int len;                           /* length of current match */
-	int best_len = state.ds.prev_length;                 /* best match length so far */
+	unsigned chain_length = state.ds.max_chain_length;
+	register unsigned char far *scan = state.ds.window + state.ds.strstart;
+	register unsigned char far *match;
+	register int len;
+	int best_len = state.ds.prev_length;
 	unsigned int limit = state.ds.strstart > (unsigned int)MAX_DIST ? state.ds.strstart - (unsigned int)MAX_DIST : NIL;
-	/* Stop when cur_match becomes <= limit. To simplify the code,
-	* we prevent matches with the string of window index 0.
-	*/
 
-	// The code is optimized for HASH_BITS >= 8 and MAX_MATCH-2 multiple of 16.
-	// It is easy to get rid of this optimization if necessary.
-	if(HASH_BITS < 8 || MAX_MATCH != 258)debugf("Code too clever");
-
-
-
+	if (HASH_BITS < 8 || MAX_MATCH != 258)debugf("Code too clever");
 	register unsigned char far *strend = state.ds.window + state.ds.strstart + MAX_MATCH;
 	register unsigned char scan_end1 = scan[best_len - 1];
 	register unsigned char scan_end = scan[best_len];
 
-	/* Do not waste too much time if we already have a good match: */
 	if (state.ds.prev_length >= state.ds.good_match) {
 		chain_length >>= 2;
 	}
-
-	if(state.ds.strstart > state.ds.window_size - MIN_LOOKAHEAD)debugf("insufficient lookahead");
+	if (state.ds.strstart > state.ds.window_size - MIN_LOOKAHEAD)debugf("insufficient lookahead");
 
 	do {
-		if(cur_match >= state.ds.strstart)debugf("no future");
+		if (cur_match >= state.ds.strstart)debugf("no future");
 		match = state.ds.window + cur_match;
 
-		/* Skip to next match if the match length cannot increase
-		* or if the match length is less than 2:
-		*/
 		if (match[best_len] != scan_end ||
 			match[best_len - 1] != scan_end1 ||
 			*match != *scan ||
 			*++match != scan[1])      continue;
 
-		/* The check at best_len-1 can be removed because it will be made
-		* again later. (This heuristic is not always a win.)
-		* It is not necessary to compare scan[2] and match[2] since they
-		* are always equal when the other bytes match, given that
-		* the hash keys are equal and that HASH_BITS >= 8.
-		*/
 		scan += 2, match++;
 
-		/* We check for insufficient lookahead only every 8th comparison;
-		* the 256th check will be made at strstart+258.
-		*/
 		do {
 		} while (*++scan == *++match && *++scan == *++match &&
 			*++scan == *++match && *++scan == *++match &&
@@ -2456,7 +2151,7 @@ int longest_match(TState &state, unsigned int cur_match) {
 			*++scan == *++match && *++scan == *++match &&
 			scan < strend);
 
-		if(scan > state.ds.window + (unsigned)(state.ds.window_size - 1))debugf("wild scan");
+		if (scan > state.ds.window + (unsigned)(state.ds.window_size - 1))debugf("wild scan");
 
 		len = MAX_MATCH - (int)(strend - scan);
 		scan = strend - MAX_MATCH;
@@ -2479,30 +2174,14 @@ int longest_match(TState &state, unsigned int cur_match) {
 
 void fill_window(TState &state) {
 	register unsigned n, m;
-	unsigned more;    /* Amount of free space at the end of the window. */
+	unsigned more;
 
 	do {
 		more = (unsigned)(state.ds.window_size - (unsigned long)state.ds.lookahead - (unsigned long)state.ds.strstart);
-
-		/* If the window is almost full and there is insufficient lookahead,
-		* move the upper half to the lower one to make room in the upper half.
-		*/
 		if (more == (unsigned)EOF) {
-			/* Very unlikely, but possible on 16 bit machine if strstart == 0
-			* and lookahead == 1 (input done one byte at time)
-			*/
 			more--;
-
-			/* For MMAP or BIG_MEM, the whole input file is already in memory so
-			* we must not perform sliding. We must however call (*read_buf)() in
-			* order to compute the crc, update lookahead and possibly set eofile.
-			*/
 		}
 		else if (state.ds.strstart >= WSIZE + MAX_DIST && state.ds.sliding) {
-
-			/* By the IN assertion, the window is not empty so we can't confuse
-			* more == 0 with more == 64K on a 16 bit machine.
-			*/
 			memcpy((char*)state.ds.window, (char*)state.ds.window + WSIZE, (unsigned)WSIZE);
 			state.ds.match_start -= WSIZE;
 			state.ds.strstart -= WSIZE; /* we now have strstart >= MAX_DIST: */
@@ -2516,35 +2195,15 @@ void fill_window(TState &state) {
 			for (n = 0; n < WSIZE; n++) {
 				m = state.ds.prev[n];
 				state.ds.prev[n] = (unsigned int)(m >= WSIZE ? m - WSIZE : NIL);
-				/* If n is not on any hash chain, prev[n] is garbage but
-				* its value will never be used.
-				*/
 			}
 			more += WSIZE;
 		}
 		if (state.ds.eofile) return;
-
-		/* If there was no sliding:
-		*    strstart <= WSIZE+MAX_DIST-1 && lookahead <= MIN_LOOKAHEAD - 1 &&
-		*    more == window_size - lookahead - strstart
-		* => more >= window_size - (MIN_LOOKAHEAD-1 + WSIZE + MAX_DIST-1)
-		* => more >= window_size - 2*WSIZE + 2
-		* In the MMAP or BIG_MEM case (not yet supported in gzip),
-		*   window_size == input_size + MIN_LOOKAHEAD  &&
-		*   strstart + lookahead <= input_size => more >= MIN_LOOKAHEAD.
-		* Otherwise, window_size == 2*WSIZE so more >= 2.
-		* If there was sliding, more >= WSIZE. So in all cases, more >= 2.
-		*/
-		if(more < 2)debugf("more < 2");
-
+		if (more < 2)debugf("more < 2");
 		n = state.readfunc(state, (char*)state.ds.window + state.ds.strstart + state.ds.lookahead, more);
 
-		if (n == 0 || n == (unsigned)EOF) {
-			state.ds.eofile = 1;
-		}
-		else {
-			state.ds.lookahead += n;
-		}
+		if (n == 0 || n == (unsigned)EOF) state.ds.eofile = 1;
+		else state.ds.lookahead += n;
 	} while (state.ds.lookahead < MIN_LOOKAHEAD && !state.ds.eofile);
 }
 
@@ -2553,66 +2212,36 @@ void fill_window(TState &state) {
                 (char*)NULL, (long)state.ds.strstart - state.ds.block_start, (eof))
 
 unsigned long deflate(TState &state) {
-	unsigned int hash_head = NIL;       /* head of hash chain */
-	unsigned int prev_match;            /* previous match */
-	int flush;                  /* set if current block must be flushed */
-	int match_available = 0;    /* set if previous match exists */
-	register unsigned match_length = MIN_MATCH - 1; /* length of best match */
-
-													  /* Process the input block. */
+	unsigned int hash_head = NIL;
+	unsigned int prev_match;
+	int flush;
+	int match_available = 0;
+	register unsigned match_length = MIN_MATCH - 1;
 	while (state.ds.lookahead != 0) {
-		/* Insert the string window[strstart .. strstart+2] in the
-		* dictionary, and set hash_head to the head of the hash chain:
-		*/
 		if (state.ds.lookahead >= MIN_MATCH)
 			INSERT_STRING(state.ds.strstart, hash_head);
-
-		/* Find the longest match, discarding those <= prev_length.
-		*/
 		state.ds.prev_length = match_length, prev_match = state.ds.match_start;
 		match_length = MIN_MATCH - 1;
 
 		if (hash_head != NIL && state.ds.prev_length < state.ds.max_lazy_match &&
 			state.ds.strstart - hash_head <= MAX_DIST) {
-			/* To simplify the code, we prevent matches with the string
-			* of window index 0 (in particular we have to avoid a match
-			* of the string with itself at the start of the input file).
-			*/
-			/* Do not look for matches beyond the end of the input.
-			* This is necessary to make deflate deterministic.
-			*/
 			if ((unsigned)state.ds.nice_match > state.ds.lookahead) state.ds.nice_match = (int)state.ds.lookahead;
 			match_length = longest_match(state, hash_head);
-			/* longest_match() sets match_start */
 			if (match_length > state.ds.lookahead) match_length = state.ds.lookahead;
-
-			/* Ignore a length 3 match if it is too distant: */
 			if (match_length == MIN_MATCH && state.ds.strstart - state.ds.match_start > TOO_FAR) {
-				/* If prev_match is also MIN_MATCH, match_start is garbage
-				* but we will ignore the current match anyway.
-				*/
 				match_length = MIN_MATCH - 1;
 			}
 		}
-		/* If there was a match at the previous step and the current
-		* match is not better, output the previous match:
-		*/
 		if (state.ds.prev_length >= MIN_MATCH && match_length <= state.ds.prev_length) {
 			unsigned max_insert = state.ds.strstart + state.ds.lookahead - MIN_MATCH;
 			check_match(state, state.ds.strstart - 1, prev_match, state.ds.prev_length);
 			flush = ct_tally(state, state.ds.strstart - 1 - prev_match, state.ds.prev_length - MIN_MATCH);
 
-			/* Insert in hash table all strings up to the end of the match.
-			* strstart-1 and strstart are already inserted.
-			*/
 			state.ds.lookahead -= state.ds.prev_length - 1;
 			state.ds.prev_length -= 2;
 			do {
 				if (++state.ds.strstart <= max_insert) {
 					INSERT_STRING(state.ds.strstart, hash_head);
-					/* strstart never exceeds WSIZE-MAX_MATCH, so there are
-					* always MIN_MATCH bytes ahead.
-					*/
 				}
 			} while (--state.ds.prev_length != 0);
 			state.ds.strstart++;
@@ -2623,10 +2252,6 @@ unsigned long deflate(TState &state) {
 
 		}
 		else if (match_available) {
-			/* If there was no match at the previous position, output a
-			* single literal. If there was a match but the current match
-			* is longer, truncate the previous match to a single literal.
-			*/
 			if (ct_tally(state, 0, state.ds.window[state.ds.strstart - 1])) {
 				FLUSH_BLOCK(state, 0), state.ds.block_start = state.ds.strstart;
 			}
@@ -2634,20 +2259,10 @@ unsigned long deflate(TState &state) {
 			state.ds.lookahead--;
 		}
 		else {
-			/* There is no previous match to compare with, wait for
-			* the next step to decide.
-			*/
 			match_available = 1;
 			state.ds.strstart++;
 			state.ds.lookahead--;
 		}
-		//        Assert(state,strstart <= isize && lookahead <= isize, "a bit too far");
-
-		/* Make sure that we always have enough lookahead, except
-		* at the end of the input file. We need MAX_MATCH bytes
-		* for the next match, plus MIN_MATCH bytes to insert the
-		* string following the next match.
-		*/
 		if (state.ds.lookahead < MIN_LOOKAHEAD) fill_window(state);
 	}
 	if (match_available) ct_tally(state, 0, state.ds.window[state.ds.strstart - 1]);
@@ -2666,20 +2281,19 @@ int putlocal(struct zlist far *z, WRITEFUNC wfunc, void *param) {
 	PUTSH(z->nam, f);
 	PUTSH(z->ext, f);
 	size_t res = (size_t)wfunc(param, z->iname, (unsigned int)z->nam);
-	if (res != z->nam) return ZE_TEMP;
-	if (z->ext)
-	{
+	if (res != z->nam) return SG_IO_ERROR;
+	if (z->ext) {
 		res = (size_t)wfunc(param, z->extra, (unsigned int)z->ext);
-		if (res != z->ext) return ZE_TEMP;
+		if (res != z->ext) return SG_IO_ERROR;
 	}
-	return ZE_OK;
+	return SG_NO_ERROR;
 }
 int putextended(struct zlist far *z, WRITEFUNC wfunc, void *param) {
 	PUTLG(EXTLOCSIG, f);
 	PUTLG(z->crc, f);
 	PUTLG(z->siz, f);
 	PUTLG(z->len, f);
-	return ZE_OK;
+	return SG_NO_ERROR;
 }
 int putcentral(struct zlist far *z, WRITEFUNC wfunc, void *param) {
 	PUTLG(CENSIG, f);
@@ -2701,8 +2315,8 @@ int putcentral(struct zlist far *z, WRITEFUNC wfunc, void *param) {
 	if ((size_t)wfunc(param, z->iname, (unsigned int)z->nam) != z->nam ||
 		(z->cext && (size_t)wfunc(param, z->cextra, (unsigned int)z->cext) != z->cext) ||
 		(z->com && (size_t)wfunc(param, z->comment, (unsigned int)z->com) != z->com))
-		return ZE_TEMP;
-	return ZE_OK;
+		return SG_IO_ERROR;
+	return SG_NO_ERROR;
 }
 int putend(int n, unsigned long s, unsigned long c, size_t m, char *z, WRITEFUNC wfunc, void *param) {
 	PUTLG(ENDSIG, f);
@@ -2713,16 +2327,15 @@ int putend(int n, unsigned long s, unsigned long c, size_t m, char *z, WRITEFUNC
 	PUTLG(s, f);
 	PUTLG(c, f);
 	PUTSH(m, f);
-	// Write the comment, if any
-	if (m && wfunc(param, z, (unsigned int)m) != m) return ZE_TEMP;
-	return ZE_OK;
+	if (m && wfunc(param, z, (unsigned int)m) != m) return SG_IO_ERROR;
+	return SG_NO_ERROR;
 }
 
 unsigned long crc32(unsigned long crc, const unsigned char *buf, size_t len) {
 	if (buf == NULL) return 0L;
 	crc = crc ^ 0xffffffffL;
 	if (len) do { crc = crc_table[((int)(crc) ^ (*buf++)) & 0xff] ^ ((crc) >> 8); } while (--len);
-	return crc ^ 0xffffffffL;  // (instead of ~c for 64-bit machines)
+	return crc ^ 0xffffffffL;
 }
 bool HasZipSuffix(const TCHAR *fn) {
 	const TCHAR *ext = fn + _tcslen(fn);
@@ -2753,52 +2366,43 @@ void filetime2dosdatetime(const FILETIME ft, WORD *dosdate, WORD *dostime) {
 }
 ZRESULT GetFileInfo(HANDLE hf, unsigned long *attr, long *size, iztimes *times, unsigned long *timestamp) {
 	BY_HANDLE_FILE_INFORMATION bhi; BOOL res = GetFileInformationByHandle(hf, &bhi);
-	if (!res) return ZR_NOFILE;
+	if (!res) return SG_OBJECT_NOT_FOUND;
 	DWORD fa = bhi.dwFileAttributes; unsigned long a = 0;
-	// Zip uses the lower word for its interpretation of windows stuff
 	if (fa&FILE_ATTRIBUTE_READONLY) a |= 0x01;
 	if (fa&FILE_ATTRIBUTE_HIDDEN)   a |= 0x02;
 	if (fa&FILE_ATTRIBUTE_SYSTEM)   a |= 0x04;
 	if (fa&FILE_ATTRIBUTE_DIRECTORY)a |= 0x10;
 	if (fa&FILE_ATTRIBUTE_ARCHIVE)  a |= 0x20;
-	// It uses the upper word for standard unix attr, which we manually construct
-	if (fa&FILE_ATTRIBUTE_DIRECTORY)a |= 0x40000000;  // directory
-	else a |= 0x80000000;  // normal file
-	a |= 0x01000000;      // readable
+	if (fa&FILE_ATTRIBUTE_DIRECTORY)a |= 0x40000000;
+	else a |= 0x80000000;
+	a |= 0x01000000;
 	if (fa&FILE_ATTRIBUTE_READONLY) {}
-	else a |= 0x00800000; // writeable
-						  // now just a small heuristic to check if it's an executable:
-	DWORD red, hsize = GetFileSize(hf, NULL); if (hsize>40)
-	{
+	else a |= 0x00800000;
+	DWORD red, hsize = GetFileSize(hf, NULL);
+	if (hsize>40) {
 		SetFilePointer(hf, 0, NULL, FILE_BEGIN); unsigned short magic; ReadFile(hf, &magic, sizeof(magic), &red, NULL);
 		SetFilePointer(hf, 36, NULL, FILE_BEGIN); unsigned long hpos;  ReadFile(hf, &hpos, sizeof(hpos), &red, NULL);
-		if (magic == 0x54AD && hsize>hpos + 4 + 20 + 28)
-		{
+		if (magic == 0x54AD && hsize>hpos + 4 + 20 + 28) {
 			SetFilePointer(hf, hpos, NULL, FILE_BEGIN); unsigned long signature; ReadFile(hf, &signature, sizeof(signature), &red, NULL);
 			if (signature == IMAGE_DOS_SIGNATURE || signature == IMAGE_OS2_SIGNATURE
-				|| signature == IMAGE_OS2_SIGNATURE_LE || signature == IMAGE_NT_SIGNATURE)
-			{
-				a |= 0x00400000; // executable
+				|| signature == IMAGE_OS2_SIGNATURE_LE || signature == IMAGE_NT_SIGNATURE) {
+				a |= 0x00400000;
 			}
 		}
 	}
-	//
 	if (attr != NULL) *attr = a;
 	if (size != NULL) *size = hsize;
-	if (times != NULL)
-	{ // lutime_t is 32bit number of seconds elapsed since 0:0:0GMT, Jan1, 1970.
-	  // but FILETIME is 64bit number of 100-nanosecs since Jan1, 1601
+	if (times != NULL) {
 		times->atime = filetime2timet(bhi.ftLastAccessTime);
 		times->mtime = filetime2timet(bhi.ftLastWriteTime);
 		times->ctime = filetime2timet(bhi.ftCreationTime);
 	}
-	if (timestamp != NULL)
-	{
+	if (timestamp != NULL) {
 		WORD dosdate, dostime;
 		filetime2dosdatetime(bhi.ftLastWriteTime, &dosdate, &dostime);
 		*timestamp = (WORD)dostime | (((DWORD)dosdate) << 16);
 	}
-	return ZR_OK;
+	return SG_NO_ERROR;
 }
 
 class TZip {
@@ -2809,17 +2413,15 @@ private:
 
 	unsigned long attr;
 	iztimes times;
-	unsigned long timestamp;  // all open_* methods set these
+	unsigned long timestamp;
 	bool iseekable;
-	long isize, ired;         // size is not set until close() on pips
-	unsigned long crc;                                 // crc is not set until close(). iwrit is cumulative
+	long isize, ired;
+	unsigned long crc;
 	HANDLE hfin;
-	bool selfclosehf;           // for input files and pipes
+	bool selfclosehf;
 	const char *bufin;
-	unsigned int lenin, posin; // for memory
-							   // and a variable for what we've done with the input: (i.e. compressed it!)
-	unsigned long csize;                               // compressed size, set by the compression routines
-													   // and this is used by some of the compression routines
+	unsigned int lenin, posin;
+	unsigned long csize;
 	char buf[16384];
 
 	static unsigned sread(TState &s, char *buf, unsigned size) {
@@ -2844,28 +2446,26 @@ private:
 
 	int open_file(const TCHAR *fn) {
 		hfin = 0; bufin = 0; selfclosehf = false; crc = CRCVAL_INITIAL; isize = 0; csize = 0; ired = 0;
-		if (fn == 0) return ZR_ARGS;
+		if (fn == 0) return SG_IO_ERROR;
 		HANDLE hf = CreateFile(fn, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
-		if (hf == INVALID_HANDLE_VALUE) return ZR_NOFILE;
+		if (hf == INVALID_HANDLE_VALUE) return SG_OBJECT_NOT_FOUND;
 		ZRESULT res = open_handle(hf, 0);
-		if (res != ZR_OK) { CloseHandle(hf); return res; }
+		if (res != SG_NO_ERROR) { CloseHandle(hf); return res; }
 		selfclosehf = true;
-		return ZR_OK;
+		return SG_NO_ERROR;
 	}
 	int open_handle(HANDLE hf, unsigned int len) {
 		hfin = 0; bufin = 0; selfclosehf = false; crc = CRCVAL_INITIAL; isize = 0; csize = 0; ired = 0;
-		if (hf == 0 || hf == INVALID_HANDLE_VALUE) return ZR_ARGS;
+		if (hf == 0 || hf == INVALID_HANDLE_VALUE) return SG_IO_ERROR;
 		DWORD res = SetFilePointer(hfout, 0, 0, FILE_CURRENT);
-		if (res != 0xFFFFFFFF)
-		{
+		if (res != 0xFFFFFFFF) {
 			ZRESULT res = GetFileInfo(hf, &attr, &isize, &times, &timestamp);
-			if (res != ZR_OK) return res;
+			if (res != SG_NO_ERROR) return res;
 			SetFilePointer(hf, 0, NULL, FILE_BEGIN); // because GetFileInfo will have screwed it up
 			iseekable = true; hfin = hf;
-			return ZR_OK;
+			return SG_NO_ERROR;
 		}
-		else
-		{
+		else {
 			attr = 0x80000000;      // just a normal file
 			isize = -1;            // can't know size until at the end
 			if (len != 0) isize = len; // unless we were told explicitly!
@@ -2878,13 +2478,13 @@ private:
 			times.ctime = times.atime;
 			timestamp = (WORD)dostime | (((DWORD)dosdate) << 16);
 			hfin = hf;
-			return ZR_OK;
+			return SG_NO_ERROR;
 		}
 	}
 	int open_mem(void *src, unsigned int len) {
 		hfin = 0; bufin = (const char*)src; selfclosehf = false; crc = CRCVAL_INITIAL; ired = 0; csize = 0; ired = 0;
 		lenin = len; posin = 0;
-		if (src == 0 || len == 0) return ZR_ARGS;
+		if (src == 0 || len == 0) return SG_IO_ERROR;
 		attr = 0x80000000; // just a normal file
 		isize = len;
 		iseekable = true;
@@ -2895,7 +2495,7 @@ private:
 		times.mtime = times.atime;
 		times.ctime = times.atime;
 		timestamp = (WORD)dostime | (((DWORD)dosdate) << 16);
-		return ZR_OK;
+		return SG_NO_ERROR;
 	}
 	int open_dir() {
 		hfin = 0; bufin = 0; selfclosehf = false; crc = CRCVAL_INITIAL; isize = 0; csize = 0; ired = 0;
@@ -2909,11 +2509,10 @@ private:
 		times.mtime = times.atime;
 		times.ctime = times.atime;
 		timestamp = (WORD)dostime | (((DWORD)dosdate) << 16);
-		return ZR_OK;
+		return SG_NO_ERROR;
 	}
 	unsigned read(char *buf, unsigned size) {
-		if (bufin != 0)
-		{
+		if (bufin != 0) {
 			if (posin >= lenin) return 0; // end of input
 			unsigned long red = lenin - posin;
 			if (red>size) red = size;
@@ -2923,8 +2522,7 @@ private:
 			crc = crc32(crc, (unsigned char*)buf, red);
 			return red;
 		}
-		else if (hfin != 0)
-		{
+		else if (hfin != 0) {
 			DWORD red;
 			BOOL ok = ReadFile(hfin, buf, size, &red, NULL);
 			if (!ok) return 0;
@@ -2932,19 +2530,20 @@ private:
 			crc = crc32(crc, (unsigned char*)buf, red);
 			return red;
 		}
-		else { error = ZR_NOTINITED; return 0; }
+		else {
+			error = SG_IO_ERROR;
+			return 0;
+		}
 	}
 	int iclose() {
 		if (selfclosehf && hfin != 0) CloseHandle(hfin); hfin = 0;
 		bool mismatch = (isize != -1 && isize != ired);
 		isize = ired; // and crc has been being updated anyway
-		if (mismatch) return ZR_MISSIZE;
-		else return ZR_OK;
+		if (mismatch) return SG_IO_ERROR;
+		else return SG_NO_ERROR;
 	}
 	int ideflate(TZipFileInfo *zfi) {
 		if (state == 0) state = new TState();
-		// It's a very big object! 500k! We allocate it on the heap, because PocketPC's
-		// stack breaks if we try to put it all on the stack. It will be deleted lazily
 		state->err = 0;
 		state->readfunc = sread;
 		state->flush_outbuf = sflush;
@@ -2952,19 +2551,15 @@ private:
 		state->level = 8;
 		state->seekable = iseekable;
 		state->err = NULL;
-		// the following line will make ct_init realise it has to perform the init
 		state->ts.static_dtree[0].dl.len = 0;
-		// Thanks to Alvin77 for this crucial fix:
 		state->ds.window_size = 0;
-		//  I think that covers everything that needs to be initted.
-		//
-		bi_init(*state, buf, sizeof(buf), TRUE); // it used to be just 1024-size, not 16384 as here
+		bi_init(*state, buf, sizeof(buf), TRUE);
 		ct_init(*state, &zfi->att);
 		lm_init(*state, state->level, &zfi->flg);
 		unsigned long sz = deflate(*state);
 		csize = sz;
-		ZRESULT r = ZR_OK;
-		if (state->err != NULL) r = ZR_FLATE;
+		ZRESULT r = SG_NO_ERROR;
+		if (state->err != NULL) r = SG_IO_ERROR;
 		return r;
 	}
 	int istore() {
@@ -2974,11 +2569,11 @@ private:
 			if (cin <= 0 || cin == (unsigned int)EOF) break;
 			DWORD cout;
 			WriteFile(hfout, buf, cin, &cout, NULL);
-			if (cout != cin) return ZR_MISSIZE;
+			if (cout != cin) return SG_IO_ERROR;
 			size += cin;
 		}
 		csize = size;
-		return ZR_OK;
+		return SG_NO_ERROR;
 	}
 
 public:
@@ -3003,8 +2598,8 @@ public:
 
 		TCHAR dstzn[MAX_PATH];
 		_tcscpy(dstzn, odstzn);
-		if (*dstzn == 0) return ZR_ARGS;
-		TCHAR *d = dstzn; 
+		if (*dstzn == 0) return SG_IO_ERROR;
+		TCHAR *d = dstzn;
 		while (*d != 0) {
 			if (*d == '\\') *d = '/';
 			d++;
@@ -3018,17 +2613,13 @@ public:
 		if (flags == ZIP_FILENAME) openres = open_file((const TCHAR*)src);
 		else if (flags == ZIP_MEMORY) openres = open_mem(src, len);
 		else if (flags == ZIP_FOLDER) openres = open_dir();
-		else return ZR_ARGS;
-		if (openres != ZR_OK) return openres;
+		else return SG_IO_ERROR;
+		if (openres != SG_NO_ERROR) return openres;
 
 		// Initialize the local header
 		TZipFileInfo zfi; zfi.nxt = NULL;
 		strcpy(zfi.name, "");
-#ifdef UNICODE
-		WideCharToMultiByte(CP_UTF8, 0, dstzn, -1, zfi.iname, MAX_PATH, 0, 0);
-#else
-		strcpy(zfi.iname, dstzn);
-#endif
+		_strcpy(zfi.iname, _shorten(dstzn));
 		zfi.nam = strlen(zfi.iname);
 		if (isdir) { strcat(zfi.iname, "/"); zfi.nam++; }
 		strcpy(zfi.zname, "");
@@ -3051,9 +2642,9 @@ public:
 		zfi.dsk = 0;
 		zfi.atx = attr;
 		zfi.off = writeLength;         // offset within file of the start of this local record
-								// stuff the 'times' structure into zfi.extra
+									   // stuff the 'times' structure into zfi.extra
 
-								// nb. apparently there's a problem with PocketPC CE(zip)->CE(unzip) fails. And removing the following block fixes it up.
+									   // nb. apparently there's a problem with PocketPC CE(zip)->CE(unzip) fails. And removing the following block fixes it up.
 		char xloc[EB_L_UT_SIZE]; zfi.extra = xloc;  zfi.ext = EB_L_UT_SIZE;
 		char xcen[EB_C_UT_SIZE]; zfi.cextra = xcen; zfi.cext = EB_C_UT_SIZE;
 		xloc[0] = 'U';
@@ -3079,19 +2670,19 @@ public:
 
 		// (1) Start by writing the local header:
 		int r = putlocal(&zfi, swrite, this);
-		if (r != ZE_OK) { iclose(); return ZR_WRITE; }
+		if (r != SG_NO_ERROR) { iclose(); return SG_IO_ERROR; }
 		writeLength += 4 + LOCHEAD + (unsigned int)zfi.nam + (unsigned int)zfi.ext;
-		if (error != ZR_OK) { iclose(); return error; }
+		if (error != SG_NO_ERROR) { iclose(); return error; }
 
 		//(2) Write deflated/stored file to zip file
-		ZRESULT writeres = ZR_OK;
+		ZRESULT writeres = SG_NO_ERROR;
 		if (!isdir && method == DEFLATE) writeres = ideflate(&zfi);
 		else if (!isdir && method == STORE) writeres = istore();
 		else if (isdir) csize = 0;
 		iclose();
 		writeLength += csize;
-		if (error != ZR_OK) return error;
-		if (writeres != ZR_OK) return ZR_WRITE;
+		if (error != SG_NO_ERROR) return error;
+		if (writeres != SG_NO_ERROR) return SG_IO_ERROR;
 
 		// (3) Either rewrite the local header with correct information...
 		bool first_header_has_size_right = (zfi.siz == csize);
@@ -3103,7 +2694,7 @@ public:
 		zfi.lflg = zfi.flg;
 		// rewrite the local header:
 		SetFilePointer(hfout, zfi.off, NULL, FILE_BEGIN);
-		if ((r = putlocal(&zfi, swrite, this)) != ZE_OK) return ZR_WRITE;
+		if ((r = putlocal(&zfi, swrite, this)) != SG_NO_ERROR) return SG_IO_ERROR;
 		SetFilePointer(hfout, writeLength, NULL, FILE_BEGIN);
 
 		// Keep a copy of the zipfileinfo, for our end-of-zip directory
@@ -3111,7 +2702,7 @@ public:
 		TZipFileInfo *pzfi = new TZipFileInfo; memcpy(pzfi, &zfi, sizeof(zfi));
 		if (fileList == NULL) fileList = pzfi;
 		else { TZipFileInfo *z = fileList; while (z->nxt != NULL) z = z->nxt; z->nxt = pzfi; }
-		return ZR_OK;
+		return SG_NO_ERROR;
 	}
 	int Close() {
 		int numentries = 0;
@@ -3120,7 +2711,7 @@ public:
 		for (TZipFileInfo *zfi = fileList; zfi != NULL; ) {
 			if (okay) {
 				int res = putcentral(zfi, swrite, this);
-				if (res != ZE_OK) okay = false;
+				if (res != SG_NO_ERROR) okay = false;
 			}
 			writeLength += 4 + CENHEAD + (unsigned int)zfi->nam + (unsigned int)zfi->cext + (unsigned int)zfi->com;
 			numentries++;
@@ -3133,13 +2724,13 @@ public:
 		unsigned long center_size = writeLength - pos_at_start_of_central;
 		if (okay) {
 			int res = putend(numentries, center_size, pos_at_start_of_central, 0, NULL, swrite, this);
-			if (res != ZE_OK) okay = false;
+			if (res != SG_NO_ERROR) okay = false;
 			writeLength += 4 + ENDHEAD + 0;
 		}
-		if (!okay) return ZR_WRITE;
+		if (!okay) return SG_IO_ERROR;
 		if (hfout != 0) CloseHandle(hfout);
 		hfout = 0;
-		return ZR_OK;
+		return SG_NO_ERROR;
 	}
 };
 
@@ -3155,7 +2746,6 @@ typedef struct {
 	long comp_size;
 	long unc_size;
 } ZIPENTRY;
-
 typedef struct {
 	unsigned int tm_sec;
 	unsigned int tm_min;
@@ -3164,12 +2754,10 @@ typedef struct {
 	unsigned int tm_mon;
 	unsigned int tm_year;
 } tm_unz;
-
 typedef struct {
 	unsigned long number_entry;
 	unsigned long size_comment;
 } unz_global_info;
-
 typedef struct {
 	unsigned long version;
 	unsigned long version_needed;
@@ -3187,15 +2775,6 @@ typedef struct {
 	unsigned long external_fa;
 	tm_unz tmu_date;
 } unz_file_info;
-
-#define UNZ_OK                  (0)
-#define UNZ_END_OF_LIST_OF_FILE (-100)
-#define UNZ_ERRNO               (Z_ERRNO)
-#define UNZ_EOF                 (0)
-#define UNZ_PARAMERROR          (-102)
-#define UNZ_BADZIPFILE          (-103)
-#define UNZ_INTERNALERROR       (-104)
-#define UNZ_CRCERROR            (-105)
 
 #define Z_NO_FLUSH      0
 #define Z_SYNC_FLUSH    2
@@ -3216,18 +2795,10 @@ typedef struct {
 #define Z_UNKNOWN  2
 
 #define Z_DEFLATED   8
-#define Z_NULL  0
 #define CASE_SENSITIVE 1
 #define CASE_INSENSITIVE 2
-#define Z_OK            0
 #define Z_STREAM_END    1
 #define Z_NEED_DICT     2
-#define Z_ERRNO        (-1)
-#define Z_STREAM_ERROR (-2)
-#define Z_DATA_ERROR   (-3)
-#define Z_MEM_ERROR    (-4)
-#define Z_BUF_ERROR    (-5)
-#define Z_VERSION_ERROR (-6)
 
 typedef void *(*alloc_func) (void * opaque, unsigned int items, unsigned int size);
 typedef void(*free_func)  (void * opaque, void * address);
@@ -3235,41 +2806,27 @@ typedef void(*free_func)  (void * opaque, void * address);
 struct internal_state;
 
 typedef struct z_stream_s {
-	unsigned char    *next_in;  // next input unsigned char
-	unsigned int     avail_in;  // number of unsigned chars available at next_in
-	unsigned long    total_in;  // total nb of input unsigned chars read so far
+	unsigned char    *next_in;
+	unsigned int     avail_in;
+	unsigned long    total_in;
 
-	unsigned char    *next_out; // next output unsigned char should be put there
-	unsigned int     avail_out; // remaining free space at next_out
-	unsigned long    total_out; // total nb of unsigned chars output so far
+	unsigned char    *next_out;
+	unsigned int     avail_out;
+	unsigned long    total_out;
 
-	char     *msg;      // last error message, NULL if no error
-	struct internal_state *state; // not visible by applications
+	char     *msg;
+	struct internal_state *state;
 
-	alloc_func zalloc;  // used to allocate the internal state
-	free_func  zfree;   // used to free the internal state
-	void *     opaque;  // private data object passed to zalloc and zfree
+	alloc_func zalloc;
+	free_func  zfree;
+	void *     opaque;
 
-	int     data_type;  // best guess about the data type: ascii or binary
-	unsigned long   adler;      // adler32 value of the uncompressed data
-	unsigned long   reserved;   // reserved for future use
+	int     data_type;
+	unsigned long   adler;
+	unsigned long   reserved;
 } z_stream;
 
 typedef z_stream *z_streamp;
-
-const char * const z_errmsg[10] = { // indexed by 2-zlib_error
-	"need dictionary",     // Z_NEED_DICT       2
-	"stream end",          // Z_STREAM_END      1
-	"",                    // Z_OK              0
-	"file error",          // Z_ERRNO         (-1)
-	"stream error",        // Z_STREAM_ERROR  (-2)
-	"data error",          // Z_DATA_ERROR    (-3)
-	"insufficient memory", // Z_MEM_ERROR     (-4)
-	"buffer error",        // Z_BUF_ERROR     (-5)
-	"incompatible version",// Z_VERSION_ERROR (-6)
-	"" };
-
-#define ERR_MSG(err) z_errmsg[Z_NEED_DICT-(err)]
 
 #define STORED_BLOCK 0
 #define STATIC_TREES 1
@@ -3329,11 +2886,8 @@ typedef enum {
 inflate_block_mode;
 
 struct inflate_blocks_state {
-
-	// mode 
 	inflate_block_mode  mode;     // current inflate_block mode 
 
-								  // mode dependent information 
 	union {
 		unsigned int left;          // if STORED, unsigned chars left to copy 
 		struct {
@@ -3350,7 +2904,6 @@ struct inflate_blocks_state {
 	} sub;                // submode
 	unsigned int last;            // true if this block is the last block 
 
-						  // mode independent information 
 	unsigned int bitk;            // bits in bit buffer 
 	unsigned long bitb;           // bit buffer 
 	inflate_huft *hufts;  // single malloc for tree space 
@@ -3369,7 +2922,7 @@ struct inflate_blocks_state {
 #define UPDATE {UPDBITS UPDIN UPDOUT}
 #define LEAVE {UPDATE return inflate_flush(s,z,r);}
 #define LOADIN {p=z->next_in;n=z->avail_in;b=s->bitb;k=s->bitk;}
-#define NEEDBYTE {if(n)r=Z_OK;else LEAVE}
+#define NEEDBYTE {if(n)r=SG_NO_ERROR;else LEAVE}
 #define NEXTBYTE (n--,*p++)
 #define NEEDBITS(j) {while(k<(j)){NEEDBYTE;b|=((unsigned long)NEXTBYTE)<<k;k+=8;}}
 #define DUMPBITS(j) {b>>=(j);k-=(j);}
@@ -3377,7 +2930,7 @@ struct inflate_blocks_state {
 #define LOADOUT {q=s->write;m=(unsigned int)WAVAIL;m;}
 #define WRAP {if(q==s->end&&s->read!=s->window){q=s->window;m=(unsigned int)WAVAIL;}}
 #define FLUSH {UPDOUT r=inflate_flush(s,z,r); LOADOUT}
-#define NEEDOUT {if(m==0){WRAP if(m==0){FLUSH WRAP if(m==0) LEAVE}}r=Z_OK;}
+#define NEEDOUT {if(m==0){WRAP if(m==0){FLUSH WRAP if(m==0) LEAVE}}r=SG_NO_ERROR;}
 #define OUTBYTE(a) {*q++=(unsigned char)(a);m--;}
 #define LOAD {LOADIN LOADOUT}
 
@@ -3391,143 +2944,143 @@ const unsigned int fixed_bl = 9;
 const unsigned int fixed_bd = 5;
 const inflate_huft fixed_tl[] = {
 	{ { { 96,7 } },256 },{ { { 0,8 } },80 },{ { { 0,8 } },16 },{ { { 84,8 } },115 },
-	{ { { 82,7 } },31 },{ { { 0,8 } },112 },{ { { 0,8 } },48 },{ { { 0,9 } },192 },
-	{ { { 80,7 } },10 },{ { { 0,8 } },96 },{ { { 0,8 } },32 },{ { { 0,9 } },160 },
-	{ { { 0,8 } },0 },{ { { 0,8 } },128 },{ { { 0,8 } },64 },{ { { 0,9 } },224 },
-	{ { { 80,7 } },6 },{ { { 0,8 } },88 },{ { { 0,8 } },24 },{ { { 0,9 } },144 },
-	{ { { 83,7 } },59 },{ { { 0,8 } },120 },{ { { 0,8 } },56 },{ { { 0,9 } },208 },
-	{ { { 81,7 } },17 },{ { { 0,8 } },104 },{ { { 0,8 } },40 },{ { { 0,9 } },176 },
-	{ { { 0,8 } },8 },{ { { 0,8 } },136 },{ { { 0,8 } },72 },{ { { 0,9 } },240 },
-	{ { { 80,7 } },4 },{ { { 0,8 } },84 },{ { { 0,8 } },20 },{ { { 85,8 } },227 },
-	{ { { 83,7 } },43 },{ { { 0,8 } },116 },{ { { 0,8 } },52 },{ { { 0,9 } },200 },
-	{ { { 81,7 } },13 },{ { { 0,8 } },100 },{ { { 0,8 } },36 },{ { { 0,9 } },168 },
-	{ { { 0,8 } },4 },{ { { 0,8 } },132 },{ { { 0,8 } },68 },{ { { 0,9 } },232 },
-	{ { { 80,7 } },8 },{ { { 0,8 } },92 },{ { { 0,8 } },28 },{ { { 0,9 } },152 },
-	{ { { 84,7 } },83 },{ { { 0,8 } },124 },{ { { 0,8 } },60 },{ { { 0,9 } },216 },
-	{ { { 82,7 } },23 },{ { { 0,8 } },108 },{ { { 0,8 } },44 },{ { { 0,9 } },184 },
-	{ { { 0,8 } },12 },{ { { 0,8 } },140 },{ { { 0,8 } },76 },{ { { 0,9 } },248 },
-	{ { { 80,7 } },3 },{ { { 0,8 } },82 },{ { { 0,8 } },18 },{ { { 85,8 } },163 },
-	{ { { 83,7 } },35 },{ { { 0,8 } },114 },{ { { 0,8 } },50 },{ { { 0,9 } },196 },
-	{ { { 81,7 } },11 },{ { { 0,8 } },98 },{ { { 0,8 } },34 },{ { { 0,9 } },164 },
-	{ { { 0,8 } },2 },{ { { 0,8 } },130 },{ { { 0,8 } },66 },{ { { 0,9 } },228 },
-	{ { { 80,7 } },7 },{ { { 0,8 } },90 },{ { { 0,8 } },26 },{ { { 0,9 } },148 },
-	{ { { 84,7 } },67 },{ { { 0,8 } },122 },{ { { 0,8 } },58 },{ { { 0,9 } },212 },
-	{ { { 82,7 } },19 },{ { { 0,8 } },106 },{ { { 0,8 } },42 },{ { { 0,9 } },180 },
-	{ { { 0,8 } },10 },{ { { 0,8 } },138 },{ { { 0,8 } },74 },{ { { 0,9 } },244 },
-	{ { { 80,7 } },5 },{ { { 0,8 } },86 },{ { { 0,8 } },22 },{ { { 192,8 } },0 },
-	{ { { 83,7 } },51 },{ { { 0,8 } },118 },{ { { 0,8 } },54 },{ { { 0,9 } },204 },
-	{ { { 81,7 } },15 },{ { { 0,8 } },102 },{ { { 0,8 } },38 },{ { { 0,9 } },172 },
-	{ { { 0,8 } },6 },{ { { 0,8 } },134 },{ { { 0,8 } },70 },{ { { 0,9 } },236 },
-	{ { { 80,7 } },9 },{ { { 0,8 } },94 },{ { { 0,8 } },30 },{ { { 0,9 } },156 },
-	{ { { 84,7 } },99 },{ { { 0,8 } },126 },{ { { 0,8 } },62 },{ { { 0,9 } },220 },
-	{ { { 82,7 } },27 },{ { { 0,8 } },110 },{ { { 0,8 } },46 },{ { { 0,9 } },188 },
-	{ { { 0,8 } },14 },{ { { 0,8 } },142 },{ { { 0,8 } },78 },{ { { 0,9 } },252 },
-	{ { { 96,7 } },256 },{ { { 0,8 } },81 },{ { { 0,8 } },17 },{ { { 85,8 } },131 },
-	{ { { 82,7 } },31 },{ { { 0,8 } },113 },{ { { 0,8 } },49 },{ { { 0,9 } },194 },
-	{ { { 80,7 } },10 },{ { { 0,8 } },97 },{ { { 0,8 } },33 },{ { { 0,9 } },162 },
-	{ { { 0,8 } },1 },{ { { 0,8 } },129 },{ { { 0,8 } },65 },{ { { 0,9 } },226 },
-	{ { { 80,7 } },6 },{ { { 0,8 } },89 },{ { { 0,8 } },25 },{ { { 0,9 } },146 },
-	{ { { 83,7 } },59 },{ { { 0,8 } },121 },{ { { 0,8 } },57 },{ { { 0,9 } },210 },
-	{ { { 81,7 } },17 },{ { { 0,8 } },105 },{ { { 0,8 } },41 },{ { { 0,9 } },178 },
-	{ { { 0,8 } },9 },{ { { 0,8 } },137 },{ { { 0,8 } },73 },{ { { 0,9 } },242 },
-	{ { { 80,7 } },4 },{ { { 0,8 } },85 },{ { { 0,8 } },21 },{ { { 80,8 } },258 },
-	{ { { 83,7 } },43 },{ { { 0,8 } },117 },{ { { 0,8 } },53 },{ { { 0,9 } },202 },
-	{ { { 81,7 } },13 },{ { { 0,8 } },101 },{ { { 0,8 } },37 },{ { { 0,9 } },170 },
-	{ { { 0,8 } },5 },{ { { 0,8 } },133 },{ { { 0,8 } },69 },{ { { 0,9 } },234 },
-	{ { { 80,7 } },8 },{ { { 0,8 } },93 },{ { { 0,8 } },29 },{ { { 0,9 } },154 },
-	{ { { 84,7 } },83 },{ { { 0,8 } },125 },{ { { 0,8 } },61 },{ { { 0,9 } },218 },
-	{ { { 82,7 } },23 },{ { { 0,8 } },109 },{ { { 0,8 } },45 },{ { { 0,9 } },186 },
-	{ { { 0,8 } },13 },{ { { 0,8 } },141 },{ { { 0,8 } },77 },{ { { 0,9 } },250 },
-	{ { { 80,7 } },3 },{ { { 0,8 } },83 },{ { { 0,8 } },19 },{ { { 85,8 } },195 },
-	{ { { 83,7 } },35 },{ { { 0,8 } },115 },{ { { 0,8 } },51 },{ { { 0,9 } },198 },
-	{ { { 81,7 } },11 },{ { { 0,8 } },99 },{ { { 0,8 } },35 },{ { { 0,9 } },166 },
-	{ { { 0,8 } },3 },{ { { 0,8 } },131 },{ { { 0,8 } },67 },{ { { 0,9 } },230 },
-	{ { { 80,7 } },7 },{ { { 0,8 } },91 },{ { { 0,8 } },27 },{ { { 0,9 } },150 },
-	{ { { 84,7 } },67 },{ { { 0,8 } },123 },{ { { 0,8 } },59 },{ { { 0,9 } },214 },
-	{ { { 82,7 } },19 },{ { { 0,8 } },107 },{ { { 0,8 } },43 },{ { { 0,9 } },182 },
-	{ { { 0,8 } },11 },{ { { 0,8 } },139 },{ { { 0,8 } },75 },{ { { 0,9 } },246 },
-	{ { { 80,7 } },5 },{ { { 0,8 } },87 },{ { { 0,8 } },23 },{ { { 192,8 } },0 },
-	{ { { 83,7 } },51 },{ { { 0,8 } },119 },{ { { 0,8 } },55 },{ { { 0,9 } },206 },
-	{ { { 81,7 } },15 },{ { { 0,8 } },103 },{ { { 0,8 } },39 },{ { { 0,9 } },174 },
-	{ { { 0,8 } },7 },{ { { 0,8 } },135 },{ { { 0,8 } },71 },{ { { 0,9 } },238 },
-	{ { { 80,7 } },9 },{ { { 0,8 } },95 },{ { { 0,8 } },31 },{ { { 0,9 } },158 },
-	{ { { 84,7 } },99 },{ { { 0,8 } },127 },{ { { 0,8 } },63 },{ { { 0,9 } },222 },
-	{ { { 82,7 } },27 },{ { { 0,8 } },111 },{ { { 0,8 } },47 },{ { { 0,9 } },190 },
-	{ { { 0,8 } },15 },{ { { 0,8 } },143 },{ { { 0,8 } },79 },{ { { 0,9 } },254 },
-	{ { { 96,7 } },256 },{ { { 0,8 } },80 },{ { { 0,8 } },16 },{ { { 84,8 } },115 },
-	{ { { 82,7 } },31 },{ { { 0,8 } },112 },{ { { 0,8 } },48 },{ { { 0,9 } },193 },
-	{ { { 80,7 } },10 },{ { { 0,8 } },96 },{ { { 0,8 } },32 },{ { { 0,9 } },161 },
-	{ { { 0,8 } },0 },{ { { 0,8 } },128 },{ { { 0,8 } },64 },{ { { 0,9 } },225 },
-	{ { { 80,7 } },6 },{ { { 0,8 } },88 },{ { { 0,8 } },24 },{ { { 0,9 } },145 },
-	{ { { 83,7 } },59 },{ { { 0,8 } },120 },{ { { 0,8 } },56 },{ { { 0,9 } },209 },
-	{ { { 81,7 } },17 },{ { { 0,8 } },104 },{ { { 0,8 } },40 },{ { { 0,9 } },177 },
-	{ { { 0,8 } },8 },{ { { 0,8 } },136 },{ { { 0,8 } },72 },{ { { 0,9 } },241 },
-	{ { { 80,7 } },4 },{ { { 0,8 } },84 },{ { { 0,8 } },20 },{ { { 85,8 } },227 },
-	{ { { 83,7 } },43 },{ { { 0,8 } },116 },{ { { 0,8 } },52 },{ { { 0,9 } },201 },
-	{ { { 81,7 } },13 },{ { { 0,8 } },100 },{ { { 0,8 } },36 },{ { { 0,9 } },169 },
-	{ { { 0,8 } },4 },{ { { 0,8 } },132 },{ { { 0,8 } },68 },{ { { 0,9 } },233 },
-	{ { { 80,7 } },8 },{ { { 0,8 } },92 },{ { { 0,8 } },28 },{ { { 0,9 } },153 },
-	{ { { 84,7 } },83 },{ { { 0,8 } },124 },{ { { 0,8 } },60 },{ { { 0,9 } },217 },
-	{ { { 82,7 } },23 },{ { { 0,8 } },108 },{ { { 0,8 } },44 },{ { { 0,9 } },185 },
-	{ { { 0,8 } },12 },{ { { 0,8 } },140 },{ { { 0,8 } },76 },{ { { 0,9 } },249 },
-	{ { { 80,7 } },3 },{ { { 0,8 } },82 },{ { { 0,8 } },18 },{ { { 85,8 } },163 },
-	{ { { 83,7 } },35 },{ { { 0,8 } },114 },{ { { 0,8 } },50 },{ { { 0,9 } },197 },
-	{ { { 81,7 } },11 },{ { { 0,8 } },98 },{ { { 0,8 } },34 },{ { { 0,9 } },165 },
-	{ { { 0,8 } },2 },{ { { 0,8 } },130 },{ { { 0,8 } },66 },{ { { 0,9 } },229 },
-	{ { { 80,7 } },7 },{ { { 0,8 } },90 },{ { { 0,8 } },26 },{ { { 0,9 } },149 },
-	{ { { 84,7 } },67 },{ { { 0,8 } },122 },{ { { 0,8 } },58 },{ { { 0,9 } },213 },
-	{ { { 82,7 } },19 },{ { { 0,8 } },106 },{ { { 0,8 } },42 },{ { { 0,9 } },181 },
-	{ { { 0,8 } },10 },{ { { 0,8 } },138 },{ { { 0,8 } },74 },{ { { 0,9 } },245 },
-	{ { { 80,7 } },5 },{ { { 0,8 } },86 },{ { { 0,8 } },22 },{ { { 192,8 } },0 },
-	{ { { 83,7 } },51 },{ { { 0,8 } },118 },{ { { 0,8 } },54 },{ { { 0,9 } },205 },
-	{ { { 81,7 } },15 },{ { { 0,8 } },102 },{ { { 0,8 } },38 },{ { { 0,9 } },173 },
-	{ { { 0,8 } },6 },{ { { 0,8 } },134 },{ { { 0,8 } },70 },{ { { 0,9 } },237 },
-	{ { { 80,7 } },9 },{ { { 0,8 } },94 },{ { { 0,8 } },30 },{ { { 0,9 } },157 },
-	{ { { 84,7 } },99 },{ { { 0,8 } },126 },{ { { 0,8 } },62 },{ { { 0,9 } },221 },
-	{ { { 82,7 } },27 },{ { { 0,8 } },110 },{ { { 0,8 } },46 },{ { { 0,9 } },189 },
-	{ { { 0,8 } },14 },{ { { 0,8 } },142 },{ { { 0,8 } },78 },{ { { 0,9 } },253 },
-	{ { { 96,7 } },256 },{ { { 0,8 } },81 },{ { { 0,8 } },17 },{ { { 85,8 } },131 },
-	{ { { 82,7 } },31 },{ { { 0,8 } },113 },{ { { 0,8 } },49 },{ { { 0,9 } },195 },
-	{ { { 80,7 } },10 },{ { { 0,8 } },97 },{ { { 0,8 } },33 },{ { { 0,9 } },163 },
-	{ { { 0,8 } },1 },{ { { 0,8 } },129 },{ { { 0,8 } },65 },{ { { 0,9 } },227 },
-	{ { { 80,7 } },6 },{ { { 0,8 } },89 },{ { { 0,8 } },25 },{ { { 0,9 } },147 },
-	{ { { 83,7 } },59 },{ { { 0,8 } },121 },{ { { 0,8 } },57 },{ { { 0,9 } },211 },
-	{ { { 81,7 } },17 },{ { { 0,8 } },105 },{ { { 0,8 } },41 },{ { { 0,9 } },179 },
-	{ { { 0,8 } },9 },{ { { 0,8 } },137 },{ { { 0,8 } },73 },{ { { 0,9 } },243 },
-	{ { { 80,7 } },4 },{ { { 0,8 } },85 },{ { { 0,8 } },21 },{ { { 80,8 } },258 },
-	{ { { 83,7 } },43 },{ { { 0,8 } },117 },{ { { 0,8 } },53 },{ { { 0,9 } },203 },
-	{ { { 81,7 } },13 },{ { { 0,8 } },101 },{ { { 0,8 } },37 },{ { { 0,9 } },171 },
-	{ { { 0,8 } },5 },{ { { 0,8 } },133 },{ { { 0,8 } },69 },{ { { 0,9 } },235 },
-	{ { { 80,7 } },8 },{ { { 0,8 } },93 },{ { { 0,8 } },29 },{ { { 0,9 } },155 },
-	{ { { 84,7 } },83 },{ { { 0,8 } },125 },{ { { 0,8 } },61 },{ { { 0,9 } },219 },
-	{ { { 82,7 } },23 },{ { { 0,8 } },109 },{ { { 0,8 } },45 },{ { { 0,9 } },187 },
-	{ { { 0,8 } },13 },{ { { 0,8 } },141 },{ { { 0,8 } },77 },{ { { 0,9 } },251 },
-	{ { { 80,7 } },3 },{ { { 0,8 } },83 },{ { { 0,8 } },19 },{ { { 85,8 } },195 },
-	{ { { 83,7 } },35 },{ { { 0,8 } },115 },{ { { 0,8 } },51 },{ { { 0,9 } },199 },
-	{ { { 81,7 } },11 },{ { { 0,8 } },99 },{ { { 0,8 } },35 },{ { { 0,9 } },167 },
-	{ { { 0,8 } },3 },{ { { 0,8 } },131 },{ { { 0,8 } },67 },{ { { 0,9 } },231 },
-	{ { { 80,7 } },7 },{ { { 0,8 } },91 },{ { { 0,8 } },27 },{ { { 0,9 } },151 },
-	{ { { 84,7 } },67 },{ { { 0,8 } },123 },{ { { 0,8 } },59 },{ { { 0,9 } },215 },
-	{ { { 82,7 } },19 },{ { { 0,8 } },107 },{ { { 0,8 } },43 },{ { { 0,9 } },183 },
-	{ { { 0,8 } },11 },{ { { 0,8 } },139 },{ { { 0,8 } },75 },{ { { 0,9 } },247 },
-	{ { { 80,7 } },5 },{ { { 0,8 } },87 },{ { { 0,8 } },23 },{ { { 192,8 } },0 },
-	{ { { 83,7 } },51 },{ { { 0,8 } },119 },{ { { 0,8 } },55 },{ { { 0,9 } },207 },
-	{ { { 81,7 } },15 },{ { { 0,8 } },103 },{ { { 0,8 } },39 },{ { { 0,9 } },175 },
-	{ { { 0,8 } },7 },{ { { 0,8 } },135 },{ { { 0,8 } },71 },{ { { 0,9 } },239 },
-	{ { { 80,7 } },9 },{ { { 0,8 } },95 },{ { { 0,8 } },31 },{ { { 0,9 } },159 },
-	{ { { 84,7 } },99 },{ { { 0,8 } },127 },{ { { 0,8 } },63 },{ { { 0,9 } },223 },
-	{ { { 82,7 } },27 },{ { { 0,8 } },111 },{ { { 0,8 } },47 },{ { { 0,9 } },191 },
-	{ { { 0,8 } },15 },{ { { 0,8 } },143 },{ { { 0,8 } },79 },{ { { 0,9 } },255 }
+{ { { 82,7 } },31 },{ { { 0,8 } },112 },{ { { 0,8 } },48 },{ { { 0,9 } },192 },
+{ { { 80,7 } },10 },{ { { 0,8 } },96 },{ { { 0,8 } },32 },{ { { 0,9 } },160 },
+{ { { 0,8 } },0 },{ { { 0,8 } },128 },{ { { 0,8 } },64 },{ { { 0,9 } },224 },
+{ { { 80,7 } },6 },{ { { 0,8 } },88 },{ { { 0,8 } },24 },{ { { 0,9 } },144 },
+{ { { 83,7 } },59 },{ { { 0,8 } },120 },{ { { 0,8 } },56 },{ { { 0,9 } },208 },
+{ { { 81,7 } },17 },{ { { 0,8 } },104 },{ { { 0,8 } },40 },{ { { 0,9 } },176 },
+{ { { 0,8 } },8 },{ { { 0,8 } },136 },{ { { 0,8 } },72 },{ { { 0,9 } },240 },
+{ { { 80,7 } },4 },{ { { 0,8 } },84 },{ { { 0,8 } },20 },{ { { 85,8 } },227 },
+{ { { 83,7 } },43 },{ { { 0,8 } },116 },{ { { 0,8 } },52 },{ { { 0,9 } },200 },
+{ { { 81,7 } },13 },{ { { 0,8 } },100 },{ { { 0,8 } },36 },{ { { 0,9 } },168 },
+{ { { 0,8 } },4 },{ { { 0,8 } },132 },{ { { 0,8 } },68 },{ { { 0,9 } },232 },
+{ { { 80,7 } },8 },{ { { 0,8 } },92 },{ { { 0,8 } },28 },{ { { 0,9 } },152 },
+{ { { 84,7 } },83 },{ { { 0,8 } },124 },{ { { 0,8 } },60 },{ { { 0,9 } },216 },
+{ { { 82,7 } },23 },{ { { 0,8 } },108 },{ { { 0,8 } },44 },{ { { 0,9 } },184 },
+{ { { 0,8 } },12 },{ { { 0,8 } },140 },{ { { 0,8 } },76 },{ { { 0,9 } },248 },
+{ { { 80,7 } },3 },{ { { 0,8 } },82 },{ { { 0,8 } },18 },{ { { 85,8 } },163 },
+{ { { 83,7 } },35 },{ { { 0,8 } },114 },{ { { 0,8 } },50 },{ { { 0,9 } },196 },
+{ { { 81,7 } },11 },{ { { 0,8 } },98 },{ { { 0,8 } },34 },{ { { 0,9 } },164 },
+{ { { 0,8 } },2 },{ { { 0,8 } },130 },{ { { 0,8 } },66 },{ { { 0,9 } },228 },
+{ { { 80,7 } },7 },{ { { 0,8 } },90 },{ { { 0,8 } },26 },{ { { 0,9 } },148 },
+{ { { 84,7 } },67 },{ { { 0,8 } },122 },{ { { 0,8 } },58 },{ { { 0,9 } },212 },
+{ { { 82,7 } },19 },{ { { 0,8 } },106 },{ { { 0,8 } },42 },{ { { 0,9 } },180 },
+{ { { 0,8 } },10 },{ { { 0,8 } },138 },{ { { 0,8 } },74 },{ { { 0,9 } },244 },
+{ { { 80,7 } },5 },{ { { 0,8 } },86 },{ { { 0,8 } },22 },{ { { 192,8 } },0 },
+{ { { 83,7 } },51 },{ { { 0,8 } },118 },{ { { 0,8 } },54 },{ { { 0,9 } },204 },
+{ { { 81,7 } },15 },{ { { 0,8 } },102 },{ { { 0,8 } },38 },{ { { 0,9 } },172 },
+{ { { 0,8 } },6 },{ { { 0,8 } },134 },{ { { 0,8 } },70 },{ { { 0,9 } },236 },
+{ { { 80,7 } },9 },{ { { 0,8 } },94 },{ { { 0,8 } },30 },{ { { 0,9 } },156 },
+{ { { 84,7 } },99 },{ { { 0,8 } },126 },{ { { 0,8 } },62 },{ { { 0,9 } },220 },
+{ { { 82,7 } },27 },{ { { 0,8 } },110 },{ { { 0,8 } },46 },{ { { 0,9 } },188 },
+{ { { 0,8 } },14 },{ { { 0,8 } },142 },{ { { 0,8 } },78 },{ { { 0,9 } },252 },
+{ { { 96,7 } },256 },{ { { 0,8 } },81 },{ { { 0,8 } },17 },{ { { 85,8 } },131 },
+{ { { 82,7 } },31 },{ { { 0,8 } },113 },{ { { 0,8 } },49 },{ { { 0,9 } },194 },
+{ { { 80,7 } },10 },{ { { 0,8 } },97 },{ { { 0,8 } },33 },{ { { 0,9 } },162 },
+{ { { 0,8 } },1 },{ { { 0,8 } },129 },{ { { 0,8 } },65 },{ { { 0,9 } },226 },
+{ { { 80,7 } },6 },{ { { 0,8 } },89 },{ { { 0,8 } },25 },{ { { 0,9 } },146 },
+{ { { 83,7 } },59 },{ { { 0,8 } },121 },{ { { 0,8 } },57 },{ { { 0,9 } },210 },
+{ { { 81,7 } },17 },{ { { 0,8 } },105 },{ { { 0,8 } },41 },{ { { 0,9 } },178 },
+{ { { 0,8 } },9 },{ { { 0,8 } },137 },{ { { 0,8 } },73 },{ { { 0,9 } },242 },
+{ { { 80,7 } },4 },{ { { 0,8 } },85 },{ { { 0,8 } },21 },{ { { 80,8 } },258 },
+{ { { 83,7 } },43 },{ { { 0,8 } },117 },{ { { 0,8 } },53 },{ { { 0,9 } },202 },
+{ { { 81,7 } },13 },{ { { 0,8 } },101 },{ { { 0,8 } },37 },{ { { 0,9 } },170 },
+{ { { 0,8 } },5 },{ { { 0,8 } },133 },{ { { 0,8 } },69 },{ { { 0,9 } },234 },
+{ { { 80,7 } },8 },{ { { 0,8 } },93 },{ { { 0,8 } },29 },{ { { 0,9 } },154 },
+{ { { 84,7 } },83 },{ { { 0,8 } },125 },{ { { 0,8 } },61 },{ { { 0,9 } },218 },
+{ { { 82,7 } },23 },{ { { 0,8 } },109 },{ { { 0,8 } },45 },{ { { 0,9 } },186 },
+{ { { 0,8 } },13 },{ { { 0,8 } },141 },{ { { 0,8 } },77 },{ { { 0,9 } },250 },
+{ { { 80,7 } },3 },{ { { 0,8 } },83 },{ { { 0,8 } },19 },{ { { 85,8 } },195 },
+{ { { 83,7 } },35 },{ { { 0,8 } },115 },{ { { 0,8 } },51 },{ { { 0,9 } },198 },
+{ { { 81,7 } },11 },{ { { 0,8 } },99 },{ { { 0,8 } },35 },{ { { 0,9 } },166 },
+{ { { 0,8 } },3 },{ { { 0,8 } },131 },{ { { 0,8 } },67 },{ { { 0,9 } },230 },
+{ { { 80,7 } },7 },{ { { 0,8 } },91 },{ { { 0,8 } },27 },{ { { 0,9 } },150 },
+{ { { 84,7 } },67 },{ { { 0,8 } },123 },{ { { 0,8 } },59 },{ { { 0,9 } },214 },
+{ { { 82,7 } },19 },{ { { 0,8 } },107 },{ { { 0,8 } },43 },{ { { 0,9 } },182 },
+{ { { 0,8 } },11 },{ { { 0,8 } },139 },{ { { 0,8 } },75 },{ { { 0,9 } },246 },
+{ { { 80,7 } },5 },{ { { 0,8 } },87 },{ { { 0,8 } },23 },{ { { 192,8 } },0 },
+{ { { 83,7 } },51 },{ { { 0,8 } },119 },{ { { 0,8 } },55 },{ { { 0,9 } },206 },
+{ { { 81,7 } },15 },{ { { 0,8 } },103 },{ { { 0,8 } },39 },{ { { 0,9 } },174 },
+{ { { 0,8 } },7 },{ { { 0,8 } },135 },{ { { 0,8 } },71 },{ { { 0,9 } },238 },
+{ { { 80,7 } },9 },{ { { 0,8 } },95 },{ { { 0,8 } },31 },{ { { 0,9 } },158 },
+{ { { 84,7 } },99 },{ { { 0,8 } },127 },{ { { 0,8 } },63 },{ { { 0,9 } },222 },
+{ { { 82,7 } },27 },{ { { 0,8 } },111 },{ { { 0,8 } },47 },{ { { 0,9 } },190 },
+{ { { 0,8 } },15 },{ { { 0,8 } },143 },{ { { 0,8 } },79 },{ { { 0,9 } },254 },
+{ { { 96,7 } },256 },{ { { 0,8 } },80 },{ { { 0,8 } },16 },{ { { 84,8 } },115 },
+{ { { 82,7 } },31 },{ { { 0,8 } },112 },{ { { 0,8 } },48 },{ { { 0,9 } },193 },
+{ { { 80,7 } },10 },{ { { 0,8 } },96 },{ { { 0,8 } },32 },{ { { 0,9 } },161 },
+{ { { 0,8 } },0 },{ { { 0,8 } },128 },{ { { 0,8 } },64 },{ { { 0,9 } },225 },
+{ { { 80,7 } },6 },{ { { 0,8 } },88 },{ { { 0,8 } },24 },{ { { 0,9 } },145 },
+{ { { 83,7 } },59 },{ { { 0,8 } },120 },{ { { 0,8 } },56 },{ { { 0,9 } },209 },
+{ { { 81,7 } },17 },{ { { 0,8 } },104 },{ { { 0,8 } },40 },{ { { 0,9 } },177 },
+{ { { 0,8 } },8 },{ { { 0,8 } },136 },{ { { 0,8 } },72 },{ { { 0,9 } },241 },
+{ { { 80,7 } },4 },{ { { 0,8 } },84 },{ { { 0,8 } },20 },{ { { 85,8 } },227 },
+{ { { 83,7 } },43 },{ { { 0,8 } },116 },{ { { 0,8 } },52 },{ { { 0,9 } },201 },
+{ { { 81,7 } },13 },{ { { 0,8 } },100 },{ { { 0,8 } },36 },{ { { 0,9 } },169 },
+{ { { 0,8 } },4 },{ { { 0,8 } },132 },{ { { 0,8 } },68 },{ { { 0,9 } },233 },
+{ { { 80,7 } },8 },{ { { 0,8 } },92 },{ { { 0,8 } },28 },{ { { 0,9 } },153 },
+{ { { 84,7 } },83 },{ { { 0,8 } },124 },{ { { 0,8 } },60 },{ { { 0,9 } },217 },
+{ { { 82,7 } },23 },{ { { 0,8 } },108 },{ { { 0,8 } },44 },{ { { 0,9 } },185 },
+{ { { 0,8 } },12 },{ { { 0,8 } },140 },{ { { 0,8 } },76 },{ { { 0,9 } },249 },
+{ { { 80,7 } },3 },{ { { 0,8 } },82 },{ { { 0,8 } },18 },{ { { 85,8 } },163 },
+{ { { 83,7 } },35 },{ { { 0,8 } },114 },{ { { 0,8 } },50 },{ { { 0,9 } },197 },
+{ { { 81,7 } },11 },{ { { 0,8 } },98 },{ { { 0,8 } },34 },{ { { 0,9 } },165 },
+{ { { 0,8 } },2 },{ { { 0,8 } },130 },{ { { 0,8 } },66 },{ { { 0,9 } },229 },
+{ { { 80,7 } },7 },{ { { 0,8 } },90 },{ { { 0,8 } },26 },{ { { 0,9 } },149 },
+{ { { 84,7 } },67 },{ { { 0,8 } },122 },{ { { 0,8 } },58 },{ { { 0,9 } },213 },
+{ { { 82,7 } },19 },{ { { 0,8 } },106 },{ { { 0,8 } },42 },{ { { 0,9 } },181 },
+{ { { 0,8 } },10 },{ { { 0,8 } },138 },{ { { 0,8 } },74 },{ { { 0,9 } },245 },
+{ { { 80,7 } },5 },{ { { 0,8 } },86 },{ { { 0,8 } },22 },{ { { 192,8 } },0 },
+{ { { 83,7 } },51 },{ { { 0,8 } },118 },{ { { 0,8 } },54 },{ { { 0,9 } },205 },
+{ { { 81,7 } },15 },{ { { 0,8 } },102 },{ { { 0,8 } },38 },{ { { 0,9 } },173 },
+{ { { 0,8 } },6 },{ { { 0,8 } },134 },{ { { 0,8 } },70 },{ { { 0,9 } },237 },
+{ { { 80,7 } },9 },{ { { 0,8 } },94 },{ { { 0,8 } },30 },{ { { 0,9 } },157 },
+{ { { 84,7 } },99 },{ { { 0,8 } },126 },{ { { 0,8 } },62 },{ { { 0,9 } },221 },
+{ { { 82,7 } },27 },{ { { 0,8 } },110 },{ { { 0,8 } },46 },{ { { 0,9 } },189 },
+{ { { 0,8 } },14 },{ { { 0,8 } },142 },{ { { 0,8 } },78 },{ { { 0,9 } },253 },
+{ { { 96,7 } },256 },{ { { 0,8 } },81 },{ { { 0,8 } },17 },{ { { 85,8 } },131 },
+{ { { 82,7 } },31 },{ { { 0,8 } },113 },{ { { 0,8 } },49 },{ { { 0,9 } },195 },
+{ { { 80,7 } },10 },{ { { 0,8 } },97 },{ { { 0,8 } },33 },{ { { 0,9 } },163 },
+{ { { 0,8 } },1 },{ { { 0,8 } },129 },{ { { 0,8 } },65 },{ { { 0,9 } },227 },
+{ { { 80,7 } },6 },{ { { 0,8 } },89 },{ { { 0,8 } },25 },{ { { 0,9 } },147 },
+{ { { 83,7 } },59 },{ { { 0,8 } },121 },{ { { 0,8 } },57 },{ { { 0,9 } },211 },
+{ { { 81,7 } },17 },{ { { 0,8 } },105 },{ { { 0,8 } },41 },{ { { 0,9 } },179 },
+{ { { 0,8 } },9 },{ { { 0,8 } },137 },{ { { 0,8 } },73 },{ { { 0,9 } },243 },
+{ { { 80,7 } },4 },{ { { 0,8 } },85 },{ { { 0,8 } },21 },{ { { 80,8 } },258 },
+{ { { 83,7 } },43 },{ { { 0,8 } },117 },{ { { 0,8 } },53 },{ { { 0,9 } },203 },
+{ { { 81,7 } },13 },{ { { 0,8 } },101 },{ { { 0,8 } },37 },{ { { 0,9 } },171 },
+{ { { 0,8 } },5 },{ { { 0,8 } },133 },{ { { 0,8 } },69 },{ { { 0,9 } },235 },
+{ { { 80,7 } },8 },{ { { 0,8 } },93 },{ { { 0,8 } },29 },{ { { 0,9 } },155 },
+{ { { 84,7 } },83 },{ { { 0,8 } },125 },{ { { 0,8 } },61 },{ { { 0,9 } },219 },
+{ { { 82,7 } },23 },{ { { 0,8 } },109 },{ { { 0,8 } },45 },{ { { 0,9 } },187 },
+{ { { 0,8 } },13 },{ { { 0,8 } },141 },{ { { 0,8 } },77 },{ { { 0,9 } },251 },
+{ { { 80,7 } },3 },{ { { 0,8 } },83 },{ { { 0,8 } },19 },{ { { 85,8 } },195 },
+{ { { 83,7 } },35 },{ { { 0,8 } },115 },{ { { 0,8 } },51 },{ { { 0,9 } },199 },
+{ { { 81,7 } },11 },{ { { 0,8 } },99 },{ { { 0,8 } },35 },{ { { 0,9 } },167 },
+{ { { 0,8 } },3 },{ { { 0,8 } },131 },{ { { 0,8 } },67 },{ { { 0,9 } },231 },
+{ { { 80,7 } },7 },{ { { 0,8 } },91 },{ { { 0,8 } },27 },{ { { 0,9 } },151 },
+{ { { 84,7 } },67 },{ { { 0,8 } },123 },{ { { 0,8 } },59 },{ { { 0,9 } },215 },
+{ { { 82,7 } },19 },{ { { 0,8 } },107 },{ { { 0,8 } },43 },{ { { 0,9 } },183 },
+{ { { 0,8 } },11 },{ { { 0,8 } },139 },{ { { 0,8 } },75 },{ { { 0,9 } },247 },
+{ { { 80,7 } },5 },{ { { 0,8 } },87 },{ { { 0,8 } },23 },{ { { 192,8 } },0 },
+{ { { 83,7 } },51 },{ { { 0,8 } },119 },{ { { 0,8 } },55 },{ { { 0,9 } },207 },
+{ { { 81,7 } },15 },{ { { 0,8 } },103 },{ { { 0,8 } },39 },{ { { 0,9 } },175 },
+{ { { 0,8 } },7 },{ { { 0,8 } },135 },{ { { 0,8 } },71 },{ { { 0,9 } },239 },
+{ { { 80,7 } },9 },{ { { 0,8 } },95 },{ { { 0,8 } },31 },{ { { 0,9 } },159 },
+{ { { 84,7 } },99 },{ { { 0,8 } },127 },{ { { 0,8 } },63 },{ { { 0,9 } },223 },
+{ { { 82,7 } },27 },{ { { 0,8 } },111 },{ { { 0,8 } },47 },{ { { 0,9 } },191 },
+{ { { 0,8 } },15 },{ { { 0,8 } },143 },{ { { 0,8 } },79 },{ { { 0,9 } },255 }
 };
 const inflate_huft fixed_td[] = {
 	{ { { 80,5 } },1 },{ { { 87,5 } },257 },{ { { 83,5 } },17 },{ { { 91,5 } },4097 },
-	{ { { 81,5 } },5 },{ { { 89,5 } },1025 },{ { { 85,5 } },65 },{ { { 93,5 } },16385 },
-	{ { { 80,5 } },3 },{ { { 88,5 } },513 },{ { { 84,5 } },33 },{ { { 92,5 } },8193 },
-	{ { { 82,5 } },9 },{ { { 90,5 } },2049 },{ { { 86,5 } },129 },{ { { 192,5 } },24577 },
-	{ { { 80,5 } },2 },{ { { 87,5 } },385 },{ { { 83,5 } },25 },{ { { 91,5 } },6145 },
-	{ { { 81,5 } },7 },{ { { 89,5 } },1537 },{ { { 85,5 } },97 },{ { { 93,5 } },24577 },
-	{ { { 80,5 } },4 },{ { { 88,5 } },769 },{ { { 84,5 } },49 },{ { { 92,5 } },12289 },
-	{ { { 82,5 } },13 },{ { { 90,5 } },3073 },{ { { 86,5 } },193 },{ { { 192,5 } },24577 }
+{ { { 81,5 } },5 },{ { { 89,5 } },1025 },{ { { 85,5 } },65 },{ { { 93,5 } },16385 },
+{ { { 80,5 } },3 },{ { { 88,5 } },513 },{ { { 84,5 } },33 },{ { { 92,5 } },8193 },
+{ { { 82,5 } },9 },{ { { 90,5 } },2049 },{ { { 86,5 } },129 },{ { { 192,5 } },24577 },
+{ { { 80,5 } },2 },{ { { 87,5 } },385 },{ { { 83,5 } },25 },{ { { 91,5 } },6145 },
+{ { { 81,5 } },7 },{ { { 89,5 } },1537 },{ { { 85,5 } },97 },{ { { 93,5 } },24577 },
+{ { { 80,5 } },4 },{ { { 88,5 } },769 },{ { { 84,5 } },49 },{ { { 92,5 } },12289 },
+{ { { 82,5 } },13 },{ { { 90,5 } },3073 },{ { { 86,5 } },193 },{ { { 192,5 } },24577 }
 };
 
 int inflate_flush(inflate_blocks_statef *s, z_streamp z, int r) {
@@ -3535,68 +3088,51 @@ int inflate_flush(inflate_blocks_statef *s, z_streamp z, int r) {
 	unsigned char *p;
 	unsigned char *q;
 
-	// local copies of source and destination pointers 
 	p = z->next_out;
 	q = s->read;
 
-	// compute number of unsigned chars to copy as far as end of window 
 	n = (unsigned int)((q <= s->write ? s->write : s->end) - q);
 	if (n > z->avail_out) n = z->avail_out;
-	if (n && r == Z_BUF_ERROR) r = Z_OK;
+	if (n && r == SG_IO_ERROR) r = SG_NO_ERROR;
 
-	// update counters
 	z->avail_out -= n;
 	z->total_out += n;
 
-	// update check information 
-	if (s->checkfn != Z_NULL)
+	if (s->checkfn != NULL)
 		z->adler = s->check = (*s->checkfn)(s->check, q, n);
 
-	// copy as far as end of window 
-	if (n != 0)          // check for n!=0 to avoid waking up CodeGuard
-	{
+	if (n != 0) {
 		memcpy(p, q, n);
 		p += n;
 		q += n;
 	}
 
-	// see if more to copy at beginning of window
-	if (q == s->end)
-	{
-		// wrap pointers 
+	if (q == s->end) {
 		q = s->window;
 		if (s->write == s->end)
 			s->write = s->window;
 
-		// compute unsigned chars to copy 
 		n = (unsigned int)(s->write - q);
 		if (n > z->avail_out) n = z->avail_out;
-		if (n && r == Z_BUF_ERROR) r = Z_OK;
+		if (n && r == SG_IO_ERROR) r = SG_NO_ERROR;
 
-		// update counters 
 		z->avail_out -= n;
 		z->total_out += n;
 
-		// update check information 
-		if (s->checkfn != Z_NULL)
+		if (s->checkfn != NULL)
 			z->adler = s->check = (*s->checkfn)(s->check, q, n);
 
-		// copy
 		if (n != 0) { memcpy(p, q, n); p += n; q += n; }
 	}
-
-	// update pointers
 	z->next_out = p;
 	s->read = q;
-
-	// done
 	return r;
 }
 
 #define exop word.what.Exop
 #define bits word.what.Bits
 
-typedef enum {        // waiting for "i:"=input, "o:"=output, "x:"=nothing 
+typedef enum {
 	START,    // x: set up for LEN 
 	LEN,      // i: get length/literal/eob next 
 	LENEXT,   // i: getting length extra (have base) 
@@ -3607,15 +3143,12 @@ typedef enum {        // waiting for "i:"=input, "o:"=output, "x:"=nothing
 	WASH,     // o: got eob, possibly still output waiting 
 	END,      // x: got eob and all data flushed 
 	BADCODE
-}  // x: got error 
+}
 inflate_codes_mode;
 
 struct inflate_codes_state {
-
-	// mode 
 	inflate_codes_mode mode;      // current inflate_codes mode 
 
-								  // mode dependent information 
 	unsigned int len;
 	union {
 		struct {
@@ -3629,24 +3162,16 @@ struct inflate_codes_state {
 		} copy;             // if EXT or COPY, where and how much 
 	} sub;                // submode
 
-						  // mode independent information 
 	unsigned char lbits;           // ltree bits decoded per branch 
 	unsigned char dbits;           // dtree bits decoder per branch 
 	const inflate_huft *ltree;          // literal/length/eob tree
 	const inflate_huft *dtree;          // distance tree
-
 };
 
-inflate_codes_statef *inflate_codes_new(
-	unsigned int bl, unsigned int bd,
-	const inflate_huft *tl,
-	const inflate_huft *td, // need separate declaration for Borland C++
-	z_streamp z) {
+inflate_codes_statef *inflate_codes_new(unsigned int bl, unsigned int bd, const inflate_huft *tl, const inflate_huft *td, z_streamp z) {
 	inflate_codes_statef *c;
 
-	if ((c = (inflate_codes_statef *)
-		ZALLOC(z, 1, sizeof(struct inflate_codes_state))) != Z_NULL)
-	{
+	if ((c = (inflate_codes_statef *)ZALLOC(z, 1, sizeof(struct inflate_codes_state))) != NULL) {
 		c->mode = START;
 		c->lbits = (unsigned char)bl;
 		c->dbits = (unsigned char)bd;
@@ -3655,7 +3180,6 @@ inflate_codes_statef *inflate_codes_new(
 	}
 	return c;
 }
-
 int inflate_codes(inflate_blocks_statef *s, z_streamp z, int r) {
 	unsigned int j;               // temporary storage
 	const inflate_huft *t;      // temporary pointer
@@ -3669,26 +3193,11 @@ int inflate_codes(inflate_blocks_statef *s, z_streamp z, int r) {
 	unsigned char *f;             // pointer to copy strings from
 	inflate_codes_statef *c = s->sub.decode.codes;  // codes state
 
-													// copy input/output information to locals (UPDATE macro restores)
 	LOAD
 
-		// process input and output based on current state
-		for (;;) switch (c->mode)
-		{             // waiting for "i:"=input, "o:"=output, "x:"=nothing
-		case START:         // x: set up for LEN
-#ifndef SLOW
-			if (m >= 258 && n >= 10)
-			{
-				UPDATE
-					r = inflate_fast(c->lbits, c->dbits, c->ltree, c->dtree, s, z);
-				LOAD
-					if (r != Z_OK)
-					{
-						c->mode = r == Z_STREAM_END ? WASH : BADCODE;
-						break;
-					}
-			}
-#endif // !SLOW
+	for (;;)
+		switch (c->mode) {             // waiting for "i:"=input, "o:"=output, "x:"=nothing
+		case START:
 			c->sub.code.need = c->lbits;
 			c->sub.code.tree = c->ltree;
 			c->mode = LEN;
@@ -3698,33 +3207,29 @@ int inflate_codes(inflate_blocks_statef *s, z_streamp z, int r) {
 				t = c->sub.code.tree + ((unsigned int)b & inflate_mask[j]);
 			DUMPBITS(t->bits)
 				e = (unsigned int)(t->exop);
-			if (e == 0)               // literal 
-			{
+			if (e == 0) {
 				c->sub.lit = t->base;
 				c->mode = LIT;
 				break;
 			}
-			if (e & 16)               // length 
-			{
+			if (e & 16) {
 				c->sub.copy.get = e & 15;
 				c->len = t->base;
 				c->mode = LENEXT;
 				break;
 			}
-			if ((e & 64) == 0)        // next table 
-			{
+			if ((e & 64) == 0) {
 				c->sub.code.need = e;
 				c->sub.code.tree = t + t->base;
 				break;
 			}
-			if (e & 32)               // end of block 
-			{
+			if (e & 32) {
 				c->mode = WASH;
 				break;
 			}
 			c->mode = BADCODE;        // invalid code 
 			z->msg = (char*)"invalid literal/length code";
-			r = Z_DATA_ERROR;
+			r = SG_IO_ERROR;
 			LEAVE
 		case LENEXT:        // i: getting length extra (have base) 
 			j = c->sub.copy.get;
@@ -3740,35 +3245,32 @@ int inflate_codes(inflate_blocks_statef *s, z_streamp z, int r) {
 				t = c->sub.code.tree + ((unsigned int)b & inflate_mask[j]);
 			DUMPBITS(t->bits)
 				e = (unsigned int)(t->exop);
-			if (e & 16)               // distance 
-			{
+			if (e & 16) {
 				c->sub.copy.get = e & 15;
 				c->sub.copy.dist = t->base;
 				c->mode = DISTEXT;
 				break;
 			}
-			if ((e & 64) == 0)        // next table 
-			{
+			if ((e & 64) == 0) {
 				c->sub.code.need = e;
 				c->sub.code.tree = t + t->base;
 				break;
 			}
 			c->mode = BADCODE;        // invalid code 
 			z->msg = (char*)"invalid distance code";
-			r = Z_DATA_ERROR;
+			r = SG_IO_ERROR;
 			LEAVE
 		case DISTEXT:       // i: getting distance extra 
 			j = c->sub.copy.get;
 			NEEDBITS(j)
 				c->sub.copy.dist += (unsigned int)b & inflate_mask[j];
 			DUMPBITS(j)
-			c->mode = COPY;
+				c->mode = COPY;
 		case COPY:          // o: copying unsigned chars in window, waiting for space 
 			f = q - c->sub.copy.dist;
 			while (f < s->window)             // modulo window size-"while" instead
 				f += s->end - s->window;        // of "if" handles invalid distances 
-			while (c->len)
-			{
+			while (c->len) {
 				NEEDOUT
 					OUTBYTE(*f++)
 					if (f == s->end)
@@ -3783,8 +3285,7 @@ int inflate_codes(inflate_blocks_statef *s, z_streamp z, int r) {
 				c->mode = START;
 			break;
 		case WASH:          // o: got eob, possibly more output 
-			if (k > 7)        // return unused byte, if any 
-			{
+			if (k > 7) {
 				//Assert(k < 16, "inflate_codes grabbed too many bytes")
 				k -= 8;
 				n++;
@@ -3798,23 +3299,21 @@ int inflate_codes(inflate_blocks_statef *s, z_streamp z, int r) {
 			r = Z_STREAM_END;
 			LEAVE
 		case BADCODE:       // x: got error
-			r = Z_DATA_ERROR;
+			r = SG_IO_ERROR;
 			LEAVE
 		default:
-			r = Z_STREAM_ERROR;
+			r = SG_IO_ERROR;
 			LEAVE
 		}
 }
-
 void inflate_codes_free(inflate_codes_statef *c, z_streamp z) {
 	ZFREE(z, c);
 }
 
-const unsigned int border[] = { // Order of the bit length code lengths
-	16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 };
+const unsigned int border[] = { 16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 };
 
 void inflate_blocks_reset(inflate_blocks_statef *s, z_streamp z, unsigned long *c) {
-	if (c != Z_NULL)
+	if (c != NULL)
 		*c = s->check;
 	if (s->mode == IBM_BTREE || s->mode == IBM_DTREE)
 		ZFREE(z, s->sub.trees.blens);
@@ -3824,35 +3323,28 @@ void inflate_blocks_reset(inflate_blocks_statef *s, z_streamp z, unsigned long *
 	s->bitk = 0;
 	s->bitb = 0;
 	s->read = s->write = s->window;
-	if (s->checkfn != Z_NULL)
-		z->adler = s->check = (*s->checkfn)(0L, (const unsigned char *)Z_NULL, 0);
+	if (s->checkfn != NULL)
+		z->adler = s->check = (*s->checkfn)(0L, (const unsigned char *)NULL, 0);
 }
-
 inflate_blocks_statef *inflate_blocks_new(z_streamp z, check_func c, unsigned int w) {
 	inflate_blocks_statef *s;
 
-	if ((s = (inflate_blocks_statef *)ZALLOC
-	(z, 1, sizeof(struct inflate_blocks_state))) == Z_NULL)
-		return s;
-	if ((s->hufts =
-		(inflate_huft *)ZALLOC(z, sizeof(inflate_huft), MANY)) == Z_NULL)
-	{
+	if ((s = (inflate_blocks_statef *)ZALLOC(z, 1, sizeof(struct inflate_blocks_state))) == NULL)return s;
+	if ((s->hufts = (inflate_huft *)ZALLOC(z, sizeof(inflate_huft), MANY)) == NULL) {
 		ZFREE(z, s);
-		return Z_NULL;
+		return NULL;
 	}
-	if ((s->window = (unsigned char *)ZALLOC(z, 1, w)) == Z_NULL)
-	{
+	if ((s->window = (unsigned char *)ZALLOC(z, 1, w)) == NULL) {
 		ZFREE(z, s->hufts);
 		ZFREE(z, s);
-		return Z_NULL;
+		return NULL;
 	}
 	s->end = s->window + w;
 	s->checkfn = c;
 	s->mode = IBM_TYPE;
-	inflate_blocks_reset(s, z, Z_NULL);
+	inflate_blocks_reset(s, z, NULL);
 	return s;
 }
-
 int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r) {
 	unsigned int t;               // temporary storage
 	unsigned long b;              // bit buffer
@@ -3862,40 +3354,34 @@ int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r) {
 	unsigned char *q;             // output window write pointer
 	unsigned int m;               // unsigned chars to end of window or read pointer 
 
-						  // copy input/output information to locals (UPDATE macro restores) 
 	LOAD
-
-		// process input based on current state 
-		for (;;) switch (s->mode)
-		{
+	for (;;)
+		switch (s->mode) {
 		case IBM_TYPE:
 			NEEDBITS(3)
 				t = (unsigned int)b & 7;
 			s->last = t & 1;
-			switch (t >> 1)
-			{
+			switch (t >> 1) {
 			case 0:                         // stored 
 				DUMPBITS(3)
 					t = k & 7;                    // go to unsigned char boundary 
 				DUMPBITS(t)
 					s->mode = IBM_LENS;               // get length of stored block
 				break;
-			case 1:                         // fixed 
-				{
-					unsigned int bl, bd;
-					const inflate_huft *tl, *td;
+			case 1: {
+				unsigned int bl, bd;
+				const inflate_huft *tl, *td;
 
-					inflate_trees_fixed(&bl, &bd, &tl, &td, z);
-					s->sub.decode.codes = inflate_codes_new(bl, bd, tl, td, z);
-					if (s->sub.decode.codes == Z_NULL)
-					{
-						r = Z_MEM_ERROR;
-						LEAVE
-					}
+				inflate_trees_fixed(&bl, &bd, &tl, &td, z);
+				s->sub.decode.codes = inflate_codes_new(bl, bd, tl, td, z);
+				if (s->sub.decode.codes == NULL) {
+					r = SG_NO_LOAD_MEM;
+					LEAVE
 				}
-				DUMPBITS(3)
-					s->mode = IBM_CODES;
-				break;
+			}
+			DUMPBITS(3)
+				s->mode = IBM_CODES;
+			break;
 			case 2:                         // dynamic 
 				DUMPBITS(3)
 					s->mode = IBM_TABLE;
@@ -3904,17 +3390,16 @@ int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r) {
 				DUMPBITS(3)
 					s->mode = IBM_BAD;
 				z->msg = (char*)"invalid block type";
-				r = Z_DATA_ERROR;
+				r = SG_IO_ERROR;
 				LEAVE
 			}
 			break;
 		case IBM_LENS:
 			NEEDBITS(32)
-				if ((((~b) >> 16) & 0xffff) != (b & 0xffff))
-				{
+				if ((((~b) >> 16) & 0xffff) != (b & 0xffff)) {
 					s->mode = IBM_BAD;
 					z->msg = (char*)"invalid stored block lengths";
-					r = Z_DATA_ERROR;
+					r = SG_IO_ERROR;
 					LEAVE
 				}
 			s->sub.left = (unsigned int)b & 0xffff;
@@ -3938,27 +3423,22 @@ int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r) {
 		case IBM_TABLE:
 			NEEDBITS(14)
 				s->sub.trees.table = t = (unsigned int)b & 0x3fff;
-			// remove this section to workaround bug in pkzip
-			if ((t & 0x1f) > 29 || ((t >> 5) & 0x1f) > 29)
-			{
+			if ((t & 0x1f) > 29 || ((t >> 5) & 0x1f) > 29) {
 				s->mode = IBM_BAD;
 				z->msg = (char*)"too many length or distance symbols";
-				r = Z_DATA_ERROR;
+				r = SG_IO_ERROR;
 				LEAVE
 			}
-			// end remove
 			t = 258 + (t & 0x1f) + ((t >> 5) & 0x1f);
-			if ((s->sub.trees.blens = (unsigned int*)ZALLOC(z, t, sizeof(unsigned int))) == Z_NULL)
-			{
-				r = Z_MEM_ERROR;
+			if ((s->sub.trees.blens = (unsigned int*)ZALLOC(z, t, sizeof(unsigned int))) == NULL) {
+				r = SG_NO_LOAD_MEM;
 				LEAVE
 			}
 			DUMPBITS(14)
 				s->sub.trees.index = 0;
 			s->mode = IBM_BTREE;
 		case IBM_BTREE:
-			while (s->sub.trees.index < 4 + (s->sub.trees.table >> 10))
-			{
+			while (s->sub.trees.index < 4 + (s->sub.trees.table >> 10)) {
 				NEEDBITS(3)
 					s->sub.trees.blens[border[s->sub.trees.index++]] = (unsigned int)b & 7;
 				DUMPBITS(3)
@@ -3968,11 +3448,9 @@ int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r) {
 			s->sub.trees.bb = 7;
 			t = inflate_trees_bits(s->sub.trees.blens, &s->sub.trees.bb,
 				&s->sub.trees.tb, s->hufts, z);
-			if (t != Z_OK)
-			{
+			if (t != SG_NO_ERROR) {
 				r = t;
-				if (r == Z_DATA_ERROR)
-				{
+				if (r == SG_IO_ERROR) {
 					ZFREE(z, s->sub.trees.blens);
 					s->mode = IBM_BAD;
 				}
@@ -3982,8 +3460,7 @@ int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r) {
 			s->mode = IBM_DTREE;
 		case IBM_DTREE:
 			while (t = s->sub.trees.table,
-				s->sub.trees.index < 258 + (t & 0x1f) + ((t >> 5) & 0x1f))
-			{
+				s->sub.trees.index < 258 + (t & 0x1f) + ((t >> 5) & 0x1f)) {
 				inflate_huft *h;
 				unsigned int i, j, c;
 
@@ -3992,13 +3469,11 @@ int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r) {
 					h = s->sub.trees.tb + ((unsigned int)b & inflate_mask[t]);
 				t = h->bits;
 				c = h->base;
-				if (c < 16)
-				{
+				if (c < 16) {
 					DUMPBITS(t)
 						s->sub.trees.blens[s->sub.trees.index++] = c;
 				}
-				else // c == 16..18 
-				{
+				else {
 					i = c == 18 ? 7 : c - 14;
 					j = c == 18 ? 11 : 3;
 					NEEDBITS(t + i)
@@ -4008,12 +3483,11 @@ int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r) {
 						i = s->sub.trees.index;
 					t = s->sub.trees.table;
 					if (i + j > 258 + (t & 0x1f) + ((t >> 5) & 0x1f) ||
-						(c == 16 && i < 1))
-					{
+						(c == 16 && i < 1)) {
 						ZFREE(z, s->sub.trees.blens);
 						s->mode = IBM_BAD;
 						z->msg = (char*)"invalid bit length repeat";
-						r = Z_DATA_ERROR;
+						r = SG_IO_ERROR;
 						LEAVE
 					}
 					c = c == 16 ? s->sub.trees.blens[i - 1] : 0;
@@ -4023,7 +3497,7 @@ int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r) {
 					s->sub.trees.index = i;
 				}
 			}
-			s->sub.trees.tb = Z_NULL;
+			s->sub.trees.tb = NULL; 
 			{
 				unsigned int bl, bd;
 				inflate_huft *tl, *td;
@@ -4035,19 +3509,16 @@ int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r) {
 				t = inflate_trees_dynamic(257 + (t & 0x1f), 1 + ((t >> 5) & 0x1f),
 					s->sub.trees.blens, &bl, &bd, &tl, &td,
 					s->hufts, z);
-				if (t != Z_OK)
-				{
-					if (t == (unsigned int)Z_DATA_ERROR)
-					{
+				if (t != SG_NO_ERROR) {
+					if (t == (unsigned int)SG_IO_ERROR) {
 						ZFREE(z, s->sub.trees.blens);
 						s->mode = IBM_BAD;
 					}
 					r = t;
 					LEAVE
 				}
-				if ((c = inflate_codes_new(bl, bd, tl, td, z)) == Z_NULL)
-				{
-					r = Z_MEM_ERROR;
+				if ((c = inflate_codes_new(bl, bd, tl, td, z)) == NULL) {
+					r = SG_NO_LOAD_MEM;
 					LEAVE
 				}
 				s->sub.decode.codes = c;
@@ -4058,14 +3529,13 @@ int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r) {
 			UPDATE
 				if ((r = inflate_codes(s, z, r)) != Z_STREAM_END)
 					return inflate_flush(s, z, r);
-			r = Z_OK;
+			r = SG_NO_ERROR;
 			inflate_codes_free(s->sub.decode.codes, z);
 			LOAD
-			if (!s->last)
-			{
-				s->mode = IBM_TYPE;
-				break;
-			}
+				if (!s->last) {
+					s->mode = IBM_TYPE;
+					break;
+				}
 			s->mode = IBM_DRY;
 		case IBM_DRY:
 			FLUSH
@@ -4076,50 +3546,29 @@ int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r) {
 			r = Z_STREAM_END;
 			LEAVE
 		case IBM_BAD:
-			r = Z_DATA_ERROR;
+			r = SG_IO_ERROR;
 			LEAVE
 		default:
-			r = Z_STREAM_ERROR;
+			r = SG_IO_ERROR;
 			LEAVE
 		}
 }
-
 int inflate_blocks_free(inflate_blocks_statef *s, z_streamp z) {
-	inflate_blocks_reset(s, z, Z_NULL);
+	inflate_blocks_reset(s, z, NULL);
 	ZFREE(z, s->window);
 	ZFREE(z, s->hufts);
 	ZFREE(z, s);
-	return Z_OK;
+	return SG_NO_ERROR;
 }
 
-const unsigned int cplens[31] = { // Copy lengths for literal codes 257..285
-	3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31,
-	35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0 };
-const unsigned int cplext[31] = { // Extra bits for literal codes 257..285
-	0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2,
-	3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, 112, 112 }; // 112==invalid
-const unsigned int cpdist[30] = { // Copy offsets for distance codes 0..29
-	1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193,
-	257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145,
-	8193, 12289, 16385, 24577 };
-const unsigned int cpdext[30] = { // Extra bits for distance codes 
-	0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6,
-	7, 7, 8, 8, 9, 9, 10, 10, 11, 11,
-	12, 12, 13, 13 };
+const unsigned int cplens[31] = { 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0 };
+const unsigned int cplext[31] = { 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, 112, 112 }; // 112==invalid
+const unsigned int cpdist[30] = { 1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577 };
+const unsigned int cpdext[30] = { 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13 };
 
 #define BMAX 15
 
-int huft_build(unsigned int *b,               // code lengths in bits (all assumed <= BMAX)
-	unsigned int n,                 // number of codes (assumed <= 288)
-	unsigned int s,                 // number of simple-valued codes (0..s-1)
-	const unsigned int *d,         // list of base values for non-simple codes
-	const unsigned int *e,         // list of extra bits for non-simple codes
-	inflate_huft * *t,  // result: starting table
-	unsigned int *m,               // maximum lookup bits, returns actual
-	inflate_huft *hp,       // space for trees
-	unsigned int *hn,               // hufts used in space
-	unsigned int *v) {
-
+int huft_build(unsigned int *b, unsigned int n, unsigned int s, const unsigned int *d, const unsigned int *e, inflate_huft * *t, unsigned int *m, inflate_huft *hp, unsigned int *hn, unsigned int *v) {
 	unsigned int a;                       // counter for codes of length k
 	unsigned int c[BMAX + 1];               // bit length count table
 	unsigned int f;                       // i repeats in table every f entries 
@@ -4140,8 +3589,6 @@ int huft_build(unsigned int *b,               // code lengths in bits (all assum
 	int y;                        // number of dummy codes added 
 	unsigned int z;                       // number of entries in current table 
 
-
-								  // Generate counts for each bit length 
 	p = c;
 #define C0 *p++ = 0;
 #define C2 C0 C0 C0 C0
@@ -4151,174 +3598,114 @@ int huft_build(unsigned int *b,               // code lengths in bits (all assum
 	do {
 		c[*p++]++;                  // assume all entries <= BMAX 
 	} while (--i);
-	if (c[0] == n)                // null input--all zero length codes 
-	{
-		*t = (inflate_huft *)Z_NULL;
+	if (c[0] == n) {
+		*t = (inflate_huft *)NULL;
 		*m = 0;
-		return Z_OK;
+		return SG_NO_ERROR;
 	}
 
-
-	// Find minimum and maximum length, bound *m by those 
 	l = *m;
-	for (j = 1; j <= BMAX; j++)
-		if (c[j])
-			break;
-	k = j;                        // minimum code length 
-	if ((unsigned int)l < j)
-		l = j;
-	for (i = BMAX; i; i--)
-		if (c[i])
-			break;
-	g = i;                        // maximum code length 
-	if ((unsigned int)l > i)
-		l = i;
+	for (j = 1; j <= BMAX; j++)if (c[j])break;
+	k = j;
+	if ((unsigned int)l < j)l = j;
+	for (i = BMAX; i; i--)if (c[i])break;
+	g = i;
+	if ((unsigned int)l > i)l = i;
 	*m = l;
 
-
-	// Adjust last length count to fill out codes, if needed 
-	for (y = 1 << j; j < i; j++, y <<= 1)
-		if ((y -= c[j]) < 0)
-			return Z_DATA_ERROR;
-	if ((y -= c[i]) < 0)
-		return Z_DATA_ERROR;
+	for (y = 1 << j; j < i; j++, y <<= 1)if ((y -= c[j]) < 0)return SG_IO_ERROR;
+	if ((y -= c[i]) < 0)return SG_IO_ERROR;
 	c[i] += y;
 
-
-	// Generate starting offsets into the value table for each length 
 	x[1] = j = 0;
 	p = c + 1;  xp = x + 2;
-	while (--i) {                 // note that i == g from above 
+	while (--i) {
 		*xp++ = (j += *p++);
 	}
 
-
-	// Make a table of values in order of bit lengths 
 	p = b;  i = 0;
 	do {
 		if ((j = *p++) != 0)
 			v[x[j]++] = i;
 	} while (++i < n);
-	n = x[g];                     // set n to length of v 
+	n = x[g];
 
-
-								  // Generate the Huffman codes and for each, make the table entries 
-	x[0] = i = 0;                 // first Huffman code is zero 
-	p = v;                        // grab values in bit order 
-	h = -1;                       // no tables yet--level -1 
-	w = -l;                       // bits decoded == (l * h) 
-	u[0] = (inflate_huft *)Z_NULL;        // just to keep compilers happy 
-	q = (inflate_huft *)Z_NULL;   // ditto 
-	z = 0;                        // ditto 
-
-								  // go through the bit lengths (k already is bits in shortest code) 
-	for (; k <= g; k++)
-	{
+	x[0] = i = 0;
+	p = v;
+	h = -1;
+	w = -l;
+	u[0] = (inflate_huft *)NULL;
+	q = (inflate_huft *)NULL;
+	z = 0;
+	for (; k <= g; k++) {
 		a = c[k];
-		while (a--)
-		{
-			// here i is the Huffman code of length k bits for value *p 
-			// make tables up to required level 
-			while (k > w + l)
-			{
+		while (a--) {
+			while (k > w + l) {
 				h++;
-				w += l;                 // previous table always l bits 
-
-										// compute minimum size table less than or equal to l bits
+				w += l;
 				z = g - w;
-				z = z > (unsigned int)l ? l : z;        // table size upper limit 
-				if ((f = 1 << (j = k - w)) > a + 1)     // try a k-w bit table 
-				{                       // too few codes for k-w bit table 
-					f -= a + 1;           // deduct codes from patterns left 
+				z = z > (unsigned int)l ? l : z;
+				if ((f = 1 << (j = k - w)) > a + 1) {
+					f -= a + 1;
 					xp = c + k;
 					if (j < z)
-						while (++j < z)     // try smaller tables up to z bits 
-						{
-							if ((f <<= 1) <= *++xp)
-								break;          // enough codes to use up j bits 
-							f -= *xp;         // else deduct codes from patterns
+						while (++j < z) {
+							if ((f <<= 1) <= *++xp)break;
+							f -= *xp;
 						}
 				}
-				z = 1 << j;             // table entries for j-bit table 
-
-										// allocate new table 
-				if (*hn + z > MANY)     // (note: doesn't matter for fixed) 
-					return Z_DATA_ERROR;  // overflow of MANY 
+				z = 1 << j;
+				if (*hn + z > MANY)return SG_IO_ERROR;
 				u[h] = q = hp + *hn;
 				*hn += z;
 
-				// connect to last table, if there is one 
-				if (h)
-				{
-					x[h] = i;             // save pattern for backing up
-					r.bits = (unsigned char)l;     // bits to dump before this table 
-					r.exop = (unsigned char)j;     // bits in this table 
+				if (h) {
+					x[h] = i;
+					r.bits = (unsigned char)l;
+					r.exop = (unsigned char)j;
 					j = i >> (w - l);
-					r.base = (unsigned int)(q - u[h - 1] - j);   // offset to this table 
-					u[h - 1][j] = r;        // connect to last table 
+					r.base = (unsigned int)(q - u[h - 1] - j);
+					u[h - 1][j] = r;
 				}
 				else
-					*t = q;               // first table is returned result 
+					*t = q;
 			}
 
-			// set up table entry in r 
 			r.bits = (unsigned char)(k - w);
-			if (p >= v + n)
-				r.exop = 128 + 64;      // out of values--invalid code 
-			else if (*p < s)
-			{
-				r.exop = (unsigned char)(*p < 256 ? 0 : 32 + 64);     // 256 is end-of-block 
-				r.base = *p++;          // simple code is just the value 
+			if (p >= v + n)r.exop = 128 + 64;
+			else if (*p < s) {
+				r.exop = (unsigned char)(*p < 256 ? 0 : 32 + 64);
+				r.base = *p++;
 			}
-			else
-			{
-				r.exop = (unsigned char)(e[*p - s] + 16 + 64);// non-simple--look up in lists 
+			else {
+				r.exop = (unsigned char)(e[*p - s] + 16 + 64);
 				r.base = d[*p++ - s];
 			}
 
-			// fill code-like entries with r
 			f = 1 << (k - w);
-			for (j = i >> w; j < z; j += f)
-				q[j] = r;
-
-			// backwards increment the k-bit code i 
-			for (j = 1 << (k - 1); i & j; j >>= 1)
-				i ^= j;
+			for (j = i >> w; j < z; j += f)q[j] = r;
+			for (j = 1 << (k - 1); i & j; j >>= 1)i ^= j;
 			i ^= j;
 
-			// backup over finished tables 
-			mask = (1 << w) - 1;      // needed on HP, cc -O bug 
-			while ((i & mask) != x[h])
-			{
-				h--;                    // don't need to update q
+			mask = (1 << w) - 1;
+			while ((i & mask) != x[h]) {
+				h--;
 				w -= l;
 				mask = (1 << w) - 1;
 			}
 		}
 	}
-
-
-	// Return Z_BUF_ERROR if we were given an incomplete table 
-	return y != 0 && g != 1 ? Z_BUF_ERROR : Z_OK;
+	return y != 0 && g != 1 ? SG_IO_ERROR : SG_NO_ERROR;
 }
-
-
-int inflate_trees_bits(	unsigned int *c, unsigned int *bb, inflate_huft * *tb, inflate_huft *hp, z_streamp z) {
+int inflate_trees_bits(unsigned int *c, unsigned int *bb, inflate_huft * *tb, inflate_huft *hp, z_streamp z) {
 	int r;
-	unsigned int hn = 0;          // hufts used in space 
-	unsigned int *v;             // work area for huft_build 
+	unsigned int hn = 0;
+	unsigned int *v;
 
-	if ((v = (unsigned int*)ZALLOC(z, 19, sizeof(unsigned int))) == Z_NULL)
-		return Z_MEM_ERROR;
-	r = huft_build(c, 19, 19, (unsigned int*)Z_NULL, (unsigned int*)Z_NULL,
+	if ((v = (unsigned int*)ZALLOC(z, 19, sizeof(unsigned int))) == NULL)return SG_NO_LOAD_MEM;
+	r = huft_build(c, 19, 19, (unsigned int*)NULL, (unsigned int*)NULL,
 		tb, bb, hp, &hn, v);
-	if (r == Z_DATA_ERROR)
-		z->msg = (char*)"oversubscribed dynamic bit lengths tree";
-	else if (r == Z_BUF_ERROR || *bb == 0)
-	{
-		z->msg = (char*)"incomplete dynamic bit lengths tree";
-		r = Z_DATA_ERROR;
-	}
+	if (*bb == 0)r = SG_IO_ERROR;
 	ZFREE(z, v);
 	return r;
 }
@@ -4327,67 +3714,43 @@ int inflate_trees_dynamic(unsigned int nl, unsigned int nd, unsigned int *c, uns
 	unsigned int hn = 0;          // hufts used in space 
 	unsigned int *v;             // work area for huft_build 
 
-						 // allocate work area 
-	if ((v = (unsigned int*)ZALLOC(z, 288, sizeof(unsigned int))) == Z_NULL)
-		return Z_MEM_ERROR;
+	if ((v = (unsigned int*)ZALLOC(z, 288, sizeof(unsigned int))) == NULL)
+		return SG_NO_LOAD_MEM;
 
-	// build literal/length tree 
 	r = huft_build(c, nl, 257, cplens, cplext, tl, bl, hp, &hn, v);
-	if (r != Z_OK || *bl == 0)
-	{
-		if (r == Z_DATA_ERROR)
-			z->msg = (char*)"oversubscribed literal/length tree";
-		else if (r != Z_MEM_ERROR)
-		{
-			z->msg = (char*)"incomplete literal/length tree";
-			r = Z_DATA_ERROR;
-		}
+	if (*bl == 0) {
+		r = SG_IO_ERROR;
 		ZFREE(z, v);
 		return r;
 	}
 
-	// build distance tree 
 	r = huft_build(c + nl, nd, 0, cpdist, cpdext, td, bd, hp, &hn, v);
-	if (r != Z_OK || (*bd == 0 && nl > 257))
-	{
-		if (r == Z_DATA_ERROR)
-			z->msg = (char*)"oversubscribed distance tree";
-		else if (r == Z_BUF_ERROR) {
-			z->msg = (char*)"incomplete distance tree";
-			r = Z_DATA_ERROR;
-		}
-		else if (r != Z_MEM_ERROR)
-		{
-			z->msg = (char*)"empty distance tree with lengths";
-			r = Z_DATA_ERROR;
-		}
+	if (r != SG_NO_ERROR || (*bd == 0 && nl > 257)){
 		ZFREE(z, v);
 		return r;
 	}
-
-	// done 
 	ZFREE(z, v);
-	return Z_OK;
+	return SG_NO_ERROR;
 }
 int inflate_trees_fixed(unsigned int *bl, unsigned int *bd, const inflate_huft * * tl, const inflate_huft * *td, z_streamp) {
 	*bl = fixed_bl;
 	*bd = fixed_bd;
 	*tl = fixed_tl;
 	*td = fixed_td;
-	return Z_OK;
+	return SG_NO_ERROR;
 }
 
 #define GRABBITS(j) {while(k<(j)){b|=((unsigned long)NEXTBYTE)<<k;k+=8;}}
 #define UNGRAB {c=z->avail_in-n;c=(k>>3)<c?k>>3:c;n+=c;p-=c;k-=c<<3;}
 
 unsigned long ucrc32(unsigned long crc, const unsigned char *buf, unsigned int len) {
-	if (buf == Z_NULL) return 0L;
+	if (buf == NULL) return 0L;
 	crc = crc ^ 0xffffffffL;
 	if (len) do { crc = crc_table[((int)crc ^ (*buf++)) & 0xff] ^ (crc >> 8); } while (--len);
 	return crc ^ 0xffffffffL;
 }
 
-#define BASE 65521L // largest prime smaller than 65536
+#define BASE 65521L
 #define NMAX 5552
 
 unsigned long adler32(unsigned long adler, const unsigned char *buf, unsigned int len) {
@@ -4395,7 +3758,7 @@ unsigned long adler32(unsigned long adler, const unsigned char *buf, unsigned in
 	unsigned long s2 = (adler >> 16) & 0xffff;
 	int k;
 
-	if (buf == Z_NULL) return 1L;
+	if (buf == NULL) return 1L;
 
 	while (len > 0) {
 		k = len < NMAX ? len : NMAX;
@@ -4415,7 +3778,7 @@ void * zcalloc(void * opaque, unsigned items, unsigned size) {
 }
 void  zcfree(void * opaque, void * ptr) {
 	free(ptr);
-	if (opaque) return; // make compiler happy
+	if (opaque) return;
 }
 
 typedef enum {
@@ -4433,15 +3796,12 @@ typedef enum {
 	IM_CHECK1,   // one check byte to go
 	IM_DONE,     // finished check, done
 	IM_BAD
-}      // got an error--stay here
+}
 inflate_mode;
 
 struct internal_state {
-
-	// mode
 	inflate_mode  mode;   // current inflate mode
 
-						  // mode dependent information
 	union {
 		unsigned int method;        // if IM_FLAGS, method byte
 		struct {
@@ -4451,91 +3811,64 @@ struct internal_state {
 		unsigned int marker;        // if IM_BAD, inflateSync's marker bytes count
 	} sub;        // submode
 
-				  // mode independent information
 	int  nowrap;          // flag for no wrapper
 	unsigned int wbits;           // log2(window size)  (8..15, defaults to 15)
 	inflate_blocks_statef
 		*blocks;            // current inflate_blocks state
-
 };
 
 int inflateReset(z_streamp z) {
-	if (z == Z_NULL || z->state == Z_NULL)
-		return Z_STREAM_ERROR;
+	if (z == NULL || z->state == NULL)
+		return SG_IO_ERROR;
 	z->total_in = z->total_out = 0;
-	z->msg = Z_NULL;
+	z->msg = NULL;
 	z->state->mode = z->state->nowrap ? IM_BLOCKS : IM_METHOD;
-	inflate_blocks_reset(z->state->blocks, z, Z_NULL);
-	return Z_OK;
+	inflate_blocks_reset(z->state->blocks, z, NULL);
+	return SG_NO_ERROR;
 }
 int inflateEnd(z_streamp z) {
-	if (z == Z_NULL || z->state == Z_NULL || z->zfree == Z_NULL)
-		return Z_STREAM_ERROR;
-	if (z->state->blocks != Z_NULL)
+	if (z == NULL || z->state == NULL || z->zfree == NULL)
+		return SG_IO_ERROR;
+	if (z->state->blocks != NULL)
 		inflate_blocks_free(z->state->blocks, z);
 	ZFREE(z, z->state);
-	z->state = Z_NULL;
-	return Z_OK;
+	z->state = NULL;
+	return SG_NO_ERROR;
 }
 int inflateInit2(z_streamp z) {
 	int stream_size = sizeof(z_stream);
 
-	int w = -15; // MAX_WBITS: 32K LZ77 window.
-				 // Warning: reducing MAX_WBITS makes minigzip unable to extract .gz files created by gzip.
-				 // The memory requirements for deflate are (in bytes):
-				 //            (1 << (windowBits+2)) +  (1 << (memLevel+9))
-				 // that is: 128K for windowBits=15  +  128K for memLevel = 8  (default values)
-				 // plus a few kilobytes for small objects. For example, if you want to reduce
-				 // the default memory requirements from 256K to 128K, compile with
-				 //     make CFLAGS="-O -DMAX_WBITS=14 -DMAX_MEM_LEVEL=7"
-				 // Of course this will generally degrade compression (there's no free lunch).
-				 //
-				 //   The memory requirements for inflate are (in bytes) 1 << windowBits
-				 // that is, 32K for windowBits=15 (default value) plus a few kilobytes
-				 // for small objects.
-
-				 // initialize state
-	if (z == Z_NULL) return Z_STREAM_ERROR;
-	z->msg = Z_NULL;
-	if (z->zalloc == Z_NULL)
-	{
+	int w = -15;
+	if (z == NULL) return SG_IO_ERROR;
+	z->msg = NULL;
+	if (z->zalloc == NULL) {
 		z->zalloc = zcalloc;
 		z->opaque = (void *)0;
 	}
-	if (z->zfree == Z_NULL) z->zfree = zcfree;
+	if (z->zfree == NULL) z->zfree = zcfree;
 	if ((z->state = (struct internal_state *)
-		ZALLOC(z, 1, sizeof(struct internal_state))) == Z_NULL)
-		return Z_MEM_ERROR;
-	z->state->blocks = Z_NULL;
+		ZALLOC(z, 1, sizeof(struct internal_state))) == NULL)
+		return SG_NO_LOAD_MEM;
+	z->state->blocks = NULL;
 
-	// handle undocumented nowrap option (no zlib header or check)
 	z->state->nowrap = 0;
-	if (w < 0)
-	{
+	if (w < 0) {
 		w = -w;
 		z->state->nowrap = 1;
 	}
-
-	// set window size
-	if (w < 8 || w > 15)
-	{
+	if (w < 8 || w > 15) {
 		inflateEnd(z);
-		return Z_STREAM_ERROR;
+		return SG_IO_ERROR;
 	}
 	z->state->wbits = (unsigned int)w;
 
-	// create inflate_blocks state
-	if ((z->state->blocks =
-		inflate_blocks_new(z, z->state->nowrap ? Z_NULL : adler32, (unsigned int)1 << w))
-		== Z_NULL)
-	{
+	if ((z->state->blocks = inflate_blocks_new(z, z->state->nowrap ? NULL : adler32, (unsigned int)1 << w)) == NULL) {
 		inflateEnd(z);
-		return Z_MEM_ERROR;
+		return SG_NO_LOAD_MEM;
 	}
 
-	// reset state 
 	inflateReset(z);
-	return Z_OK;
+	return SG_NO_ERROR;
 }
 
 #define IM_NEEDBYTE {if(z->avail_in==0)return r;r=f;}
@@ -4545,119 +3878,112 @@ int inflate(z_streamp z, int f) {
 	int r;
 	unsigned int b;
 
-	if (z == Z_NULL || z->state == Z_NULL || z->next_in == Z_NULL)
-		return Z_STREAM_ERROR;
-	f = f == Z_FINISH ? Z_BUF_ERROR : Z_OK;
-	r = Z_BUF_ERROR;
-	for (;;) switch (z->state->mode)
-	{
-	case IM_METHOD:
-		IM_NEEDBYTE
-			if (((z->state->sub.method = IM_NEXTBYTE) & 0xf) != Z_DEFLATED)
-			{
+	if (z == NULL || z->state == NULL || z->next_in == NULL)
+		return SG_IO_ERROR;
+	f = f == Z_FINISH ? SG_IO_ERROR : SG_NO_ERROR;
+	r = SG_IO_ERROR;
+	for (;;)
+		switch (z->state->mode) {
+		case IM_METHOD:
+			IM_NEEDBYTE
+				if (((z->state->sub.method = IM_NEXTBYTE) & 0xf) != Z_DEFLATED) {
+					z->state->mode = IM_BAD;
+					z->msg = (char*)"unknown compression method";
+					z->state->sub.marker = 5;       // can't try inflateSync
+					break;
+				}
+			if ((z->state->sub.method >> 4) + 8 > z->state->wbits) {
 				z->state->mode = IM_BAD;
-				z->msg = (char*)"unknown compression method";
+				z->msg = (char*)"invalid window size";
 				z->state->sub.marker = 5;       // can't try inflateSync
 				break;
 			}
-		if ((z->state->sub.method >> 4) + 8 > z->state->wbits)
-		{
-			z->state->mode = IM_BAD;
-			z->msg = (char*)"invalid window size";
-			z->state->sub.marker = 5;       // can't try inflateSync
-			break;
-		}
-		z->state->mode = IM_FLAG;
-	case IM_FLAG:
-		IM_NEEDBYTE
-			b = IM_NEXTBYTE;
-		if (((z->state->sub.method << 8) + b) % 31)
-		{
-			z->state->mode = IM_BAD;
-			z->msg = (char*)"incorrect header check";
-			z->state->sub.marker = 5;       // can't try inflateSync 
-			break;
-		}
-		if (!(b & PRESET_DICT))
-		{
-			z->state->mode = IM_BLOCKS;
-			break;
-		}
-		z->state->mode = IM_DICT4;
-	case IM_DICT4:
-		IM_NEEDBYTE
-			z->state->sub.check.need = (unsigned long)IM_NEXTBYTE << 24;
-		z->state->mode = IM_DICT3;
-	case IM_DICT3:
-		IM_NEEDBYTE
-			z->state->sub.check.need += (unsigned long)IM_NEXTBYTE << 16;
-		z->state->mode = IM_DICT2;
-	case IM_DICT2:
-		IM_NEEDBYTE
-			z->state->sub.check.need += (unsigned long)IM_NEXTBYTE << 8;
-		z->state->mode = IM_DICT1;
-	case IM_DICT1:
-		IM_NEEDBYTE; r;
-		z->state->sub.check.need += (unsigned long)IM_NEXTBYTE;
-		z->adler = z->state->sub.check.need;
-		z->state->mode = IM_DICT0;
-		return Z_NEED_DICT;
-	case IM_DICT0:
-		z->state->mode = IM_BAD;
-		z->msg = (char*)"need dictionary";
-		z->state->sub.marker = 0;       // can try inflateSync 
-		return Z_STREAM_ERROR;
-	case IM_BLOCKS:
-		r = inflate_blocks(z->state->blocks, z, r);
-		if (r == Z_DATA_ERROR)
-		{
-			z->state->mode = IM_BAD;
-			z->state->sub.marker = 0;       // can try inflateSync 
-			break;
-		}
-		if (r == Z_OK)
-			r = f;
-		if (r != Z_STREAM_END)
-			return r;
-		r = f;
-		inflate_blocks_reset(z->state->blocks, z, &z->state->sub.check.was);
-		if (z->state->nowrap)
-		{
-			z->state->mode = IM_DONE;
-			break;
-		}
-		z->state->mode = IM_CHECK4;
-	case IM_CHECK4:
-		IM_NEEDBYTE
-			z->state->sub.check.need = (unsigned long)IM_NEXTBYTE << 24;
-		z->state->mode = IM_CHECK3;
-	case IM_CHECK3:
-		IM_NEEDBYTE
-			z->state->sub.check.need += (unsigned long)IM_NEXTBYTE << 16;
-		z->state->mode = IM_CHECK2;
-	case IM_CHECK2:
-		IM_NEEDBYTE
-			z->state->sub.check.need += (unsigned long)IM_NEXTBYTE << 8;
-		z->state->mode = IM_CHECK1;
-	case IM_CHECK1:
-		IM_NEEDBYTE
+			z->state->mode = IM_FLAG;
+		case IM_FLAG:
+			IM_NEEDBYTE
+				b = IM_NEXTBYTE;
+			if (((z->state->sub.method << 8) + b) % 31) {
+				z->state->mode = IM_BAD;
+				z->msg = (char*)"incorrect header check";
+				z->state->sub.marker = 5;       // can't try inflateSync 
+				break;
+			}
+			if (!(b & PRESET_DICT)) {
+				z->state->mode = IM_BLOCKS;
+				break;
+			}
+			z->state->mode = IM_DICT4;
+		case IM_DICT4:
+			IM_NEEDBYTE
+				z->state->sub.check.need = (unsigned long)IM_NEXTBYTE << 24;
+			z->state->mode = IM_DICT3;
+		case IM_DICT3:
+			IM_NEEDBYTE
+				z->state->sub.check.need += (unsigned long)IM_NEXTBYTE << 16;
+			z->state->mode = IM_DICT2;
+		case IM_DICT2:
+			IM_NEEDBYTE
+				z->state->sub.check.need += (unsigned long)IM_NEXTBYTE << 8;
+			z->state->mode = IM_DICT1;
+		case IM_DICT1:
+			IM_NEEDBYTE; r;
 			z->state->sub.check.need += (unsigned long)IM_NEXTBYTE;
-
-		if (z->state->sub.check.was != z->state->sub.check.need)
-		{
+			z->adler = z->state->sub.check.need;
+			z->state->mode = IM_DICT0;
+			return Z_NEED_DICT;
+		case IM_DICT0:
 			z->state->mode = IM_BAD;
-			z->msg = (char*)"incorrect data check";
-			z->state->sub.marker = 5;       // can't try inflateSync 
-			break;
+			z->msg = (char*)"need dictionary";
+			z->state->sub.marker = 0;       // can try inflateSync 
+			return SG_IO_ERROR;
+		case IM_BLOCKS:
+			r = inflate_blocks(z->state->blocks, z, r);
+			if (r == SG_IO_ERROR) {
+				z->state->mode = IM_BAD;
+				z->state->sub.marker = 0;       // can try inflateSync 
+				break;
+			}
+			if (r == SG_NO_ERROR)
+				r = f;
+			if (r != Z_STREAM_END)
+				return r;
+			r = f;
+			inflate_blocks_reset(z->state->blocks, z, &z->state->sub.check.was);
+			if (z->state->nowrap) {
+				z->state->mode = IM_DONE;
+				break;
+			}
+			z->state->mode = IM_CHECK4;
+		case IM_CHECK4:
+			IM_NEEDBYTE
+				z->state->sub.check.need = (unsigned long)IM_NEXTBYTE << 24;
+			z->state->mode = IM_CHECK3;
+		case IM_CHECK3:
+			IM_NEEDBYTE
+				z->state->sub.check.need += (unsigned long)IM_NEXTBYTE << 16;
+			z->state->mode = IM_CHECK2;
+		case IM_CHECK2:
+			IM_NEEDBYTE
+				z->state->sub.check.need += (unsigned long)IM_NEXTBYTE << 8;
+			z->state->mode = IM_CHECK1;
+		case IM_CHECK1:
+			IM_NEEDBYTE
+				z->state->sub.check.need += (unsigned long)IM_NEXTBYTE;
+
+			if (z->state->sub.check.was != z->state->sub.check.need) {
+				z->state->mode = IM_BAD;
+				z->msg = (char*)"incorrect data check";
+				z->state->sub.marker = 5;       // can't try inflateSync 
+				break;
+			}
+			z->state->mode = IM_DONE;
+		case IM_DONE:
+			return Z_STREAM_END;
+		case IM_BAD:
+			return SG_IO_ERROR;
+		default:
+			return SG_IO_ERROR;
 		}
-		z->state->mode = IM_DONE;
-	case IM_DONE:
-		return Z_STREAM_END;
-	case IM_BAD:
-		return Z_DATA_ERROR;
-	default:
-		return Z_STREAM_ERROR;
-	}
 }
 
 #define UNZ_BUFSIZE (16384)
@@ -4668,7 +3994,6 @@ int inflate(z_streamp z, int f) {
 typedef struct unz_file_info_internal_s {
 	unsigned long offset_curfile;// relative offset of local header 4 bytes
 } unz_file_info_internal;
-
 typedef struct {
 	HANDLE h;
 	bool herr;
@@ -4717,7 +4042,6 @@ typedef struct {
 	unsigned long compression_method;   // compression method (0==store)
 	unsigned long byte_before_the_zipfile;// byte before the zipfile, (>0 for sfx)
 } file_in_zip_read_info_s;
-
 typedef struct {
 	LUFILE* file;               // io structore of the zipfile
 	unz_global_info gi;         // public global information
@@ -4738,15 +4062,13 @@ typedef struct {
 int unzlocal_getByte(LUFILE *fin, int *pi) {
 	unsigned char c;
 	int err = (int)lufread(&c, 1, 1, fin);
-	if (err == 1)
-	{
+	if (err == 1) {
 		*pi = (int)c;
-		return UNZ_OK;
+		return SG_NO_ERROR;
 	}
-	else
-	{
-		if (fin->herr) return UNZ_ERRNO;
-		else return UNZ_EOF;
+	else {
+		if (fin->herr) return SG_IO_ERROR;
+		else return SG_NO_ERROR;
 	}
 }
 int unzlocal_getShort(LUFILE *fin, unsigned long *pX) {
@@ -4757,14 +4079,11 @@ int unzlocal_getShort(LUFILE *fin, unsigned long *pX) {
 	err = unzlocal_getByte(fin, &i);
 	x = (unsigned long)i;
 
-	if (err == UNZ_OK)
-		err = unzlocal_getByte(fin, &i);
+	if (err == SG_NO_ERROR)err = unzlocal_getByte(fin, &i);
 	x += ((unsigned long)i) << 8;
 
-	if (err == UNZ_OK)
-		*pX = x;
-	else
-		*pX = 0;
+	if (err == SG_NO_ERROR)*pX = x;
+	else*pX = 0;
 	return err;
 }
 int unzlocal_getLong(LUFILE *fin, unsigned long *pX) {
@@ -4775,22 +4094,17 @@ int unzlocal_getLong(LUFILE *fin, unsigned long *pX) {
 	err = unzlocal_getByte(fin, &i);
 	x = (unsigned long)i;
 
-	if (err == UNZ_OK)
-		err = unzlocal_getByte(fin, &i);
+	if (err == SG_NO_ERROR)err = unzlocal_getByte(fin, &i);
 	x += ((unsigned long)i) << 8;
 
-	if (err == UNZ_OK)
-		err = unzlocal_getByte(fin, &i);
+	if (err == SG_NO_ERROR)err = unzlocal_getByte(fin, &i);
 	x += ((unsigned long)i) << 16;
 
-	if (err == UNZ_OK)
-		err = unzlocal_getByte(fin, &i);
+	if (err == SG_NO_ERROR)err = unzlocal_getByte(fin, &i);
 	x += ((unsigned long)i) << 24;
 
-	if (err == UNZ_OK)
-		*pX = x;
-	else
-		*pX = 0;
+	if (err == SG_NO_ERROR)*pX = x;
+	else*pX = 0;
 	return err;
 }
 #define BUFREADCOMMENT (0x400)
@@ -4807,8 +4121,7 @@ unsigned long unzlocal_SearchCentralDir(LUFILE *fin) {
 	unsigned long uPosFound = 0xFFFFFFFF;
 
 	unsigned long uBackRead = 4;
-	while (uBackRead<uMaxBack)
-	{
+	while (uBackRead<uMaxBack) {
 		unsigned long uReadSize, uReadPos;
 		int i;
 		if (uBackRead + BUFREADCOMMENT>uMaxBack) uBackRead = uMaxBack;
@@ -4817,10 +4130,8 @@ unsigned long unzlocal_SearchCentralDir(LUFILE *fin) {
 		uReadSize = ((BUFREADCOMMENT + 4) < (uSizeFile - uReadPos)) ? (BUFREADCOMMENT + 4) : (uSizeFile - uReadPos);
 		if (lufseek(fin, uReadPos, SEEK_SET) != 0) break;
 		if (lufread(buf, (unsigned int)uReadSize, 1, fin) != 1) break;
-		for (i = (int)uReadSize - 3; (i--) >= 0;)
-		{
-			if (((*(buf + i)) == 0x50) && ((*(buf + i + 1)) == 0x4b) && ((*(buf + i + 2)) == 0x05) && ((*(buf + i + 3)) == 0x06))
-			{
+		for (i = (int)uReadSize - 3; (i--) >= 0;) {
+			if (((*(buf + i)) == 0x50) && ((*(buf + i + 1)) == 0x4b) && ((*(buf + i + 2)) == 0x05) && ((*(buf + i + 3)) == 0x06)) {
 				uPosFound = uReadPos + i;	break;
 			}
 		}
@@ -4847,142 +4158,77 @@ int unzlocal_GetCurrentFileInfoInternal(unzFile file, unz_file_info *pfile_info,
 	unz_s* s;
 	unz_file_info file_info;
 	unz_file_info_internal file_info_internal;
-	int err = UNZ_OK;
+	int err = SG_NO_ERROR;
 	unsigned long uMagic;
 	long lSeek = 0;
 
-	if (file == NULL)
-		return UNZ_PARAMERROR;
+	if (file == NULL)return SG_IO_ERROR;
 	s = (unz_s*)file;
-	if (lufseek(s->file, s->pos_in_central_dir + s->byte_before_the_zipfile, SEEK_SET) != 0)
-		err = UNZ_ERRNO;
+	if (lufseek(s->file, s->pos_in_central_dir + s->byte_before_the_zipfile, SEEK_SET) != 0)err = SG_IO_ERROR;
 
-
-	// we check the magic
-	if (err == UNZ_OK)
-		if (unzlocal_getLong(s->file, &uMagic) != UNZ_OK)
-			err = UNZ_ERRNO;
-		else if (uMagic != 0x02014b50)
-			err = UNZ_BADZIPFILE;
-
-	if (unzlocal_getShort(s->file, &file_info.version) != UNZ_OK)
-		err = UNZ_ERRNO;
-
-	if (unzlocal_getShort(s->file, &file_info.version_needed) != UNZ_OK)
-		err = UNZ_ERRNO;
-
-	if (unzlocal_getShort(s->file, &file_info.flag) != UNZ_OK)
-		err = UNZ_ERRNO;
-
-	if (unzlocal_getShort(s->file, &file_info.compression_method) != UNZ_OK)
-		err = UNZ_ERRNO;
-
-	if (unzlocal_getLong(s->file, &file_info.dosDate) != UNZ_OK)
-		err = UNZ_ERRNO;
-
+	if (err == SG_NO_ERROR)
+		if (unzlocal_getLong(s->file, &uMagic) != SG_NO_ERROR)err = SG_IO_ERROR;
+		else if (uMagic != 0x02014b50)err = SG_IO_ERROR;
+	if (unzlocal_getShort(s->file, &file_info.version) != SG_NO_ERROR)err = SG_IO_ERROR;
+	if (unzlocal_getShort(s->file, &file_info.version_needed) != SG_NO_ERROR)err = SG_IO_ERROR;
+	if (unzlocal_getShort(s->file, &file_info.flag) != SG_NO_ERROR)err = SG_IO_ERROR;
+	if (unzlocal_getShort(s->file, &file_info.compression_method) != SG_NO_ERROR)err = SG_IO_ERROR;
+	if (unzlocal_getLong(s->file, &file_info.dosDate) != SG_NO_ERROR)err = SG_IO_ERROR;
 	unzlocal_DosDateToTmuDate(file_info.dosDate, &file_info.tmu_date);
-
-	if (unzlocal_getLong(s->file, &file_info.crc) != UNZ_OK)
-		err = UNZ_ERRNO;
-
-	if (unzlocal_getLong(s->file, &file_info.compressed_size) != UNZ_OK)
-		err = UNZ_ERRNO;
-
-	if (unzlocal_getLong(s->file, &file_info.uncompressed_size) != UNZ_OK)
-		err = UNZ_ERRNO;
-
-	if (unzlocal_getShort(s->file, &file_info.size_filename) != UNZ_OK)
-		err = UNZ_ERRNO;
-
-	if (unzlocal_getShort(s->file, &file_info.size_file_extra) != UNZ_OK)
-		err = UNZ_ERRNO;
-
-	if (unzlocal_getShort(s->file, &file_info.size_file_comment) != UNZ_OK)
-		err = UNZ_ERRNO;
-
-	if (unzlocal_getShort(s->file, &file_info.disk_num_start) != UNZ_OK)
-		err = UNZ_ERRNO;
-
-	if (unzlocal_getShort(s->file, &file_info.internal_fa) != UNZ_OK)
-		err = UNZ_ERRNO;
-
-	if (unzlocal_getLong(s->file, &file_info.external_fa) != UNZ_OK)
-		err = UNZ_ERRNO;
-
-	if (unzlocal_getLong(s->file, &file_info_internal.offset_curfile) != UNZ_OK)
-		err = UNZ_ERRNO;
-
+	if (unzlocal_getLong(s->file, &file_info.crc) != SG_NO_ERROR)err = SG_IO_ERROR;
+	if (unzlocal_getLong(s->file, &file_info.compressed_size) != SG_NO_ERROR)err = SG_IO_ERROR;
+	if (unzlocal_getLong(s->file, &file_info.uncompressed_size) != SG_NO_ERROR)err = SG_IO_ERROR;
+	if (unzlocal_getShort(s->file, &file_info.size_filename) != SG_NO_ERROR)err = SG_IO_ERROR;
+	if (unzlocal_getShort(s->file, &file_info.size_file_extra) != SG_NO_ERROR)err = SG_IO_ERROR;
+	if (unzlocal_getShort(s->file, &file_info.size_file_comment) != SG_NO_ERROR)err = SG_IO_ERROR;
+	if (unzlocal_getShort(s->file, &file_info.disk_num_start) != SG_NO_ERROR)err = SG_IO_ERROR;
+	if (unzlocal_getShort(s->file, &file_info.internal_fa) != SG_NO_ERROR)err = SG_IO_ERROR;
+	if (unzlocal_getLong(s->file, &file_info.external_fa) != SG_NO_ERROR)err = SG_IO_ERROR;
+	if (unzlocal_getLong(s->file, &file_info_internal.offset_curfile) != SG_NO_ERROR)err = SG_IO_ERROR;
 	lSeek += file_info.size_filename;
-	if ((err == UNZ_OK) && (szFileName != NULL))
-	{
+	if ((err == SG_NO_ERROR) && (szFileName != NULL)) {
 		unsigned long uSizeRead;
-		if (file_info.size_filename<fileNameBufferSize)
-		{
+		if (file_info.size_filename<fileNameBufferSize) {
 			*(szFileName + file_info.size_filename) = '\0';
 			uSizeRead = file_info.size_filename;
 		}
-		else
-			uSizeRead = fileNameBufferSize;
+		else uSizeRead = fileNameBufferSize;
 
 		if ((file_info.size_filename>0) && (fileNameBufferSize>0))
-			if (lufread(szFileName, (unsigned int)uSizeRead, 1, s->file) != 1)
-				err = UNZ_ERRNO;
+			if (lufread(szFileName, (unsigned int)uSizeRead, 1, s->file) != 1)err = SG_IO_ERROR;
 		lSeek -= uSizeRead;
 	}
 
-
-	if ((err == UNZ_OK) && (extraField != NULL))
-	{
+	if ((err == SG_NO_ERROR) && (extraField != NULL)) {
 		unsigned long uSizeRead;
-		if (file_info.size_file_extra<extraFieldBufferSize)
-			uSizeRead = file_info.size_file_extra;
-		else
-			uSizeRead = extraFieldBufferSize;
+		if (file_info.size_file_extra<extraFieldBufferSize)uSizeRead = file_info.size_file_extra;
+		else uSizeRead = extraFieldBufferSize;
 
 		if (lSeek != 0)
-			if (lufseek(s->file, lSeek, SEEK_CUR) == 0)
-				lSeek = 0;
-			else
-				err = UNZ_ERRNO;
+			if (lufseek(s->file, lSeek, SEEK_CUR) == 0)lSeek = 0;
+			else err = SG_IO_ERROR;
 		if ((file_info.size_file_extra>0) && (extraFieldBufferSize>0))
-			if (lufread(extraField, (unsigned int)uSizeRead, 1, s->file) != 1)
-				err = UNZ_ERRNO;
+			if (lufread(extraField, (unsigned int)uSizeRead, 1, s->file) != 1)err = SG_IO_ERROR;
 		lSeek += file_info.size_file_extra - uSizeRead;
 	}
-	else
-		lSeek += file_info.size_file_extra;
+	else lSeek += file_info.size_file_extra;
 
 
-	if ((err == UNZ_OK) && (szComment != NULL))
-	{
+	if ((err == SG_NO_ERROR) && (szComment != NULL)) {
 		unsigned long uSizeRead;
-		if (file_info.size_file_comment<commentBufferSize)
-		{
+		if (file_info.size_file_comment<commentBufferSize) {
 			*(szComment + file_info.size_file_comment) = '\0';
 			uSizeRead = file_info.size_file_comment;
 		}
-		else
-			uSizeRead = commentBufferSize;
+		else uSizeRead = commentBufferSize;
 
 		if (lSeek != 0)
-			if (lufseek(s->file, lSeek, SEEK_CUR) == 0)
-			{
-			} // unused lSeek=0;
-			else
-				err = UNZ_ERRNO;
+			if (lufseek(s->file, lSeek, SEEK_CUR) != 0)err = SG_IO_ERROR;
 		if ((file_info.size_file_comment>0) && (commentBufferSize>0))
-			if (lufread(szComment, (unsigned int)uSizeRead, 1, s->file) != 1)
-				err = UNZ_ERRNO;
-		//unused lSeek+=file_info.size_file_comment - uSizeRead;
+			if (lufread(szComment, (unsigned int)uSizeRead, 1, s->file) != 1)err = SG_IO_ERROR;
 	}
-	else {} //unused lSeek+=file_info.size_file_comment;
-
-	if ((err == UNZ_OK) && (pfile_info != NULL))
-		*pfile_info = file_info;
-
-	if ((err == UNZ_OK) && (pfile_info_internal != NULL))
-		*pfile_info_internal = file_info_internal;
-
+	if ((err == SG_NO_ERROR) && (pfile_info != NULL))*pfile_info = file_info;
+	if ((err == SG_NO_ERROR) && (pfile_info_internal != NULL))*pfile_info_internal = file_info_internal;
 	return err;
 }
 int unzGetCurrentFileInfo(unzFile file, unz_file_info *pfile_info,
@@ -4994,27 +4240,24 @@ int unzGetCurrentFileInfo(unzFile file, unz_file_info *pfile_info,
 int unzGoToFirstFile(unzFile file) {
 	int err;
 	unz_s* s;
-	if (file == NULL) return UNZ_PARAMERROR;
+	if (file == NULL) return SG_IO_ERROR;
 	s = (unz_s*)file;
 	s->pos_in_central_dir = s->offset_central_dir;
 	s->num_file = 0;
 	err = unzlocal_GetCurrentFileInfoInternal(file, &s->cur_file_info,
 		&s->cur_file_info_internal,
 		NULL, 0, NULL, 0, NULL, 0);
-	s->current_file_ok = (err == UNZ_OK);
+	s->current_file_ok = (err == SG_NO_ERROR);
 	return err;
 }
 int unzGoToNextFile(unzFile file) {
 	unz_s* s;
 	int err;
 
-	if (file == NULL)
-		return UNZ_PARAMERROR;
+	if (file == NULL)return SG_IO_ERROR;
 	s = (unz_s*)file;
-	if (!s->current_file_ok)
-		return UNZ_END_OF_LIST_OF_FILE;
-	if (s->num_file + 1 == s->gi.number_entry)
-		return UNZ_END_OF_LIST_OF_FILE;
+	if (!s->current_file_ok)return SG_IO_ERROR;
+	if (s->num_file + 1 == s->gi.number_entry)return SG_IO_ERROR;
 
 	s->pos_in_central_dir += SIZECENTRALDIRITEM + s->cur_file_info.size_filename +
 		s->cur_file_info.size_file_extra + s->cur_file_info.size_file_comment;
@@ -5022,41 +4265,34 @@ int unzGoToNextFile(unzFile file) {
 	err = unzlocal_GetCurrentFileInfoInternal(file, &s->cur_file_info,
 		&s->cur_file_info_internal,
 		NULL, 0, NULL, 0, NULL, 0);
-	s->current_file_ok = (err == UNZ_OK);
+	s->current_file_ok = (err == SG_NO_ERROR);
 	return err;
 }
 int unzLocateFile(unzFile file, const char *szFileName) {
 	unz_s* s;
 	int err;
 
-
 	unsigned long num_fileSaved;
 	unsigned long pos_in_central_dirSaved;
 
-
-	if (file == NULL)
-		return UNZ_PARAMERROR;
-
-	if (strlen(szFileName) >= UNZ_MAXFILENAMEINZIP)
-		return UNZ_PARAMERROR;
+	if (file == NULL)return SG_IO_ERROR;
+	if (strlen(szFileName) >= UNZ_MAXFILENAMEINZIP)return SG_IO_ERROR;
 
 	s = (unz_s*)file;
 	if (!s->current_file_ok)
-		return UNZ_END_OF_LIST_OF_FILE;
+		return SG_IO_ERROR;
 
 	num_fileSaved = s->num_file;
 	pos_in_central_dirSaved = s->pos_in_central_dir;
-
 	err = unzGoToFirstFile(file);
 
-	while (err == UNZ_OK)
-	{
+	while (err == SG_NO_ERROR) {
 		char szCurrentFileName[UNZ_MAXFILENAMEINZIP + 1];
 		unzGetCurrentFileInfo(file, NULL,
 			szCurrentFileName, sizeof(szCurrentFileName) - 1,
 			NULL, 0, NULL, 0);
 		if (strcmp(szCurrentFileName, szFileName) == 0)
-			return UNZ_OK;
+			return SG_NO_ERROR;
 		err = unzGoToNextFile(file);
 	}
 
@@ -5069,100 +4305,61 @@ int unzlocal_CheckCurrentFileCoherencyHeader(unz_s *s, unsigned int *piSizeVar,
 	unsigned long uMagic, uData, uFlags;
 	unsigned long size_filename;
 	unsigned long size_extra_field;
-	int err = UNZ_OK;
+	int err = SG_NO_ERROR;
 
 	*piSizeVar = 0;
 	*poffset_local_extrafield = 0;
 	*psize_local_extrafield = 0;
 
 	if (lufseek(s->file, s->cur_file_info_internal.offset_curfile + s->byte_before_the_zipfile, SEEK_SET) != 0)
-		return UNZ_ERRNO;
+		return SG_IO_ERROR;
 
+	if (err == SG_NO_ERROR)
+		if (unzlocal_getLong(s->file, &uMagic) != SG_NO_ERROR)err = SG_IO_ERROR;
+		else if (uMagic != 0x04034b50)err = SG_IO_ERROR;
 
-	if (err == UNZ_OK)
-		if (unzlocal_getLong(s->file, &uMagic) != UNZ_OK)
-			err = UNZ_ERRNO;
-		else if (uMagic != 0x04034b50)
-			err = UNZ_BADZIPFILE;
-
-	if (unzlocal_getShort(s->file, &uData) != UNZ_OK)
-		err = UNZ_ERRNO;
-	//	else if ((err==UNZ_OK) && (uData!=s->cur_file_info.wVersion))
-	//		err=UNZ_BADZIPFILE;
-	if (unzlocal_getShort(s->file, &uFlags) != UNZ_OK)
-		err = UNZ_ERRNO;
-
-	if (unzlocal_getShort(s->file, &uData) != UNZ_OK)
-		err = UNZ_ERRNO;
-	else if ((err == UNZ_OK) && (uData != s->cur_file_info.compression_method))
-		err = UNZ_BADZIPFILE;
-
-	if ((err == UNZ_OK) && (s->cur_file_info.compression_method != 0) &&
-		(s->cur_file_info.compression_method != Z_DEFLATED))
-		err = UNZ_BADZIPFILE;
-
-	if (unzlocal_getLong(s->file, &uData) != UNZ_OK) // date/time
-		err = UNZ_ERRNO;
-
-	if (unzlocal_getLong(s->file, &uData) != UNZ_OK) // crc
-		err = UNZ_ERRNO;
-	else if ((err == UNZ_OK) && (uData != s->cur_file_info.crc) &&
-		((uFlags & 8) == 0))
-		err = UNZ_BADZIPFILE;
-
-	if (unzlocal_getLong(s->file, &uData) != UNZ_OK) // size compr
-		err = UNZ_ERRNO;
-	else if ((err == UNZ_OK) && (uData != s->cur_file_info.compressed_size) &&
-		((uFlags & 8) == 0))
-		err = UNZ_BADZIPFILE;
-
-	if (unzlocal_getLong(s->file, &uData) != UNZ_OK) // size uncompr
-		err = UNZ_ERRNO;
-	else if ((err == UNZ_OK) && (uData != s->cur_file_info.uncompressed_size) &&
-		((uFlags & 8) == 0))
-		err = UNZ_BADZIPFILE;
-
-
-	if (unzlocal_getShort(s->file, &size_filename) != UNZ_OK)
-		err = UNZ_ERRNO;
-	else if ((err == UNZ_OK) && (size_filename != s->cur_file_info.size_filename))
-		err = UNZ_BADZIPFILE;
+	if (unzlocal_getShort(s->file, &uData) != SG_NO_ERROR)err = SG_IO_ERROR;
+	if (unzlocal_getShort(s->file, &uFlags) != SG_NO_ERROR)err = SG_IO_ERROR;
+	if (unzlocal_getShort(s->file, &uData) != SG_NO_ERROR)err = SG_IO_ERROR;
+	else if ((err == SG_NO_ERROR) && (uData != s->cur_file_info.compression_method))err = SG_IO_ERROR;
+	if ((err == SG_NO_ERROR) && (s->cur_file_info.compression_method != 0) && (s->cur_file_info.compression_method != Z_DEFLATED))err = SG_IO_ERROR;
+	if (unzlocal_getLong(s->file, &uData) != SG_NO_ERROR)err = SG_IO_ERROR;
+	if (unzlocal_getLong(s->file, &uData) != SG_NO_ERROR)err = SG_IO_ERROR;
+	else if ((err == SG_NO_ERROR) && (uData != s->cur_file_info.crc) && ((uFlags & 8) == 0))err = SG_IO_ERROR;
+	if (unzlocal_getLong(s->file, &uData) != SG_NO_ERROR)err = SG_IO_ERROR;
+	else if ((err == SG_NO_ERROR) && (uData != s->cur_file_info.compressed_size) && ((uFlags & 8) == 0))err = SG_IO_ERROR;
+	if (unzlocal_getLong(s->file, &uData) != SG_NO_ERROR)err = SG_IO_ERROR;
+	else if ((err == SG_NO_ERROR) && (uData != s->cur_file_info.uncompressed_size) && ((uFlags & 8) == 0))err = SG_IO_ERROR;
+	if (unzlocal_getShort(s->file, &size_filename) != SG_NO_ERROR)err = SG_IO_ERROR;
+	else if ((err == SG_NO_ERROR) && (size_filename != s->cur_file_info.size_filename))err = SG_IO_ERROR;
 
 	*piSizeVar += (unsigned int)size_filename;
 
-	if (unzlocal_getShort(s->file, &size_extra_field) != UNZ_OK)
-		err = UNZ_ERRNO;
+	if (unzlocal_getShort(s->file, &size_extra_field) != SG_NO_ERROR)
+		err = SG_IO_ERROR;
 	*poffset_local_extrafield = s->cur_file_info_internal.offset_curfile +
 		SIZEZIPLOCALHEADER + size_filename;
 	*psize_local_extrafield = (unsigned int)size_extra_field;
-
 	*piSizeVar += (unsigned int)size_extra_field;
 
 	return err;
 }
 int unzCloseCurrentFile(unzFile file) {
-	int err = UNZ_OK;
+	int err = SG_NO_ERROR;
 
 	unz_s* s;
 	file_in_zip_read_info_s* pfile_in_zip_read_info;
 	if (file == NULL)
-		return UNZ_PARAMERROR;
+		return SG_IO_ERROR;
 	s = (unz_s*)file;
 	pfile_in_zip_read_info = s->pfile_in_zip_read;
 
-	if (pfile_in_zip_read_info == NULL)
-		return UNZ_PARAMERROR;
-
-
-	if (pfile_in_zip_read_info->rest_read_uncompressed == 0)
-	{
+	if (pfile_in_zip_read_info == NULL)return SG_IO_ERROR;
+	if (pfile_in_zip_read_info->rest_read_uncompressed == 0) {
 		if (pfile_in_zip_read_info->crc32 != pfile_in_zip_read_info->crc32_wait)
-			err = UNZ_CRCERROR;
+			err = SG_IO_ERROR;
 	}
-
-
-	if (pfile_in_zip_read_info->read_buffer != 0)
-	{
+	if (pfile_in_zip_read_info->read_buffer != 0) {
 		void *buf = pfile_in_zip_read_info->read_buffer;
 		free(buf);
 		pfile_in_zip_read_info->read_buffer = 0;
@@ -5187,39 +4384,26 @@ int unzOpenCurrentFile(unzFile file) {
 	unsigned long offset_local_extrafield;  // offset of the local extra field
 	unsigned int  size_local_extrafield;    // size of the local extra field
 
-	if (file == NULL)
-		return UNZ_PARAMERROR;
+	if (file == NULL)return SG_IO_ERROR;
 	s = (unz_s*)file;
-	if (!s->current_file_ok)
-		return UNZ_PARAMERROR;
+	if (!s->current_file_ok)return SG_IO_ERROR;
 
-	if (s->pfile_in_zip_read != NULL)
-		unzCloseCurrentFile(file);
-
-	if (unzlocal_CheckCurrentFileCoherencyHeader(s, &iSizeVar,
-		&offset_local_extrafield, &size_local_extrafield) != UNZ_OK)
-		return UNZ_BADZIPFILE;
+	if (s->pfile_in_zip_read != NULL)unzCloseCurrentFile(file);
+	if (unzlocal_CheckCurrentFileCoherencyHeader(s, &iSizeVar, &offset_local_extrafield, &size_local_extrafield) != SG_NO_ERROR)return SG_IO_ERROR;
 
 	pfile_in_zip_read_info = (file_in_zip_read_info_s*)malloc(sizeof(file_in_zip_read_info_s));
-	if (pfile_in_zip_read_info == NULL)
-		return UNZ_INTERNALERROR;
+	if (pfile_in_zip_read_info == NULL)return SG_IO_ERROR;
 
 	pfile_in_zip_read_info->read_buffer = (char*)malloc(UNZ_BUFSIZE);
 	pfile_in_zip_read_info->offset_local_extrafield = offset_local_extrafield;
 	pfile_in_zip_read_info->size_local_extrafield = size_local_extrafield;
 	pfile_in_zip_read_info->pos_local_extrafield = 0;
 
-	if (pfile_in_zip_read_info->read_buffer == NULL)
-	{
+	if (pfile_in_zip_read_info->read_buffer == NULL) {
 		if (pfile_in_zip_read_info != 0) free(pfile_in_zip_read_info); //unused pfile_in_zip_read_info=0;
-		return UNZ_INTERNALERROR;
+		return SG_IO_ERROR;
 	}
-
 	pfile_in_zip_read_info->stream_initialised = 0;
-
-	if ((s->cur_file_info.compression_method != 0) && (s->cur_file_info.compression_method != Z_DEFLATED))
-	{ // unused err=UNZ_BADZIPFILE;
-	}
 	Store = s->cur_file_info.compression_method == 0;
 
 	pfile_in_zip_read_info->crc32_wait = s->cur_file_info.crc;
@@ -5230,60 +4414,51 @@ int unzOpenCurrentFile(unzFile file) {
 
 	pfile_in_zip_read_info->stream.total_out = 0;
 
-	if (!Store)
-	{
+	if (!Store) {
 		pfile_in_zip_read_info->stream.zalloc = (alloc_func)0;
 		pfile_in_zip_read_info->stream.zfree = (free_func)0;
 		pfile_in_zip_read_info->stream.opaque = (void *)0;
 
 		err = inflateInit2(&pfile_in_zip_read_info->stream);
-		if (err == Z_OK)
+		if (err == SG_NO_ERROR)
 			pfile_in_zip_read_info->stream_initialised = 1;
 	}
 	pfile_in_zip_read_info->rest_read_compressed = s->cur_file_info.compressed_size;
 	pfile_in_zip_read_info->rest_read_uncompressed = s->cur_file_info.uncompressed_size;
 	bool extlochead = (s->cur_file_info.flag & 8) != 0;
 
-	pfile_in_zip_read_info->pos_in_zipfile =
-		s->cur_file_info_internal.offset_curfile + SIZEZIPLOCALHEADER +
-		iSizeVar;
-
+	pfile_in_zip_read_info->pos_in_zipfile = s->cur_file_info_internal.offset_curfile + SIZEZIPLOCALHEADER + iSizeVar;
 	pfile_in_zip_read_info->stream.avail_in = (unsigned int)0;
-
 	s->pfile_in_zip_read = pfile_in_zip_read_info;
 
-	return UNZ_OK;
+	return SG_NO_ERROR;
 }
 int unzReadCurrentFile(unzFile file, void * buf, unsigned len, bool *reached_eof) {
-	int err = UNZ_OK;
+	int err = SG_NO_ERROR;
 	unsigned int iRead = 0;
 	if (reached_eof != 0) *reached_eof = false;
 
 	unz_s *s = (unz_s*)file;
-	if (s == NULL) return UNZ_PARAMERROR;
+	if (s == NULL) return SG_IO_ERROR;
 
 	file_in_zip_read_info_s* pfile_in_zip_read_info = s->pfile_in_zip_read;
-	if (pfile_in_zip_read_info == NULL) return UNZ_PARAMERROR;
-	if ((pfile_in_zip_read_info->read_buffer == NULL)) return UNZ_END_OF_LIST_OF_FILE;
+	if (pfile_in_zip_read_info == NULL) return SG_IO_ERROR;
+	if ((pfile_in_zip_read_info->read_buffer == NULL)) return SG_IO_ERROR;
 	if (len == 0) return 0;
 
 	pfile_in_zip_read_info->stream.next_out = (unsigned char*)buf;
 	pfile_in_zip_read_info->stream.avail_out = (unsigned int)len;
 
-	if (len>pfile_in_zip_read_info->rest_read_uncompressed)
-	{
+	if (len>pfile_in_zip_read_info->rest_read_uncompressed) {
 		pfile_in_zip_read_info->stream.avail_out = (unsigned int)pfile_in_zip_read_info->rest_read_uncompressed;
 	}
-
-	while (pfile_in_zip_read_info->stream.avail_out>0)
-	{
-		if ((pfile_in_zip_read_info->stream.avail_in == 0) && (pfile_in_zip_read_info->rest_read_compressed>0))
-		{
+	while (pfile_in_zip_read_info->stream.avail_out>0) {
+		if ((pfile_in_zip_read_info->stream.avail_in == 0) && (pfile_in_zip_read_info->rest_read_compressed>0)) {
 			unsigned int uReadThis = UNZ_BUFSIZE;
 			if (pfile_in_zip_read_info->rest_read_compressed<uReadThis) uReadThis = (unsigned int)pfile_in_zip_read_info->rest_read_compressed;
-			if (uReadThis == 0) { if (reached_eof != 0) *reached_eof = true; return UNZ_EOF; }
-			if (lufseek(pfile_in_zip_read_info->file, pfile_in_zip_read_info->pos_in_zipfile + pfile_in_zip_read_info->byte_before_the_zipfile, SEEK_SET) != 0) return UNZ_ERRNO;
-			if (lufread(pfile_in_zip_read_info->read_buffer, uReadThis, 1, pfile_in_zip_read_info->file) != 1) return UNZ_ERRNO;
+			if (uReadThis == 0) { if (reached_eof != 0) *reached_eof = true; return SG_NO_ERROR; }
+			if (lufseek(pfile_in_zip_read_info->file, pfile_in_zip_read_info->pos_in_zipfile + pfile_in_zip_read_info->byte_before_the_zipfile, SEEK_SET) != 0) return SG_IO_ERROR;
+			if (lufread(pfile_in_zip_read_info->read_buffer, uReadThis, 1, pfile_in_zip_read_info->file) != 1) return SG_IO_ERROR;
 			pfile_in_zip_read_info->pos_in_zipfile += uReadThis;
 			pfile_in_zip_read_info->rest_read_compressed -= uReadThis;
 			pfile_in_zip_read_info->stream.next_in = (unsigned char*)pfile_in_zip_read_info->read_buffer;
@@ -5292,23 +4467,18 @@ int unzReadCurrentFile(unzFile file, void * buf, unsigned len, bool *reached_eof
 
 		unsigned int uDoEncHead = 0;
 		if (uDoEncHead>pfile_in_zip_read_info->stream.avail_in) uDoEncHead = pfile_in_zip_read_info->stream.avail_in;
-		if (uDoEncHead>0)
-		{
+		if (uDoEncHead>0) {
 			char bufcrc = pfile_in_zip_read_info->stream.next_in[uDoEncHead - 1];
 			pfile_in_zip_read_info->rest_read_uncompressed -= uDoEncHead;
 			pfile_in_zip_read_info->stream.avail_in -= uDoEncHead;
 			pfile_in_zip_read_info->stream.next_in += uDoEncHead;
 		}
-
-		if (pfile_in_zip_read_info->compression_method == 0)
-		{
+		if (pfile_in_zip_read_info->compression_method == 0) {
 			unsigned int uDoCopy, i;
-			if (pfile_in_zip_read_info->stream.avail_out < pfile_in_zip_read_info->stream.avail_in)
-			{
+			if (pfile_in_zip_read_info->stream.avail_out < pfile_in_zip_read_info->stream.avail_in) {
 				uDoCopy = pfile_in_zip_read_info->stream.avail_out;
 			}
-			else
-			{
+			else {
 				uDoCopy = pfile_in_zip_read_info->stream.avail_in;
 			}
 			for (i = 0; i<uDoCopy; i++) *(pfile_in_zip_read_info->stream.next_out + i) = *(pfile_in_zip_read_info->stream.next_in + i);
@@ -5322,46 +4492,41 @@ int unzReadCurrentFile(unzFile file, void * buf, unsigned len, bool *reached_eof
 			iRead += uDoCopy;
 			if (pfile_in_zip_read_info->rest_read_uncompressed == 0) { if (reached_eof != 0) *reached_eof = true; }
 		}
-		else
-		{
+		else {
 			unsigned long uTotalOutBefore, uTotalOutAfter;
 			const unsigned char *bufBefore;
 			unsigned long uOutThis;
 			int flush = Z_SYNC_FLUSH;
 			uTotalOutBefore = pfile_in_zip_read_info->stream.total_out;
 			bufBefore = pfile_in_zip_read_info->stream.next_out;
-			//
 			err = inflate(&pfile_in_zip_read_info->stream, flush);
-			//
 			uTotalOutAfter = pfile_in_zip_read_info->stream.total_out;
 			uOutThis = uTotalOutAfter - uTotalOutBefore;
 			pfile_in_zip_read_info->crc32 = ucrc32(pfile_in_zip_read_info->crc32, bufBefore, (unsigned int)(uOutThis));
 			pfile_in_zip_read_info->rest_read_uncompressed -= uOutThis;
 			iRead += (unsigned int)(uTotalOutAfter - uTotalOutBefore);
-			if (err == Z_STREAM_END || pfile_in_zip_read_info->rest_read_uncompressed == 0)
-			{
+			if (err == Z_STREAM_END || pfile_in_zip_read_info->rest_read_uncompressed == 0) {
 				if (reached_eof != 0) *reached_eof = true;
 				return iRead;
 			}
-			if (err != Z_OK) break;
+			if (err != SG_NO_ERROR) break;
 		}
 	}
 
-	if (err == Z_OK) return iRead;
+	if (err == SG_NO_ERROR) return iRead;
 	return err;
 }
 int unzClose(unzFile file) {
 	unz_s* s;
 	if (file == NULL)
-		return UNZ_PARAMERROR;
+		return SG_IO_ERROR;
 	s = (unz_s*)file;
 
-	if (s->pfile_in_zip_read != NULL)
-		unzCloseCurrentFile(file);
+	if (s->pfile_in_zip_read != NULL)unzCloseCurrentFile(file);
 
 	lufclose(s->file);
-	if (s) free(s); // unused s=0;
-	return UNZ_OK;
+	if (s) free(s);
+	return SG_NO_ERROR;
 }
 
 FILETIME timet2filetime(const lutime_t t) {
@@ -5408,26 +4573,26 @@ public:
 		lf->herr = false;
 		lf->initial_offset = SetFilePointer(h, 0, NULL, FILE_CURRENT);
 
-		int err = UNZ_OK;
+		int err = SG_NO_ERROR;
 		unz_s us;
 		unsigned long central_pos, uL;
 		central_pos = unzlocal_SearchCentralDir(lf);
-		if (central_pos == 0xFFFFFFFF) err = UNZ_ERRNO;
-		if (lufseek(lf, central_pos, SEEK_SET) != 0) err = UNZ_ERRNO;
-		if (unzlocal_getLong(lf, &uL) != UNZ_OK) err = UNZ_ERRNO;
+		if (central_pos == 0xFFFFFFFF) err = SG_IO_ERROR;
+		if (lufseek(lf, central_pos, SEEK_SET) != 0) err = SG_IO_ERROR;
+		if (unzlocal_getLong(lf, &uL) != SG_NO_ERROR) err = SG_IO_ERROR;
 		unsigned long number_disk;
-		if (unzlocal_getShort(lf, &number_disk) != UNZ_OK) err = UNZ_ERRNO;
+		if (unzlocal_getShort(lf, &number_disk) != SG_NO_ERROR) err = SG_IO_ERROR;
 		unsigned long number_disk_with_CD;
-		if (unzlocal_getShort(lf, &number_disk_with_CD) != UNZ_OK) err = UNZ_ERRNO;
-		if (unzlocal_getShort(lf, &us.gi.number_entry) != UNZ_OK) err = UNZ_ERRNO;
+		if (unzlocal_getShort(lf, &number_disk_with_CD) != SG_NO_ERROR) err = SG_IO_ERROR;
+		if (unzlocal_getShort(lf, &us.gi.number_entry) != SG_NO_ERROR) err = SG_IO_ERROR;
 		unsigned long number_entry_CD;
-		if (unzlocal_getShort(lf, &number_entry_CD) != UNZ_OK) err = UNZ_ERRNO;
-		if ((number_entry_CD != us.gi.number_entry) || (number_disk_with_CD != 0) || (number_disk != 0)) err = UNZ_BADZIPFILE;
-		if (unzlocal_getLong(lf, &us.size_central_dir) != UNZ_OK) err = UNZ_ERRNO;
-		if (unzlocal_getLong(lf, &us.offset_central_dir) != UNZ_OK) err = UNZ_ERRNO;
-		if (unzlocal_getShort(lf, &us.gi.size_comment) != UNZ_OK) err = UNZ_ERRNO;
-		if ((central_pos + lf->initial_offset<us.offset_central_dir + us.size_central_dir) && (err == UNZ_OK)) err = UNZ_BADZIPFILE;
-		if (err != UNZ_OK) { lufclose(lf); return NULL; }
+		if (unzlocal_getShort(lf, &number_entry_CD) != SG_NO_ERROR) err = SG_IO_ERROR;
+		if ((number_entry_CD != us.gi.number_entry) || (number_disk_with_CD != 0) || (number_disk != 0)) err = SG_IO_ERROR;
+		if (unzlocal_getLong(lf, &us.size_central_dir) != SG_NO_ERROR) err = SG_IO_ERROR;
+		if (unzlocal_getLong(lf, &us.offset_central_dir) != SG_NO_ERROR) err = SG_IO_ERROR;
+		if (unzlocal_getShort(lf, &us.gi.size_comment) != SG_NO_ERROR) err = SG_IO_ERROR;
+		if ((central_pos + lf->initial_offset<us.offset_central_dir + us.size_central_dir) && (err == SG_NO_ERROR)) err = SG_IO_ERROR;
+		if (err != SG_NO_ERROR) { lufclose(lf); return NULL; }
 
 		us.file = lf;
 		us.byte_before_the_zipfile = central_pos + lf->initial_offset - (us.offset_central_dir + us.size_central_dir);
@@ -5439,11 +4604,11 @@ public:
 		*s = us;
 		unzGoToFirstFile((unzFile)s);
 		uf = (unzFile)s;
-		if (uf == 0) return ZR_NOFILE;
-		return ZR_OK;
+		if (uf == 0) return SG_OBJECT_NOT_FOUND;
+		return SG_NO_ERROR;
 	}
 	ZRESULT Get(int index, ZIPENTRY *ze) {
-		if (index<-1 || index >= (int)uf->gi.number_entry) return ZR_ARGS;
+		if (index<-1 || index >= (int)uf->gi.number_entry) return SG_IO_ERROR;
 		if (index == -1) {
 			ze->index = uf->gi.number_entry;
 			ze->name[0] = 0;
@@ -5453,7 +4618,7 @@ public:
 			ze->mtime.dwLowDateTime = 0; ze->mtime.dwHighDateTime = 0;
 			ze->comp_size = 0;
 			ze->unc_size = 0;
-			return ZR_OK;
+			return SG_NO_ERROR;
 		}
 		if (index<(int)uf->num_file) unzGoToFirstFile(uf);
 		while ((int)uf->num_file<index) unzGoToNextFile(uf);
@@ -5461,20 +4626,16 @@ public:
 		unzGetCurrentFileInfo(uf, &ufi, fn, MAX_PATH, NULL, 0, NULL, 0);
 		unsigned int extralen, iSizeVar; unsigned long offset;
 		int res = unzlocal_CheckCurrentFileCoherencyHeader(uf, &iSizeVar, &offset, &extralen);
-		if (res != UNZ_OK) return ZR_CORRUPT;
-		if (lufseek(uf->file, offset, SEEK_SET) != 0) return ZR_READ;
+		if (res != SG_NO_ERROR) return SG_IO_ERROR;
+		if (lufseek(uf->file, offset, SEEK_SET) != 0) return SG_IO_ERROR;
 		unsigned char *extra = new unsigned char[extralen];
 		if (lufread(extra, 1, (unsigned int)extralen, uf->file) != extralen) {
 			delete[] extra;
-			return ZR_READ;
+			return SG_IO_ERROR;
 		}
 		ze->index = uf->num_file;
 		TCHAR tfn[MAX_PATH];
-#ifdef UNICODE
-		MultiByteToWideChar(CP_UTF8, 0, fn, -1, tfn, MAX_PATH);
-#else
-		strcpy(tfn, fn);
-#endif
+		_strcpy(tfn, _widen(fn));
 		const TCHAR *sfn = tfn;
 		for (;;) {
 			if (sfn[0] != 0 && sfn[1] == ':') { sfn += 2; continue; }
@@ -5494,7 +4655,7 @@ public:
 		bool readonly = (a & 0x00800000) == 0;
 		bool hidden = false, system = false, archive = true;
 		int host = ufi.version >> 8;
-		if (host == 0 || host == 7 || host == 11 || host == 14){
+		if (host == 0 || host == 7 || host == 11 || host == 14) {
 			readonly = (a & 0x00000001) != 0;
 			hidden = (a & 0x00000002) != 0;
 			system = (a & 0x00000004) != 0;
@@ -5545,35 +4706,31 @@ public:
 		}
 
 		if (extra != 0) delete[] extra;
-		return ZR_OK;
+		return SG_NO_ERROR;
 	}
-	ZRESULT Find(const TCHAR *tname, int *index, ZIPENTRY *ze) {
+	ZRESULT Find(SGWINSTR tname, int *index, ZIPENTRY *ze) {
 		char name[MAX_PATH];
-#ifdef UNICODE
-		WideCharToMultiByte(CP_UTF8, 0, tname, -1, name, MAX_PATH, 0, 0);
-#else
-		strcpy(name, tname);
-#endif
+		_strcpy(name, _shorten(tname));
 		int res = unzLocateFile(uf, name);
-		if (res != UNZ_OK) {
+		if (res != SG_NO_ERROR) {
 			if (index != 0) *index = -1;
 			if (ze != NULL) { ZeroMemory(ze, sizeof(ZIPENTRY)); ze->index = -1; }
-			return ZR_NOTFOUND;
+			return SG_OBJECT_NOT_FOUND;
 		}
 		if (currentfile != -1) unzCloseCurrentFile(uf); currentfile = -1;
 		int i = (int)uf->num_file;
 		if (index != NULL) *index = i;
 		if (ze != NULL) {
 			ZRESULT zres = Get(i, ze);
-			if (zres != ZR_OK) return zres;
+			if (zres != SG_NO_ERROR) return zres;
 		}
-		return ZR_OK;
+		return SG_NO_ERROR;
 	}
 	ZRESULT Unzip(int index, void *dst, unsigned int len, DWORD flags) {
 		if (flags == ZIP_MEMORY) {
 			if (index != currentfile) {
 				if (currentfile != -1) unzCloseCurrentFile(uf); currentfile = -1;
-				if (index >= (int)uf->gi.number_entry) return ZR_ARGS;
+				if (index >= (int)uf->gi.number_entry) return SG_IO_ERROR;
 				if (index<(int)uf->num_file) unzGoToFirstFile(uf);
 				while ((int)uf->num_file<index) unzGoToNextFile(uf);
 				unzOpenCurrentFile(uf);
@@ -5582,13 +4739,13 @@ public:
 			bool reached_eof;
 			int res = unzReadCurrentFile(uf, dst, len, &reached_eof);
 			if (res <= 0) { unzCloseCurrentFile(uf); currentfile = -1; }
-			if (reached_eof) return ZR_OK;
-			if (res>0) return ZR_MORE;
-			return ZR_FLATE;
+			if (reached_eof) return SG_NO_ERROR;
+			if (res>0) return SG_IO_ERROR;
+			return SG_IO_ERROR;
 		}
 		if (flags == ZIP_FILENAME) {
 			if (currentfile != -1) unzCloseCurrentFile(uf); currentfile = -1;
-			if (index >= (int)uf->gi.number_entry) return ZR_ARGS;
+			if (index >= (int)uf->gi.number_entry) return SG_IO_ERROR;
 			if (index < (int)uf->num_file) unzGoToFirstFile(uf);
 			while ((int)uf->num_file < index) unzGoToNextFile(uf);
 			ZIPENTRY ze;
@@ -5606,23 +4763,23 @@ public:
 			makePath(_shorten((LPWSTR)dir));
 
 			h = CreateFile(fn, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, ze.attr, NULL);
-			if (h == INVALID_HANDLE_VALUE) return ZR_NOFILE;
+			if (h == INVALID_HANDLE_VALUE) return SG_OBJECT_NOT_FOUND;
 			unzOpenCurrentFile(uf);
 			if (unzbuf == 0) unzbuf = new char[16384]; DWORD haderr = 0;
 
 			for (; haderr == 0;) {
 				bool reached_eof;
 				int res = unzReadCurrentFile(uf, unzbuf, 16384, &reached_eof);
-				if (res < 0) { haderr = ZR_FLATE; break; }
-				if (res > 0) { DWORD writ; BOOL bres = WriteFile(h, unzbuf, res, &writ, NULL); if (!bres) { haderr = ZR_WRITE; break; } }
+				if (res < 0) { haderr = SG_IO_ERROR; break; }
+				if (res > 0) { DWORD writ; BOOL bres = WriteFile(h, unzbuf, res, &writ, NULL); if (!bres) { haderr = SG_IO_ERROR; break; } }
 				if (reached_eof) break;
-				if (res == 0) { haderr = ZR_FLATE; break; }
+				if (res == 0) { haderr = SG_IO_ERROR; break; }
 			}
 			if (!haderr) SetFileTime(h, &ze.ctime, &ze.atime, &ze.mtime);
 			CloseHandle(h);
 			unzCloseCurrentFile(uf);
 			if (haderr != 0) return haderr;
-			return ZR_OK;
+			return SG_NO_ERROR;
 		}
 	}
 	ZRESULT Close() {
@@ -5630,7 +4787,7 @@ public:
 		currentfile = -1;
 		if (uf != 0) unzClose(uf);
 		uf = 0;
-		return ZR_OK;
+		return SG_NO_ERROR;
 	}
 };
 

@@ -130,8 +130,10 @@
 // Windows string.
 
 #ifdef UNICODE
+#define SGWINCH  WCHAR
 #define SGWINSTR  LPWSTR
 #else
+#define SGWINCH  CHAR
 #define SGWINSTR  LPSTR
 #endif
 
@@ -277,7 +279,7 @@ enum _alert {
 	ALERT_SYS_TASK = MB_TASKMODAL,
 };
 enum _errors { //Different return values when error occurs.
-	SG_NO_ERORR = 0,
+	SG_NO_ERROR = 0,
 	SG_OBJECT_NOT_FOUND = -1,
 	SG_NO_LOAD_MEM = -2,
 	SG_INVALID_MODE = -3,
