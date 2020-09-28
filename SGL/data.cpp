@@ -1234,8 +1234,123 @@ void setArrayElement(struct JSON *json, int idx, struct JSON *j) {
 */
 
 DECLARE_HANDLE(HZIP);
-typedef DWORD ZRESULT;
 
+#define ZIP_FILENAME 1
+#define ZIP_MEMORY 2
+#define ZIP_FOLDER 3
+
+long long filetimeInt(const FILETIME ft) {
+	long long i = *(long long*)&ft;
+	return (long long)((i - 116444736000000000) / 10000000);
+}
+void filetimeDosdatetime(const FILETIME ft, WORD *dosdate, WORD *dostime) {
+	SYSTEMTIME st; FileTimeToSystemTime(&ft, &st);
+	*dosdate = (WORD)(((st.wYear - 1980) & 0x7f) << 9);
+	*dosdate |= (WORD)((st.wMonth & 0xf) << 5);
+	*dosdate |= (WORD)((st.wDay & 0x1f));
+	*dostime = (WORD)((st.wHour & 0x1f) << 11);
+	*dostime |= (WORD)((st.wMinute & 0x3f) << 5);
+	*dostime |= (WORD)((st.wSecond * 2) & 0x1f);
+}
+FILETIME intFiletime(const long long t) {
+	LONGLONG i = Int32x32To64(t, 10000000) + 116444736000000000;
+	FILETIME ft;
+	ft.dwLowDateTime = (DWORD)i;
+	ft.dwHighDateTime = (DWORD)(i >> 32);
+	return ft;
+}
+FILETIME dosdatetimeFiletime(WORD dosdate, WORD dostime) {
+	SYSTEMTIME st;
+	st.wYear = (WORD)(((dosdate >> 9) & 0x7f) + 1980);
+	st.wMonth = (WORD)((dosdate >> 5) & 0xf);
+	st.wDay = (WORD)(dosdate & 0x1f);
+	st.wHour = (WORD)((dostime >> 11) & 0x1f);
+	st.wMinute = (WORD)((dostime >> 5) & 0x3f);
+	st.wSecond = (WORD)((dostime & 0x1f) * 2);
+	st.wMilliseconds = 0;
+	FILETIME ft;
+	SystemTimeToFileTime(&st, &ft);
+	return ft;
+}
+
+
+#define EB_UT_LEN(n)      (1 + 4 * (n))
+#define EB_L_UT_SIZE    (4 + EB_UT_LEN(3))
+#define EB_C_UT_SIZE    (4 + EB_UT_LEN(1))
+
+#define LOCSIG     0x04034b50L
+#define CENSIG     0x02014b50L
+#define ENDSIG     0x06054b50L
+#define EXTLOCSIG  0x08074b50L
+
+#define MIN_MATCH  3
+#define MAX_MATCH  258
+
+#define WSIZE  (0x8000)
+#define MIN_LOOKAHEAD (MAX_MATCH+MIN_MATCH+1)
+#define MAX_DIST  (WSIZE-MIN_LOOKAHEAD)
+
+#define MAX_BITS 15
+#define MAX_BL_BITS 7
+#define LENGTH_CODES 29
+#define LITERALS  256
+#define END_BLOCK 256
+#define L_CODES (LITERALS+1+LENGTH_CODES)
+#define D_CODES   30
+#define BL_CODES  19
+
+#define LIT_BUFSIZE  0x8000
+#define DIST_BUFSIZE  LIT_BUFSIZE
+#define REP_3_6      16
+#define REPZ_3_10    17
+#define REPZ_11_138  18
+#define HEAP_SIZE (2*L_CODES+1)
+#define Buf_size (8 * 2*sizeof(char))
+
+#define HASH_SIZE (unsigned)(1<<15)
+#define HASH_MASK (HASH_SIZE-1)
+#define WMASK (WSIZE-1)
+#define FAST 4
+#define SLOW 2
+#define TOO_FAR 4096
+#define H_SHIFT ((15+MIN_MATCH-1)/MIN_MATCH)
+
+#define UPDATE_HASH(h,c) (h = (((h)<<H_SHIFT) ^ (c)) & HASH_MASK)
+#define PUTSH(a,f) {char _putsh_c=(char)((a)&0xff); wfunc(param,&_putsh_c,1); _putsh_c=(char)((a)>>8); wfunc(param,&_putsh_c,1);}
+#define PUTLG(a,f) {PUTSH((a) & 0xffff,(f)) PUTSH((a) >> 16,(f))}
+#define PUTSHORT(state,w) {\
+	if (state.bs.out_offset >= state.bs.out_size-1) \
+		state.flush_outbuf(state.param,state.bs.out_buf, &state.bs.out_offset); \
+		state.bs.out_buf[state.bs.out_offset++] = (char) ((w) & 0xff); \
+		state.bs.out_buf[state.bs.out_offset++] = (char) ((unsigned short)(w) >> 8); \
+	}
+#define PUTBYTE(state,b) {\
+	if (state.bs.out_offset >= state.bs.out_size) \
+		state.flush_outbuf(state.param,state.bs.out_buf, &state.bs.out_offset); \
+		state.bs.out_buf[state.bs.out_offset++] = (char) (b); \
+	}
+
+const int extra_lbits[LENGTH_CODES] = { 0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0 };
+const int extra_dbits[D_CODES] = { 0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13 };
+const int extra_blbits[BL_CODES] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,3,7 };
+const unsigned char bl_order[BL_CODES] = { 16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15 };
+struct config {
+	unsigned short good_length;
+	unsigned short max_lazy;
+	unsigned short nice_length;
+	unsigned short max_chain;
+} configuration_table[10] = {
+	{ 0, 0, 0, 0 },  // 0 store only
+{ 4, 4, 8, 4 },  // 1 maximum speed, no lazy matches
+{ 4, 5, 16, 8 },  // 2
+{ 4, 6, 32, 32 },  // 3
+{ 4, 4, 16, 16 },  // 4 lazy matches */
+{ 8, 16, 32, 32 },  // 5
+{ 8, 16, 128, 128 },  // 6
+{ 8, 32, 128, 256 },  // 7
+{ 32, 128, 258, 1024 }, // 8
+{ 32, 258, 258, 4096 }
+};
 const unsigned long crc_table[256] = {	0x00000000L, 0x77073096L, 0xee0e612cL, 0x990951baL, 0x076dc419L,	0x706af48fL, 0xe963a535L, 0x9e6495a3L, 0x0edb8832L, 0x79dcb8a4L,	0xe0d5e91eL, 0x97d2d988L, 0x09b64c2bL, 0x7eb17cbdL, 0xe7b82d07L,	0x90bf1d91L, 0x1db71064L, 0x6ab020f2L, 0xf3b97148L, 0x84be41deL,	0x1adad47dL, 0x6ddde4ebL, 0xf4d4b551L, 0x83d385c7L, 0x136c9856L,	0x646ba8c0L, 0xfd62f97aL, 0x8a65c9ecL, 0x14015c4fL, 0x63066cd9L,
 	0xfa0f3d63L, 0x8d080df5L, 0x3b6e20c8L, 0x4c69105eL, 0xd56041e4L,
 	0xa2677172L, 0x3c03e4d1L, 0x4b04d447L, 0xd20d85fdL, 0xa50ab56bL,
@@ -1285,114 +1400,6 @@ const unsigned long crc_table[256] = {	0x00000000L, 0x77073096L, 0xee0e612cL, 0
 	0x2d02ef8dL
 };
 
-#define UNKNOWN (-1)
-#define BINARY  0
-#define ASCII   1
-#define BEST -1                 // Use best method (deflation or store)
-#define STORE 0                 // Store method
-#define DEFLATE 8               // Deflation method
-#define CRCVAL_INITIAL  0L
-#define MSDOS_HIDDEN_ATTR 0x02
-#define MSDOS_DIR_ATTR 0x10
-#define LOCHEAD 26
-#define CENHEAD 42
-#define ENDHEAD 18
-#define EB_HEADSIZE       4     /* length of a extra field block header */
-#define EB_LEN            2     /* offset of data length field in header */
-#define EB_UT_MINLEN      1     /* minimal UT field contains Flags byte */
-#define EB_UT_FLAGS       0     /* byte offset of Flags field */
-#define EB_UT_TIME1       1     /* byte offset of 1st time value */
-#define EB_UT_FL_MTIME    (1 << 0)      /* mtime present */
-#define EB_UT_FL_ATIME    (1 << 1)      /* atime present */
-#define EB_UT_FL_CTIME    (1 << 2)      /* ctime present */
-#define EB_UT_LEN(n)      (EB_UT_MINLEN + 4 * (n))
-#define EB_L_UT_SIZE    (EB_HEADSIZE + EB_UT_LEN(3))
-#define EB_C_UT_SIZE    (EB_HEADSIZE + EB_UT_LEN(1))
-#define PUTSH(a,f) {char _putsh_c=(char)((a)&0xff); wfunc(param,&_putsh_c,1); _putsh_c=(char)((a)>>8); wfunc(param,&_putsh_c,1);}
-#define PUTLG(a,f) {PUTSH((a) & 0xffff,(f)) PUTSH((a) >> 16,(f))}
-#define LOCSIG     0x04034b50L
-#define CENSIG     0x02014b50L
-#define ENDSIG     0x06054b50L
-#define EXTLOCSIG  0x08074b50L
-
-#define MIN_MATCH  3
-#define MAX_MATCH  258
-
-#define WSIZE  (0x8000)
-#define MIN_LOOKAHEAD (MAX_MATCH+MIN_MATCH+1)
-#define MAX_DIST  (WSIZE-MIN_LOOKAHEAD)
-
-#define ZIP_FILENAME 1
-#define ZIP_MEMORY 2
-#define ZIP_FOLDER 3
-
-#define MAX_BITS 15
-#define MAX_BL_BITS 7
-#define LENGTH_CODES 29
-#define LITERALS  256
-#define END_BLOCK 256
-#define L_CODES (LITERALS+1+LENGTH_CODES)
-#define D_CODES   30
-#define BL_CODES  19
-
-#define STORED_BLOCK 0
-#define STATIC_TREES 1
-#define DYN_TREES    2
-#define LIT_BUFSIZE  0x8000
-#define DIST_BUFSIZE  LIT_BUFSIZE
-#define REP_3_6      16
-#define REPZ_3_10    17
-#define REPZ_11_138  18
-#define HEAP_SIZE (2*L_CODES+1)
-#define Buf_size (8 * 2*sizeof(char))
-#define PUTSHORT(state,w) {\
-	if (state.bs.out_offset >= state.bs.out_size-1) \
-		state.flush_outbuf(state.param,state.bs.out_buf, &state.bs.out_offset); \
-		state.bs.out_buf[state.bs.out_offset++] = (char) ((w) & 0xff); \
-		state.bs.out_buf[state.bs.out_offset++] = (char) ((unsigned short)(w) >> 8); \
-	}
-#define PUTBYTE(state,b) {\
-	if (state.bs.out_offset >= state.bs.out_size) \
-		state.flush_outbuf(state.param,state.bs.out_buf, &state.bs.out_offset); \
-		state.bs.out_buf[state.bs.out_offset++] = (char) (b); \
-	}
-
-#define HASH_BITS  15
-#define HASH_SIZE (unsigned)(1<<HASH_BITS)
-#define HASH_MASK (HASH_SIZE-1)
-#define WMASK     (WSIZE-1)
-#define NIL 0
-#define FAST 4
-#define SLOW 2
-#define TOO_FAR 4096
-#define EQUAL 0
-#define H_SHIFT  ((HASH_BITS+MIN_MATCH-1)/MIN_MATCH)
-#define max_insert_length  max_lazy_match
-
-const int extra_lbits[LENGTH_CODES] = { 0,0,0,0,0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,4,4,5,5,5,5,0 };
-const int extra_dbits[D_CODES] = { 0,0,0,0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13 };
-const int extra_blbits[BL_CODES] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,3,7 };
-const unsigned char bl_order[BL_CODES] = { 16,17,18,0,8,7,9,6,10,5,11,4,12,3,13,2,14,1,15 };
-
-typedef struct config {
-	unsigned short good_length; // reduce lazy search above this match length
-	unsigned short max_lazy;    // do not perform lazy search above this match length
-	unsigned short nice_length; // quit search above this match length
-	unsigned short max_chain;
-} config;
-const config configuration_table[10] = {
-	{ 0,    0,  0,    0 },  // 0 store only
-	{ 4,    4,  8,    4 },  // 1 maximum speed, no lazy matches
-	{ 4,    5, 16,    8 },  // 2
-	{ 4,    6, 32,   32 },  // 3
-	{ 4,    4, 16,   16 },  // 4 lazy matches */
-	{ 8,   16, 32,   32 },  // 5
-	{ 8,   16, 128, 128 },  // 6
-	{ 8,   32, 128, 256 },  // 7
-	{ 32, 128, 258, 1024 }, // 8
-	{ 32, 258, 258, 4096 }
-};// 9 maximum compression */
-
 typedef struct ct_data {
 	union {
 		unsigned short  freq;       // frequency count
@@ -1403,7 +1410,6 @@ typedef struct ct_data {
 		unsigned short  len;        // length of bit string
 	} dl;
 } ct_data;
-
 typedef struct tree_desc {
 	ct_data *dyn_tree;      // the dynamic tree
 	ct_data *static_tree;   // corresponding static tree or NULL
@@ -1413,6 +1419,26 @@ typedef struct tree_desc {
 	int     max_length;     // max bit length for the codes
 	int     max_code;       // largest code with non zero frequency
 } tree_desc;
+typedef struct iztimes {
+	long long atime, mtime, ctime;
+} iztimes;
+typedef struct zlist {
+	unsigned short vem, ver, flg, how;       // See central header in zipfile.c for what vem..off are
+	unsigned long tim, crc, siz, len;
+	size_t nam, ext, cext, com;   // offset of ext must be >= LOCHEAD
+	unsigned short dsk, att, lflg;           // offset of lflg must be >= LOCHEAD
+	unsigned long atx, off;
+	char name[MAX_PATH];          // File name in zip file
+	char *extra;                  // Extra field (set only if ext != 0)
+	char *cextra;                 // Extra in central (set only if cext != 0)
+	char *comment;                // Comment (set only if com != 0)
+	char iname[MAX_PATH];         // Internal file name after cleanup
+	char zname[MAX_PATH];         // External version of internal name
+	int mark;                     // Marker for files to operate on
+	int trash;                    // Marker for files to delete
+	int dosflag;                  // Set to force MSDOS file attributes
+	struct zlist far *nxt;        // Pointer to next header in list
+} TZipFileInfo;
 
 class TTreeState {
 public:
@@ -1495,28 +1521,6 @@ public:
 	int nice_match;
 };
 
-typedef __int64 lutime_t;
-typedef struct iztimes {
-	lutime_t atime, mtime, ctime;
-} iztimes;
-typedef struct zlist {
-	unsigned short vem, ver, flg, how;       // See central header in zipfile.c for what vem..off are
-	unsigned long tim, crc, siz, len;
-	size_t nam, ext, cext, com;   // offset of ext must be >= LOCHEAD
-	unsigned short dsk, att, lflg;           // offset of lflg must be >= LOCHEAD
-	unsigned long atx, off;
-	char name[MAX_PATH];          // File name in zip file
-	char *extra;                  // Extra field (set only if ext != 0)
-	char *cextra;                 // Extra in central (set only if cext != 0)
-	char *comment;                // Comment (set only if com != 0)
-	char iname[MAX_PATH];         // Internal file name after cleanup
-	char zname[MAX_PATH];         // External version of internal name
-	int mark;                     // Marker for files to operate on
-	int trash;                    // Marker for files to delete
-	int dosflag;                  // Set to force MSDOS file attributes
-	struct zlist far *nxt;        // Pointer to next header in list
-} TZipFileInfo;
-
 struct TState;
 typedef unsigned(*READFUNC)(TState &state, char *buf, unsigned size);
 typedef unsigned(*FLUSHFUNC)(void *param, const char *buf, unsigned *size);
@@ -1525,8 +1529,10 @@ struct TState {
 	void *param;
 	int level;
 	bool seekable;
+
 	READFUNC readfunc;
 	FLUSHFUNC flush_outbuf;
+
 	TTreeState ts;
 	TBitState bs;
 	TDeflateState ds;
@@ -1542,9 +1548,7 @@ void send_bits(TState &state, int value, int length);
 unsigned bi_reverse(unsigned code, int len);
 void bi_windup(TState &state);
 void copy_block(TState &state, char *buf, unsigned len, int header);
-
-#define send_code(state, c, tree) send_bits(state, tree[c].fc.code, tree[c].dl.len)
-#define d_code(dist) ((dist) < 256 ? state.ts.dist_code[dist] : state.ts.dist_code[256+((dist)>>7)])
+void fill_window(TState &state);
 
 void ct_init(TState &state, unsigned short *attr) {
 	int n;        /* iterates over tree elements */
@@ -1566,7 +1570,6 @@ void ct_init(TState &state, unsigned short *attr) {
 			state.ts.length_code[length++] = (unsigned char)code;
 		}
 	}
-	if (length != 256)debugf("ct_init: length != 256");
 	state.ts.length_code[length - 1] = (unsigned char)code;
 
 	dist = 0;
@@ -1576,7 +1579,6 @@ void ct_init(TState &state, unsigned short *attr) {
 			state.ts.dist_code[dist++] = (unsigned char)code;
 		}
 	}
-	if (dist != 256)debugf("ct_init: dist != 256");
 	dist >>= 7;
 	for (; code < D_CODES; code++) {
 		state.ts.base_dist[code] = dist << 7;
@@ -1584,7 +1586,6 @@ void ct_init(TState &state, unsigned short *attr) {
 			state.ts.dist_code[256 + dist++] = (unsigned char)code;
 		}
 	}
-	if (dist != 256)debugf("ct_init: 256+dist != 512");
 
 	for (bits = 0; bits <= MAX_BITS; bits++) state.ts.bl_count[bits] = 0;
 	n = 0;
@@ -1613,17 +1614,10 @@ void init_block(TState &state) {
 	state.ts.flags = 0; state.ts.flag_bit = 1;
 }
 
-#define SMALLEST 1
-#define pqremove(tree, top) {\
-    top = state.ts.heap[SMALLEST]; \
-    state.ts.heap[SMALLEST] = state.ts.heap[state.ts.heap_len--]; \
-    pqdownheap(state,tree, SMALLEST); \
-}
-#define smaller(tree, n, m) \
-   (tree[n].fc.freq < tree[m].fc.freq || \
-   (tree[n].fc.freq == tree[m].fc.freq && state.ts.depth[n] <= state.ts.depth[m]))
-
 void pqdownheap(TState &state, ct_data *tree, int k) {
+
+#define smaller(tree, n, m) (tree[n].fc.freq < tree[m].fc.freq || (tree[n].fc.freq == tree[m].fc.freq && state.ts.depth[n] <= state.ts.depth[m]))
+
 	int v = state.ts.heap[k];
 	int j = k << 1;
 	int htemp;
@@ -1702,7 +1696,6 @@ void gen_codes(TState &state, ct_data *tree, int max_code) {
 	for (bits = 1; bits <= MAX_BITS; bits++) {
 		next_code[bits] = code = (unsigned short)((code + state.ts.bl_count[bits - 1]) << 1);
 	}
-	if (code + state.ts.bl_count[MAX_BITS] - 1 != (1 << ((unsigned short)MAX_BITS)) - 1)debugf("inconsistent bit counts");
 	for (n = 0; n <= max_code; n++) {
 		int len = tree[n].dl.len;
 		if (len == 0) continue;
@@ -1710,6 +1703,13 @@ void gen_codes(TState &state, ct_data *tree, int max_code) {
 	}
 }
 void build_tree(TState &state, tree_desc *desc) {
+
+#define pqremove(tree, top) {\
+    top = state.ts.heap[1]; \
+    state.ts.heap[1] = state.ts.heap[state.ts.heap_len--]; \
+    pqdownheap(state,tree, 1); \
+}
+
 	ct_data *tree = desc->dyn_tree;
 	ct_data *stree = desc->static_tree;
 	int elems = desc->elems;
@@ -1738,7 +1738,7 @@ void build_tree(TState &state, tree_desc *desc) {
 	for (n = state.ts.heap_len / 2; n >= 1; n--) pqdownheap(state, tree, n);
 	do {
 		pqremove(tree, n);
-		m = state.ts.heap[SMALLEST];
+		m = state.ts.heap[1];
 
 		state.ts.heap[--state.ts.heap_max] = n;
 		state.ts.heap[--state.ts.heap_max] = m;
@@ -1746,12 +1746,12 @@ void build_tree(TState &state, tree_desc *desc) {
 		tree[node].fc.freq = (unsigned short)(tree[n].fc.freq + tree[m].fc.freq);
 		state.ts.depth[node] = (unsigned char)(max(state.ts.depth[n], state.ts.depth[m]) + 1);
 		tree[n].dl.dad = tree[m].dl.dad = (unsigned short)node;
-		state.ts.heap[SMALLEST] = node++;
-		pqdownheap(state, tree, SMALLEST);
+		state.ts.heap[1] = node++;
+		pqdownheap(state, tree, 1);
 
 	} while (state.ts.heap_len >= 2);
 
-	state.ts.heap[--state.ts.heap_max] = state.ts.heap[SMALLEST];
+	state.ts.heap[--state.ts.heap_max] = state.ts.heap[1];
 	gen_bitlen(state, (tree_desc *)desc);
 	gen_codes(state, (ct_data *)tree, max_code);
 }
@@ -1805,22 +1805,21 @@ void send_tree(TState &state, ct_data *tree, int max_code) {
 	for (n = 0; n <= max_code; n++) {
 		curlen = nextlen; nextlen = tree[n + 1].dl.len;
 		if (++count < max_count && curlen == nextlen)continue;
-		else if (count < min_count)do { send_code(state, curlen, state.ts.bl_tree); } while (--count != 0);
+		else if (count < min_count)do { send_bits(state, state.ts.bl_tree[curlen].fc.code, state.ts.bl_tree[curlen].dl.len); } while (--count != 0);
 		else if (curlen != 0) {
 			if (curlen != prevlen) {
-				send_code(state, curlen, state.ts.bl_tree);
+				send_bits(state, state.ts.bl_tree[curlen].fc.code, state.ts.bl_tree[curlen].dl.len);
 				count--;
 			}
-			if (count < 3 || count > 6)debugf(" 3_6?");
-			send_code(state, REP_3_6, state.ts.bl_tree);
+			send_bits(state, state.ts.bl_tree[REP_3_6].fc.code, state.ts.bl_tree[REP_3_6].dl.len);
 			send_bits(state, count - 3, 2);
 		}
 		else if (count <= 10) {
-			send_code(state, REPZ_3_10, state.ts.bl_tree);
+			send_bits(state, state.ts.bl_tree[REPZ_3_10].fc.code, state.ts.bl_tree[REPZ_3_10].dl.len);
 			send_bits(state, count - 3, 3);
 		}
 		else {
-			send_code(state, REPZ_11_138, state.ts.bl_tree);
+			send_bits(state, state.ts.bl_tree[REPZ_11_138].fc.code, state.ts.bl_tree[REPZ_11_138].dl.len);
 			send_bits(state, count - 11, 7);
 		}
 		count = 0; prevlen = curlen;
@@ -1854,8 +1853,6 @@ int build_bl_tree(TState &state) {
 void send_all_trees(TState &state, int lcodes, int dcodes, int blcodes) {
 	int rank;
 
-	if (lcodes < 257 || dcodes < 1 || blcodes < 4)debugf("not enough codes");
-	if (lcodes > L_CODES || dcodes > D_CODES || blcodes > BL_CODES)debugf("too many codes");
 	send_bits(state, lcodes - 257, 5);
 	send_bits(state, dcodes - 1, 5);
 	send_bits(state, blcodes - 4, 4);
@@ -1871,7 +1868,6 @@ unsigned long flush_block(TState &state, char *buf, unsigned long stored_len, in
 	int max_blindex;
 
 	state.ts.flag_buf[state.ts.last_flags] = state.ts.flags;
-	if (*state.ts.file_type == (unsigned short)UNKNOWN) set_file_type(state);
 
 	build_tree(state, (tree_desc *)(&state.ts.l_desc));
 	build_tree(state, (tree_desc *)(&state.ts.d_desc));
@@ -1884,28 +1880,27 @@ unsigned long flush_block(TState &state, char *buf, unsigned long stored_len, in
 	if (static_lenb <= opt_lenb) opt_lenb = static_lenb;
 
 	if (stored_len + 4 <= opt_lenb && buf != (char*)NULL) {
-		send_bits(state, (STORED_BLOCK << 1) + eof, 3);  /* send block type */
+		send_bits(state, 0 + eof, 3);  /* send block type */
 		state.ts.cmpr_bytelen += ((state.ts.cmpr_len_bits + 3 + 7) >> 3) + stored_len + 4;
 		state.ts.cmpr_len_bits = 0L;
 
 		copy_block(state, buf, (unsigned)stored_len, 1); /* with header */
 	}
 	else if (static_lenb == opt_lenb) {
-		send_bits(state, (STATIC_TREES << 1) + eof, 3);
+		send_bits(state, 2 + eof, 3);
 		compress_block(state, (ct_data *)state.ts.static_ltree, (ct_data *)state.ts.static_dtree);
 		state.ts.cmpr_len_bits += 3 + state.ts.static_len;
 		state.ts.cmpr_bytelen += state.ts.cmpr_len_bits >> 3;
 		state.ts.cmpr_len_bits &= 7L;
 	}
 	else {
-		send_bits(state, (DYN_TREES << 1) + eof, 3);
+		send_bits(state, 4 + eof, 3);
 		send_all_trees(state, state.ts.l_desc.max_code + 1, state.ts.d_desc.max_code + 1, max_blindex + 1);
 		compress_block(state, (ct_data *)state.ts.dyn_ltree, (ct_data *)state.ts.dyn_dtree);
 		state.ts.cmpr_len_bits += 3 + state.ts.opt_len;
 		state.ts.cmpr_bytelen += state.ts.cmpr_len_bits >> 3;
 		state.ts.cmpr_len_bits &= 7L;
 	}
-	if (((state.ts.cmpr_bytelen << 3) + state.ts.cmpr_len_bits) != state.bs.bits_sent)debugf("bad compressed size");
 	init_block(state);
 
 	if (eof) {
@@ -1921,12 +1916,8 @@ int ct_tally(TState &state, int dist, int lc) {
 	}
 	else {
 		dist--;
-		if ((unsigned short)dist >= (unsigned short)MAX_DIST ||
-			(unsigned short)lc > (unsigned short)(MAX_MATCH - MIN_MATCH) ||
-			(unsigned short)d_code(dist) >= (unsigned short)D_CODES)debugf("ct_tally: bad match");
-
 		state.ts.dyn_ltree[state.ts.length_code[lc] + LITERALS + 1].fc.freq++;
-		state.ts.dyn_dtree[d_code(dist)].fc.freq++;
+		state.ts.dyn_dtree[(dist) < 256 ? state.ts.dist_code[dist] : state.ts.dist_code[256 + ((dist) >> 7)]].fc.freq++;
 
 		state.ts.d_buf[state.ts.last_dist++] = (unsigned short)dist;
 		state.ts.flags |= state.ts.flag_bit;
@@ -1963,21 +1954,20 @@ void compress_block(TState &state, ct_data *ltree, ct_data *dtree) {
 		if ((lx & 7) == 0) flag = state.ts.flag_buf[fx++];
 		lc = state.ts.l_buf[lx++];
 		if ((flag & 1) == 0) {
-			send_code(state, lc, ltree);
+			send_bits(state, ltree[lc].fc.code, ltree[lc].dl.len);
 		}
 		else {
 			code = state.ts.length_code[lc];
-			send_code(state, code + LITERALS + 1, ltree);
+			send_bits(state, ltree[code + LITERALS + 1].fc.code, ltree[code + LITERALS + 1].dl.len);
 			extra = extra_lbits[code];
 			if (extra != 0) {
 				lc -= state.ts.base_length[code];
 				send_bits(state, lc, extra);
 			}
 			dist = state.ts.d_buf[dx++];
-			code = d_code(dist);
-			if (code >= D_CODES)debugf("bad d_code");
+			code = (dist) < 256 ? state.ts.dist_code[dist] : state.ts.dist_code[256 + ((dist) >> 7)];
 
-			send_code(state, code, dtree);
+			send_bits(state, dtree[code].fc.code, dtree[code].dl.len);
 			extra = extra_dbits[code];
 			if (extra != 0) {
 				dist -= state.ts.base_dist[code];
@@ -1987,16 +1977,7 @@ void compress_block(TState &state, ct_data *ltree, ct_data *dtree) {
 		flag >>= 1;
 	} while (lx < state.ts.last_lit);
 
-	send_code(state, END_BLOCK, ltree);
-}
-void set_file_type(TState &state) {
-	int n = 0;
-	unsigned ascii_freq = 0;
-	unsigned bin_freq = 0;
-	while (n < 7)        bin_freq += state.ts.dyn_ltree[n++].fc.freq;
-	while (n < 128)    ascii_freq += state.ts.dyn_ltree[n++].fc.freq;
-	while (n < LITERALS) bin_freq += state.ts.dyn_ltree[n++].fc.freq;
-	*state.ts.file_type = (unsigned short)(bin_freq >(ascii_freq >> 2) ? BINARY : ASCII);
+	send_bits(state, ltree[END_BLOCK].fc.code, ltree[END_BLOCK].dl.len);
 }
 void bi_init(TState &state, char *tgt_buf, unsigned tgt_size, int flsh_allowed) {
 	state.bs.out_buf = tgt_buf;
@@ -2009,7 +1990,6 @@ void bi_init(TState &state, char *tgt_buf, unsigned tgt_size, int flsh_allowed) 
 	state.bs.bits_sent = 0L;
 }
 void send_bits(TState &state, int value, int length) {
-	if (length <= 0 || length > 15)debugf("invalid length");
 	state.bs.bits_sent += (unsigned long)length;
 
 	state.bs.bi_buf |= (value << state.bs.bi_valid);
@@ -2055,29 +2035,14 @@ void copy_block(TState &state, char *block, unsigned len, int header) {
 		state.bs.out_offset = len;
 		state.flush_outbuf(state.param, block, &state.bs.out_offset);
 	}
-	else if (state.bs.out_offset + len > state.bs.out_size) {
-		debugf("output buffer too small for in-memory compression");
-	}
 	else {
 		memcpy(state.bs.out_buf + state.bs.out_offset, block, len);
 		state.bs.out_offset += len;
 	}
 	state.bs.bits_sent += (unsigned long)len << 3;
 }
-void fill_window(TState &state);
-int  longest_match(TState &state, unsigned int cur_match);
-
-#define UPDATE_HASH(h,c) (h = (((h)<<H_SHIFT) ^ (c)) & HASH_MASK)
-
-#define INSERT_STRING(s, match_head) \
-   (UPDATE_HASH(state.ds.ins_h, state.ds.window[(s) + (MIN_MATCH-1)]), \
-    state.ds.prev[(s) & WMASK] = match_head = state.ds.head[state.ds.ins_h], \
-    state.ds.head[state.ds.ins_h] = (s))
-
 void lm_init(TState &state, int pack_level, unsigned short *flags) {
 	register unsigned j;
-
-	if (pack_level < 1 || pack_level > 8)debugf("bad pack level");
 
 	state.ds.sliding = 0;
 	if (state.ds.window_size == 0L) {
@@ -2085,8 +2050,8 @@ void lm_init(TState &state, int pack_level, unsigned short *flags) {
 		state.ds.window_size = (unsigned long)2L * WSIZE;
 	}
 
-	state.ds.head[HASH_SIZE - 1] = NIL;
-	memset((char*)state.ds.head, NIL, (unsigned)(HASH_SIZE - 1) * sizeof(*state.ds.head));
+	state.ds.head[HASH_SIZE - 1] = 0;
+	memset((char*)state.ds.head, 0, (unsigned)(HASH_SIZE - 1) * sizeof(*state.ds.head));
 
 	state.ds.max_lazy_match = configuration_table[pack_level].max_lazy;
 	state.ds.good_match = configuration_table[pack_level].good_length;
@@ -2121,9 +2086,8 @@ int longest_match(TState &state, unsigned int cur_match) {
 	register unsigned char far *match;
 	register int len;
 	int best_len = state.ds.prev_length;
-	unsigned int limit = state.ds.strstart > (unsigned int)MAX_DIST ? state.ds.strstart - (unsigned int)MAX_DIST : NIL;
+	unsigned int limit = state.ds.strstart > (unsigned int)MAX_DIST ? state.ds.strstart - (unsigned int)MAX_DIST : 0;
 
-	if (HASH_BITS < 8 || MAX_MATCH != 258)debugf("Code too clever");
 	register unsigned char far *strend = state.ds.window + state.ds.strstart + MAX_MATCH;
 	register unsigned char scan_end1 = scan[best_len - 1];
 	register unsigned char scan_end = scan[best_len];
@@ -2131,10 +2095,7 @@ int longest_match(TState &state, unsigned int cur_match) {
 	if (state.ds.prev_length >= state.ds.good_match) {
 		chain_length >>= 2;
 	}
-	if (state.ds.strstart > state.ds.window_size - MIN_LOOKAHEAD)debugf("insufficient lookahead");
-
 	do {
-		if (cur_match >= state.ds.strstart)debugf("no future");
 		match = state.ds.window + cur_match;
 
 		if (match[best_len] != scan_end ||
@@ -2150,8 +2111,6 @@ int longest_match(TState &state, unsigned int cur_match) {
 			*++scan == *++match && *++scan == *++match &&
 			*++scan == *++match && *++scan == *++match &&
 			scan < strend);
-
-		if (scan > state.ds.window + (unsigned)(state.ds.window_size - 1))debugf("wild scan");
 
 		len = MAX_MATCH - (int)(strend - scan);
 		scan = strend - MAX_MATCH;
@@ -2169,9 +2128,6 @@ int longest_match(TState &state, unsigned int cur_match) {
 
 	return best_len;
 }
-
-#define check_match(state,start, match, length)
-
 void fill_window(TState &state) {
 	register unsigned n, m;
 	unsigned more;
@@ -2190,16 +2146,15 @@ void fill_window(TState &state) {
 
 			for (n = 0; n < HASH_SIZE; n++) {
 				m = state.ds.head[n];
-				state.ds.head[n] = (unsigned int)(m >= WSIZE ? m - WSIZE : NIL);
+				state.ds.head[n] = (unsigned int)(m >= WSIZE ? m - WSIZE : 0);
 			}
 			for (n = 0; n < WSIZE; n++) {
 				m = state.ds.prev[n];
-				state.ds.prev[n] = (unsigned int)(m >= WSIZE ? m - WSIZE : NIL);
+				state.ds.prev[n] = (unsigned int)(m >= WSIZE ? m - WSIZE : 0);
 			}
 			more += WSIZE;
 		}
 		if (state.ds.eofile) return;
-		if (more < 2)debugf("more < 2");
 		n = state.readfunc(state, (char*)state.ds.window + state.ds.strstart + state.ds.lookahead, more);
 
 		if (n == 0 || n == (unsigned)EOF) state.ds.eofile = 1;
@@ -2207,12 +2162,18 @@ void fill_window(TState &state) {
 	} while (state.ds.lookahead < MIN_LOOKAHEAD && !state.ds.eofile);
 }
 
+unsigned long deflate(TState &state) {
+
+#define INSERT_STRING(s, match_head) \
+   (UPDATE_HASH(state.ds.ins_h, state.ds.window[(s) + (MIN_MATCH-1)]), \
+    state.ds.prev[(s) & WMASK] = match_head = state.ds.head[state.ds.ins_h], \
+    state.ds.head[state.ds.ins_h] = (s))
 #define FLUSH_BLOCK(state,eof) \
    flush_block(state,state.ds.block_start >= 0L ? (char*)&state.ds.window[(unsigned)state.ds.block_start] : \
                 (char*)NULL, (long)state.ds.strstart - state.ds.block_start, (eof))
+#define CHECK_MATCH(state,start, match, length)
 
-unsigned long deflate(TState &state) {
-	unsigned int hash_head = NIL;
+	unsigned int hash_head = 0;
 	unsigned int prev_match;
 	int flush;
 	int match_available = 0;
@@ -2223,7 +2184,7 @@ unsigned long deflate(TState &state) {
 		state.ds.prev_length = match_length, prev_match = state.ds.match_start;
 		match_length = MIN_MATCH - 1;
 
-		if (hash_head != NIL && state.ds.prev_length < state.ds.max_lazy_match &&
+		if (hash_head != 0 && state.ds.prev_length < state.ds.max_lazy_match &&
 			state.ds.strstart - hash_head <= MAX_DIST) {
 			if ((unsigned)state.ds.nice_match > state.ds.lookahead) state.ds.nice_match = (int)state.ds.lookahead;
 			match_length = longest_match(state, hash_head);
@@ -2234,7 +2195,7 @@ unsigned long deflate(TState &state) {
 		}
 		if (state.ds.prev_length >= MIN_MATCH && match_length <= state.ds.prev_length) {
 			unsigned max_insert = state.ds.strstart + state.ds.lookahead - MIN_MATCH;
-			check_match(state, state.ds.strstart - 1, prev_match, state.ds.prev_length);
+			CHECK_MATCH(state, state.ds.strstart - 1, prev_match, state.ds.prev_length);
 			flush = ct_tally(state, state.ds.strstart - 1 - prev_match, state.ds.prev_length - MIN_MATCH);
 
 			state.ds.lookahead -= state.ds.prev_length - 1;
@@ -2269,6 +2230,7 @@ unsigned long deflate(TState &state) {
 
 	return FLUSH_BLOCK(state, 1); /* eof */
 }
+
 int putlocal(struct zlist far *z, WRITEFUNC wfunc, void *param) {
 	PUTLG(LOCSIG, f);
 	PUTSH(z->ver, f);
@@ -2351,20 +2313,7 @@ bool HasZipSuffix(const TCHAR *fn) {
 	if (_tcsicmp(ext, _T(".tgz")) == 0) return true;
 	return false;
 }
-lutime_t filetime2timet(const FILETIME ft) {
-	__int64 i = *(__int64*)&ft;
-	return (lutime_t)((i - 116444736000000000) / 10000000);
-}
-void filetime2dosdatetime(const FILETIME ft, WORD *dosdate, WORD *dostime) {
-	SYSTEMTIME st; FileTimeToSystemTime(&ft, &st);
-	*dosdate = (WORD)(((st.wYear - 1980) & 0x7f) << 9);
-	*dosdate |= (WORD)((st.wMonth & 0xf) << 5);
-	*dosdate |= (WORD)((st.wDay & 0x1f));
-	*dostime = (WORD)((st.wHour & 0x1f) << 11);
-	*dostime |= (WORD)((st.wMinute & 0x3f) << 5);
-	*dostime |= (WORD)((st.wSecond * 2) & 0x1f);
-}
-ZRESULT GetFileInfo(HANDLE hf, unsigned long *attr, long *size, iztimes *times, unsigned long *timestamp) {
+int GetFileInfo(HANDLE hf, unsigned long *attr, long *size, iztimes *times, unsigned long *timestamp) {
 	BY_HANDLE_FILE_INFORMATION bhi; BOOL res = GetFileInformationByHandle(hf, &bhi);
 	if (!res) return SG_OBJECT_NOT_FOUND;
 	DWORD fa = bhi.dwFileAttributes; unsigned long a = 0;
@@ -2393,13 +2342,13 @@ ZRESULT GetFileInfo(HANDLE hf, unsigned long *attr, long *size, iztimes *times, 
 	if (attr != NULL) *attr = a;
 	if (size != NULL) *size = hsize;
 	if (times != NULL) {
-		times->atime = filetime2timet(bhi.ftLastAccessTime);
-		times->mtime = filetime2timet(bhi.ftLastWriteTime);
-		times->ctime = filetime2timet(bhi.ftCreationTime);
+		times->atime = filetimeInt(bhi.ftLastAccessTime);
+		times->mtime = filetimeInt(bhi.ftLastWriteTime);
+		times->ctime = filetimeInt(bhi.ftCreationTime);
 	}
 	if (timestamp != NULL) {
 		WORD dosdate, dostime;
-		filetime2dosdatetime(bhi.ftLastWriteTime, &dosdate, &dostime);
+		filetimeDosdatetime(bhi.ftLastWriteTime, &dosdate, &dostime);
 		*timestamp = (WORD)dostime | (((DWORD)dosdate) << 16);
 	}
 	return SG_NO_ERROR;
@@ -2444,22 +2393,12 @@ private:
 		return writ;
 	}
 
-	int open_file(const TCHAR *fn) {
-		hfin = 0; bufin = 0; selfclosehf = false; crc = CRCVAL_INITIAL; isize = 0; csize = 0; ired = 0;
-		if (fn == 0) return SG_IO_ERROR;
-		HANDLE hf = CreateFile(fn, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
-		if (hf == INVALID_HANDLE_VALUE) return SG_OBJECT_NOT_FOUND;
-		ZRESULT res = open_handle(hf, 0);
-		if (res != SG_NO_ERROR) { CloseHandle(hf); return res; }
-		selfclosehf = true;
-		return SG_NO_ERROR;
-	}
 	int open_handle(HANDLE hf, unsigned int len) {
-		hfin = 0; bufin = 0; selfclosehf = false; crc = CRCVAL_INITIAL; isize = 0; csize = 0; ired = 0;
+		hfin = 0; bufin = 0; selfclosehf = false; crc = 0; isize = 0; csize = 0; ired = 0;
 		if (hf == 0 || hf == INVALID_HANDLE_VALUE) return SG_IO_ERROR;
 		DWORD res = SetFilePointer(hfout, 0, 0, FILE_CURRENT);
 		if (res != 0xFFFFFFFF) {
-			ZRESULT res = GetFileInfo(hf, &attr, &isize, &times, &timestamp);
+			int res = GetFileInfo(hf, &attr, &isize, &times, &timestamp);
 			if (res != SG_NO_ERROR) return res;
 			SetFilePointer(hf, 0, NULL, FILE_BEGIN); // because GetFileInfo will have screwed it up
 			iseekable = true; hfin = hf;
@@ -2472,8 +2411,8 @@ private:
 			iseekable = false;
 			SYSTEMTIME st; GetLocalTime(&st);
 			FILETIME ft;   SystemTimeToFileTime(&st, &ft);
-			WORD dosdate, dostime; filetime2dosdatetime(ft, &dosdate, &dostime);
-			times.atime = filetime2timet(ft);
+			WORD dosdate, dostime; filetimeDosdatetime(ft, &dosdate, &dostime);
+			times.atime = filetimeInt(ft);
 			times.mtime = times.atime;
 			times.ctime = times.atime;
 			timestamp = (WORD)dostime | (((DWORD)dosdate) << 16);
@@ -2481,31 +2420,41 @@ private:
 			return SG_NO_ERROR;
 		}
 	}
+	int open_file(const TCHAR *fn) {
+		hfin = 0; bufin = 0; selfclosehf = false; crc = 0; isize = 0; csize = 0; ired = 0;
+		if (fn == 0) return SG_IO_ERROR;
+		HANDLE hf = CreateFile(fn, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
+		if (hf == INVALID_HANDLE_VALUE) return SG_OBJECT_NOT_FOUND;
+		int res = open_handle(hf, 0);
+		if (res != SG_NO_ERROR) { CloseHandle(hf); return res; }
+		selfclosehf = true;
+		return SG_NO_ERROR;
+	}
 	int open_mem(void *src, unsigned int len) {
-		hfin = 0; bufin = (const char*)src; selfclosehf = false; crc = CRCVAL_INITIAL; ired = 0; csize = 0; ired = 0;
+		hfin = 0; bufin = (const char*)src; selfclosehf = false; crc = 0; ired = 0; csize = 0; ired = 0;
 		lenin = len; posin = 0;
 		if (src == 0 || len == 0) return SG_IO_ERROR;
 		attr = 0x80000000; // just a normal file
 		isize = len;
 		iseekable = true;
 		SYSTEMTIME st; GetLocalTime(&st);
-		FILETIME ft;   SystemTimeToFileTime(&st, &ft);
-		WORD dosdate, dostime; filetime2dosdatetime(ft, &dosdate, &dostime);
-		times.atime = filetime2timet(ft);
+		FILETIME ft; SystemTimeToFileTime(&st, &ft);
+		WORD dosdate, dostime; filetimeDosdatetime(ft, &dosdate, &dostime);
+		times.atime = filetimeInt(ft);
 		times.mtime = times.atime;
 		times.ctime = times.atime;
 		timestamp = (WORD)dostime | (((DWORD)dosdate) << 16);
 		return SG_NO_ERROR;
 	}
 	int open_dir() {
-		hfin = 0; bufin = 0; selfclosehf = false; crc = CRCVAL_INITIAL; isize = 0; csize = 0; ired = 0;
+		hfin = 0; bufin = 0; selfclosehf = false; crc = 0; isize = 0; csize = 0; ired = 0;
 		attr = 0x41C00010; // a readable writable directory, and again directory
 		isize = 0;
 		iseekable = false;
 		SYSTEMTIME st; GetLocalTime(&st);
 		FILETIME ft;   SystemTimeToFileTime(&st, &ft);
-		WORD dosdate, dostime; filetime2dosdatetime(ft, &dosdate, &dostime);
-		times.atime = filetime2timet(ft);
+		WORD dosdate, dostime; filetimeDosdatetime(ft, &dosdate, &dostime);
+		times.atime = filetimeInt(ft);
 		times.mtime = times.atime;
 		times.ctime = times.atime;
 		timestamp = (WORD)dostime | (((DWORD)dosdate) << 16);
@@ -2558,7 +2507,7 @@ private:
 		lm_init(*state, state->level, &zfi->flg);
 		unsigned long sz = deflate(*state);
 		csize = sz;
-		ZRESULT r = SG_NO_ERROR;
+		int r = SG_NO_ERROR;
 		if (state->err != NULL) r = SG_IO_ERROR;
 		return r;
 	}
@@ -2605,11 +2554,11 @@ public:
 			d++;
 		}
 		bool isdir = (flags == ZIP_FOLDER);
-		int method = DEFLATE;
-		if (isdir || HasZipSuffix(dstzn)) method = STORE;
+		bool needDeflate = true;
+		if (isdir || HasZipSuffix(dstzn)) needDeflate = false;
 
 		// now open whatever was our input source:
-		ZRESULT openres;
+		int openres;
 		if (flags == ZIP_FILENAME) openres = open_file((const TCHAR*)src);
 		else if (flags == ZIP_MEMORY) openres = open_mem(src, len);
 		else if (flags == ZIP_FOLDER) openres = open_dir();
@@ -2628,7 +2577,7 @@ public:
 		zfi.comment = NULL; zfi.com = 0; // comment, and its length
 		zfi.mark = 1;
 		zfi.dosflag = 0;
-		zfi.att = (unsigned short)BINARY;
+		zfi.att = (unsigned short)0;
 		zfi.vem = (unsigned short)0xB17; // 0xB00 is win32 os-code. 0x17 is 23 in decimal: zip 2.3
 		zfi.ver = (unsigned short)20;    // Needs PKUNZIP 2.0 to unzip it
 		zfi.tim = timestamp;
@@ -2636,8 +2585,8 @@ public:
 		zfi.crc = 0;            // to be updated later
 		zfi.flg = 8;            // 8 means 'there is an extra header'. Assume for the moment that we need it.
 		zfi.lflg = zfi.flg;     // to be updated later
-		zfi.how = (unsigned short)method;  // to be updated later
-		zfi.siz = (unsigned long)(method == STORE && isize >= 0 ? isize : 0); // to be updated later
+		zfi.how = needDeflate ? 8 : 0;  // to be updated later
+		zfi.siz = (unsigned long)(!needDeflate && isize >= 0 ? isize : 0); // to be updated later
 		zfi.len = (unsigned long)(isize);  // to be updated later
 		zfi.dsk = 0;
 		zfi.atx = attr;
@@ -2651,7 +2600,7 @@ public:
 		xloc[1] = 'T';
 		xloc[2] = EB_UT_LEN(3);       // length of data part of e.f.
 		xloc[3] = 0;
-		xloc[4] = EB_UT_FL_MTIME | EB_UT_FL_ATIME | EB_UT_FL_CTIME;
+		xloc[4] = (1 << 0) | (1 << 1) | (1 << 2);
 		xloc[5] = (char)(times.mtime);
 		xloc[6] = (char)(times.mtime >> 8);
 		xloc[7] = (char)(times.mtime >> 16);
@@ -2665,19 +2614,19 @@ public:
 		xloc[15] = (char)(times.ctime >> 16);
 		xloc[16] = (char)(times.ctime >> 24);
 		memcpy(zfi.cextra, zfi.extra, EB_C_UT_SIZE);
-		zfi.cextra[EB_LEN] = EB_UT_LEN(1);
+		zfi.cextra[2] = EB_UT_LEN(1);
 
 
 		// (1) Start by writing the local header:
 		int r = putlocal(&zfi, swrite, this);
 		if (r != SG_NO_ERROR) { iclose(); return SG_IO_ERROR; }
-		writeLength += 4 + LOCHEAD + (unsigned int)zfi.nam + (unsigned int)zfi.ext;
+		writeLength += 30 + (unsigned int)zfi.nam + (unsigned int)zfi.ext;
 		if (error != SG_NO_ERROR) { iclose(); return error; }
 
 		//(2) Write deflated/stored file to zip file
-		ZRESULT writeres = SG_NO_ERROR;
-		if (!isdir && method == DEFLATE) writeres = ideflate(&zfi);
-		else if (!isdir && method == STORE) writeres = istore();
+		int writeres = SG_NO_ERROR;
+		if (!isdir && needDeflate) writeres = ideflate(&zfi);
+		else if (!isdir && !needDeflate) writeres = istore();
 		else if (isdir) csize = 0;
 		iclose();
 		writeLength += csize;
@@ -2689,7 +2638,7 @@ public:
 		zfi.crc = crc;
 		zfi.siz = csize;
 		zfi.len = isize;
-		zfi.how = (unsigned short)method;
+		zfi.how = needDeflate ? 8 : 0;
 		if ((zfi.flg & 1) == 0) zfi.flg &= ~8; // clear the extended local header flag
 		zfi.lflg = zfi.flg;
 		// rewrite the local header:
@@ -2713,7 +2662,7 @@ public:
 				int res = putcentral(zfi, swrite, this);
 				if (res != SG_NO_ERROR) okay = false;
 			}
-			writeLength += 4 + CENHEAD + (unsigned int)zfi->nam + (unsigned int)zfi->cext + (unsigned int)zfi->com;
+			writeLength += 46 + (unsigned int)zfi->nam + (unsigned int)zfi->cext + (unsigned int)zfi->com;
 			numentries++;
 			//
 			TZipFileInfo *zfinext = zfi->nxt;
@@ -2725,7 +2674,7 @@ public:
 		if (okay) {
 			int res = putend(numentries, center_size, pos_at_start_of_central, 0, NULL, swrite, this);
 			if (res != SG_NO_ERROR) okay = false;
-			writeLength += 4 + ENDHEAD + 0;
+			writeLength += 22;
 		}
 		if (!okay) return SG_IO_ERROR;
 		if (hfout != 0) CloseHandle(hfout);
@@ -2738,183 +2687,24 @@ public:
 
 
 
-typedef struct {
-	int index;
-	TCHAR name[MAX_PATH];
-	DWORD attr;
-	FILETIME atime, ctime, mtime;
-	long comp_size;
-	long unc_size;
-} ZIPENTRY;
-typedef struct {
-	unsigned int tm_sec;
-	unsigned int tm_min;
-	unsigned int tm_hour;
-	unsigned int tm_mday;
-	unsigned int tm_mon;
-	unsigned int tm_year;
-} tm_unz;
-typedef struct {
-	unsigned long number_entry;
-	unsigned long size_comment;
-} unz_global_info;
-typedef struct {
-	unsigned long version;
-	unsigned long version_needed;
-	unsigned long flag;
-	unsigned long compression_method;
-	unsigned long dosDate;
-	unsigned long crc;
-	unsigned long compressed_size;
-	unsigned long uncompressed_size;
-	unsigned long size_filename;
-	unsigned long size_file_extra;
-	unsigned long size_file_comment;
-	unsigned long disk_num_start;
-	unsigned long internal_fa;
-	unsigned long external_fa;
-	tm_unz tmu_date;
-} unz_file_info;
-
-#define Z_NO_FLUSH      0
-#define Z_SYNC_FLUSH    2
-#define Z_FULL_FLUSH    3
-#define Z_FINISH        4
-
-#define Z_NO_COMPRESSION         0
-#define Z_BEST_SPEED             1
-#define Z_BEST_COMPRESSION       9
-#define Z_DEFAULT_COMPRESSION  (-1)
-
-#define Z_FILTERED            1
-#define Z_HUFFMAN_ONLY        2
-#define Z_DEFAULT_STRATEGY    0
-
-#define Z_BINARY   0
-#define Z_ASCII    1
-#define Z_UNKNOWN  2
-
 #define Z_DEFLATED   8
 #define CASE_SENSITIVE 1
 #define CASE_INSENSITIVE 2
 #define Z_STREAM_END    1
 #define Z_NEED_DICT     2
-
-typedef void *(*alloc_func) (void * opaque, unsigned int items, unsigned int size);
-typedef void(*free_func)  (void * opaque, void * address);
-
-struct internal_state;
-
-typedef struct z_stream_s {
-	unsigned char    *next_in;
-	unsigned int     avail_in;
-	unsigned long    total_in;
-
-	unsigned char    *next_out;
-	unsigned int     avail_out;
-	unsigned long    total_out;
-
-	char     *msg;
-	struct internal_state *state;
-
-	alloc_func zalloc;
-	free_func  zfree;
-	void *     opaque;
-
-	int     data_type;
-	unsigned long   adler;
-	unsigned long   reserved;
-} z_stream;
-
-typedef z_stream *z_streamp;
-
-#define STORED_BLOCK 0
-#define STATIC_TREES 1
-#define DYN_TREES    2
-#define MIN_MATCH  3
-#define MAX_MATCH  258
-
 #define PRESET_DICT 0x20
-
-#define OS_CODE  0x0b
-
-typedef unsigned long(*check_func) (unsigned long check, const unsigned char *buf, unsigned int len);
+#define MANY 1440
+#define BASE 65521L
+#define NMAX 5552
+#define UNZ_BUFSIZE 16384
+#define UNZ_MAXFILENAMEINZIP 256
+#define SIZECENTRALDIRITEM 0x2e
+#define SIZEZIPLOCALHEADER 0x1e
+#define BUFREADCOMMENT 0x400
 
 #define ZALLOC(strm, items, size) \
-           (*((strm)->zalloc))((strm)->opaque, (items), (size))
-#define ZFREE(strm, addr)  (*((strm)->zfree))((strm)->opaque, (void *)(addr))
-
-#define TRY_FREE(s, p) {if (p) ZFREE(s, p);}
-
-typedef struct inflate_huft_s inflate_huft;
-
-struct inflate_huft_s {
-	union {
-		struct {
-			unsigned char Exop;        // number of extra bits or operation
-			unsigned char Bits;        // number of bits in this code or subcode
-		} what;
-		unsigned int pad;           // pad structure to a power of 2 (4 unsigned chars for
-	} word;               //  16-bit, 8 unsigned chars for 32-bit int's)
-	unsigned int base;            // literal, length base, distance base, or table offset
-};
-
-#define MANY 1440
-
-int inflate_trees_bits(unsigned int *c, unsigned int *bb, inflate_huft * *tb, inflate_huft *hp, z_streamp z);
-int inflate_trees_dynamic(unsigned int nl, unsigned int nd, unsigned int *c, unsigned int *bl, unsigned int *bd, inflate_huft * *tl, inflate_huft * *td, inflate_huft *hp, z_streamp z);
-int inflate_trees_fixed(unsigned int *bl, unsigned int *bd, const inflate_huft * * tl, const inflate_huft * *td, z_streamp);
-
-struct inflate_blocks_state;
-typedef struct inflate_blocks_state inflate_blocks_statef;
-
-struct inflate_codes_state;
-typedef struct inflate_codes_state inflate_codes_statef;
-
-typedef enum {
-	IBM_TYPE,     // get type bits (3, including end bit)
-	IBM_LENS,     // get lengths for stored
-	IBM_STORED,   // processing stored block
-	IBM_TABLE,    // get table lengths
-	IBM_BTREE,    // get bit lengths tree for a dynamic block
-	IBM_DTREE,    // get length, distance trees for a dynamic block
-	IBM_CODES,    // processing fixed or dynamic block
-	IBM_DRY,      // output remaining window unsigned chars
-	IBM_DONE,     // finished last block, done 
-	IBM_BAD
-}      // got a data error--stuck here 
-inflate_block_mode;
-
-struct inflate_blocks_state {
-	inflate_block_mode  mode;     // current inflate_block mode 
-
-	union {
-		unsigned int left;          // if STORED, unsigned chars left to copy 
-		struct {
-			unsigned int table;               // table lengths (14 bits) 
-			unsigned int index;               // index into blens (or border)
-			unsigned int *blens;             // bit lengths of codes
-			unsigned int bb;                  // bit length tree depth 
-			inflate_huft *tb;         // bit length decoding tree 
-		} trees;            // if DTREE, decoding info for trees 
-		struct {
-			inflate_codes_statef
-				*codes;
-		} decode;           // if CODES, current state 
-	} sub;                // submode
-	unsigned int last;            // true if this block is the last block 
-
-	unsigned int bitk;            // bits in bit buffer 
-	unsigned long bitb;           // bit buffer 
-	inflate_huft *hufts;  // single malloc for tree space 
-	unsigned char *window;        // sliding window 
-	unsigned char *end;           // one unsigned char after sliding window 
-	unsigned char *read;          // window read pointer 
-	unsigned char *write;         // window write pointer 
-	check_func checkfn;   // check function 
-	unsigned long check;          // check on output 
-
-};
+           (*((strm)->zalloc))((items), (size))
+#define ZFREE(strm, addr)  (*((strm)->zfree))((void *)(addr))
 
 #define UPDBITS {s->bitb=b;s->bitk=k;}
 #define UPDIN {z->avail_in=n;z->total_in+=(unsigned long)(p-z->next_in);z->next_in=p;}
@@ -2931,15 +2721,18 @@ struct inflate_blocks_state {
 #define WRAP {if(q==s->end&&s->read!=s->window){q=s->window;m=(unsigned int)WAVAIL;}}
 #define FLUSH {UPDOUT r=inflate_flush(s,z,r); LOADOUT}
 #define NEEDOUT {if(m==0){WRAP if(m==0){FLUSH WRAP if(m==0) LEAVE}}r=SG_NO_ERROR;}
-#define OUTBYTE(a) {*q++=(unsigned char)(a);m--;}
 #define LOAD {LOADIN LOADOUT}
 
-const unsigned int inflate_mask[17] = {
-	0x0000,
-	0x0001, 0x0003, 0x0007, 0x000f, 0x001f, 0x003f, 0x007f, 0x00ff,
-	0x01ff, 0x03ff, 0x07ff, 0x0fff, 0x1fff, 0x3fff, 0x7fff, 0xffff
-};
-
+typedef struct inflate_huft_s {
+	union {
+		struct {
+			unsigned char Exop;        // number of extra bits or operation
+			unsigned char Bits;        // number of bits in this code or subcode
+		} what;
+		unsigned int pad;           // pad structure to a power of 2 (4 unsigned chars for
+	} word;               //  16-bit, 8 unsigned chars for 32-bit int's)
+	unsigned int base;            // literal, length base, distance base, or table offset
+}inflate_huft;
 const unsigned int fixed_bl = 9;
 const unsigned int fixed_bd = 5;
 const inflate_huft fixed_tl[] = {
@@ -3082,8 +2875,403 @@ const inflate_huft fixed_td[] = {
 { { { 80,5 } },4 },{ { { 88,5 } },769 },{ { { 84,5 } },49 },{ { { 92,5 } },12289 },
 { { { 82,5 } },13 },{ { { 90,5 } },3073 },{ { { 86,5 } },193 },{ { { 192,5 } },24577 }
 };
+const unsigned int inflate_mask[17] = {
+	0x0000,
+	0x0001, 0x0003, 0x0007, 0x000f, 0x001f, 0x003f, 0x007f, 0x00ff,
+	0x01ff, 0x03ff, 0x07ff, 0x0fff, 0x1fff, 0x3fff, 0x7fff, 0xffff
+};
+const unsigned int border[] = { 16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 };
+const unsigned int cplens[31] = { 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0 };
+const unsigned int cplext[31] = { 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, 112, 112 }; // 112==invalid
+const unsigned int cpdist[30] = { 1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577 };
+const unsigned int cpdext[30] = { 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13 };
 
-int inflate_flush(inflate_blocks_statef *s, z_streamp z, int r) {
+typedef void *(*alloc_func) (unsigned int items, unsigned int size);
+typedef void(*free_func)  (void * address);
+typedef unsigned long(*check_func) (unsigned long check, const unsigned char *buf, unsigned int len);
+
+typedef struct {
+	int index;
+	TCHAR name[MAX_PATH];
+	DWORD attr;
+	FILETIME atime, ctime, mtime;
+	long comp_size;
+	long unc_size;
+} ZIPENTRY;
+typedef struct {
+	unsigned int tm_sec;
+	unsigned int tm_min;
+	unsigned int tm_hour;
+	unsigned int tm_mday;
+	unsigned int tm_mon;
+	unsigned int tm_year;
+} tm_unz;
+typedef struct {
+	unsigned long number_entry;
+	unsigned long size_comment;
+} unz_global_info;
+typedef struct {
+	unsigned long version;
+	unsigned long version_needed;
+	unsigned long flag;
+	unsigned long compression_method;
+	unsigned long dosDate;
+	unsigned long crc;
+	unsigned long compressed_size;
+	unsigned long uncompressed_size;
+	unsigned long size_filename;
+	unsigned long size_file_extra;
+	unsigned long size_file_comment;
+	unsigned long disk_num_start;
+	unsigned long internal_fa;
+	unsigned long external_fa;
+	tm_unz tmu_date;
+} unz_file_info;
+
+struct internal_state;
+typedef struct z_stream_s {
+	unsigned char    *next_in;
+	unsigned int     avail_in;
+	unsigned long    total_in;
+
+	unsigned char    *next_out;
+	unsigned int     avail_out;
+	unsigned long    total_out;
+
+	char     *msg;
+	struct internal_state *state;
+
+	alloc_func zalloc;
+	free_func  zfree;
+	void *     opaque;
+
+	int     data_type;
+	unsigned long   adler;
+	unsigned long   reserved;
+} z_stream;
+
+typedef enum {
+	IBM_TYPE,     // get type bits (3, including end bit)
+	IBM_LENS,     // get lengths for stored
+	IBM_STORED,   // processing stored block
+	IBM_TABLE,    // get table lengths
+	IBM_BTREE,    // get bit lengths tree for a dynamic block
+	IBM_DTREE,    // get length, distance trees for a dynamic block
+	IBM_CODES,    // processing fixed or dynamic block
+	IBM_DRY,      // output remaining window unsigned chars
+	IBM_DONE,     // finished last block, done 
+	IBM_BAD
+} inflate_block_mode;
+typedef enum {
+	START,    // x: set up for LEN 
+	LEN,      // i: get length/literal/eob next 
+	LENEXT,   // i: getting length extra (have base) 
+	DIST,     // i: get distance next 
+	DISTEXT,  // i: getting distance extra 
+	COPY,     // o: copying unsigned chars in window, waiting for space
+	LIT,      // o: got literal, waiting for output space 
+	WASH,     // o: got eob, possibly still output waiting 
+	END,      // x: got eob and all data flushed 
+	BADCODE
+} inflate_codes_mode;
+typedef struct inflate_codes_state {
+	inflate_codes_mode mode;      // current inflate_codes mode 
+
+	unsigned int len;
+	union {
+		struct {
+			const inflate_huft *tree;       // pointer into tree 
+			unsigned int need;                // bits needed 
+		} code;             // if LEN or DIST, where in tree 
+		unsigned int lit;           // if LIT, literal 
+		struct {
+			unsigned int get;                 // bits to get for extra 
+			unsigned int dist;                // distance back to copy from 
+		} copy;             // if EXT or COPY, where and how much 
+	} sub;                // submode
+
+	unsigned char lbits;           // ltree bits decoded per branch 
+	unsigned char dbits;           // dtree bits decoder per branch 
+	const inflate_huft *ltree;          // literal/length/eob tree
+	const inflate_huft *dtree;          // distance tree
+} inflate_codes_statef;
+typedef struct inflate_blocks_state {
+	inflate_block_mode  mode;     // current inflate_block mode 
+
+	union {
+		unsigned int left;          // if STORED, unsigned chars left to copy 
+		struct {
+			unsigned int table;               // table lengths (14 bits) 
+			unsigned int index;               // index into blens (or border)
+			unsigned int *blens;             // bit lengths of codes
+			unsigned int bb;                  // bit length tree depth 
+			inflate_huft *tb;         // bit length decoding tree 
+		} trees;            // if DTREE, decoding info for trees 
+		struct {
+			inflate_codes_statef *codes;
+		} decode;           // if CODES, current state 
+	} sub;                // submode
+	unsigned int last;            // true if this block is the last block 
+
+	unsigned int bitk;            // bits in bit buffer 
+	unsigned long bitb;           // bit buffer 
+	inflate_huft *hufts;  // single malloc for tree space 
+	unsigned char *window;        // sliding window 
+	unsigned char *end;           // one unsigned char after sliding window 
+	unsigned char *read;          // window read pointer 
+	unsigned char *write;         // window write pointer 
+	check_func checkfn;   // check function 
+	unsigned long check;          // check on output 
+
+} inflate_blocks_statef;
+typedef enum {
+	IM_METHOD,   // waiting for method byte
+	IM_FLAG,     // waiting for flag byte
+	IM_DICT4,    // four dictionary check bytes to go
+	IM_DICT3,    // three dictionary check bytes to go
+	IM_DICT2,    // two dictionary check bytes to go
+	IM_DICT1,    // one dictionary check byte to go
+	IM_DICT0,    // waiting for inflateSetDictionary
+	IM_BLOCKS,   // decompressing blocks
+	IM_CHECK4,   // four check bytes to go
+	IM_CHECK3,   // three check bytes to go
+	IM_CHECK2,   // two check bytes to go
+	IM_CHECK1,   // one check byte to go
+	IM_DONE,     // finished check, done
+	IM_BAD
+} inflate_mode;
+struct internal_state {
+	inflate_mode  mode;   // current inflate mode
+
+	union {
+		unsigned int method;        // if IM_FLAGS, method byte
+		struct {
+			unsigned long was;                // computed check value
+			unsigned long need;               // stream check value
+		} check;            // if CHECK, check values to compare
+		unsigned int marker;        // if IM_BAD, inflateSync's marker bytes count
+	} sub;        // submode
+
+	int  nowrap;          // flag for no wrapper
+	unsigned int wbits;           // log2(window size)  (8..15, defaults to 15)
+	inflate_blocks_statef
+		*blocks;            // current inflate_blocks state
+};
+
+typedef struct {
+	HANDLE h;
+	bool herr;
+	unsigned long initial_offset;
+} LUFILE;
+
+typedef struct {
+	char  *read_buffer;         // internal buffer for compressed data
+	z_stream stream;            // zLib stream structure for inflate
+
+	unsigned long pos_in_zipfile;       // position in byte on the zipfile, for fseek
+	unsigned long stream_initialised;   // flag set if stream structure is initialised
+
+	unsigned long offset_local_extrafield;// offset of the local extra field
+	unsigned int  size_local_extrafield;// size of the local extra field
+	unsigned long pos_local_extrafield;   // position in the local extra field in read
+
+	unsigned long crc32;                // crc32 of all data uncompressed
+	unsigned long crc32_wait;           // crc32 we must obtain after decompress all
+	unsigned long rest_read_compressed; // number of byte to be decompressed
+	unsigned long rest_read_uncompressed;//number of byte to be obtained after decomp
+	LUFILE* file;                 // io structore of the zipfile
+	unsigned long compression_method;   // compression method (0==store)
+	unsigned long byte_before_the_zipfile;// byte before the zipfile, (>0 for sfx)
+} file_in_zip_read_info_s;
+typedef struct {
+	LUFILE* file;               // io structore of the zipfile
+	unz_global_info gi;         // public global information
+	unsigned long byte_before_the_zipfile;// byte before the zipfile, (>0 for sfx)
+	unsigned long num_file;             // number of the current file in the zipfile
+	unsigned long pos_in_central_dir;   // pos of the current file in the central dir
+	unsigned long current_file_ok;      // flag about the usability of the current file
+	unsigned long central_pos;          // position of the beginning of the central dir
+
+	unsigned long size_central_dir;     // size of the central directory
+	unsigned long offset_central_dir;   // offset of start of central directory with respect to the starting disk number
+
+	unz_file_info cur_file_info; // public info about the current file in zip
+	unsigned long cur_file_info_internal; // private info about it
+	file_in_zip_read_info_s* pfile_in_zip_read; // structure about the current file if we are decompressing it
+} unz_s, *unzFile;
+
+int huft_build(unsigned int *b, unsigned int n, unsigned int s, const unsigned int *d, const unsigned int *e, inflate_huft * *t, unsigned int *m, inflate_huft *hp, unsigned int *hn, unsigned int *v) {
+	unsigned int a;                       // counter for codes of length k
+	unsigned int c[16];               // bit length count table
+	unsigned int f;                       // i repeats in table every f entries 
+	int g;                        // maximum code length 
+	int h;                        // table level 
+	register unsigned int i;              // counter, current code 
+	register unsigned int j;              // counter
+	register int k;               // number of bits in current code 
+	int l;                        // bits per table (returned in m) 
+	unsigned int mask;                    // (1 << w) - 1, to avoid cc -O bug on HP 
+	register unsigned int *p;            // pointer into c[], b[], or v[]
+	inflate_huft *q;              // points to current table 
+	struct inflate_huft_s r;      // table entry for structure assignment 
+	inflate_huft *u[15];        // table stack 
+	register int w;               // bits before this table == (l * h) 
+	unsigned int x[16];               // bit offsets, then code stack 
+	unsigned int *xp;                    // pointer into x 
+	int y;                        // number of dummy codes added 
+	unsigned int z;                       // number of entries in current table 
+
+	p = c;
+#define C0 *p++ = 0;
+#define C2 C0 C0 C0 C0
+#define C4 C2 C2 C2 C2
+	C4; p;                          // clear c[]--assume BMAX+1 is 16
+	p = b;  i = n;
+	do {
+		c[*p++]++;                  // assume all entries <= BMAX 
+	} while (--i);
+	if (c[0] == n) {
+		*t = (inflate_huft *)NULL;
+		*m = 0;
+		return SG_NO_ERROR;
+	}
+
+	l = *m;
+	for (j = 1; j <= 15; j++)if (c[j])break;
+	k = j;
+	if ((unsigned int)l < j)l = j;
+	for (i = 15; i; i--)if (c[i])break;
+	g = i;
+	if ((unsigned int)l > i)l = i;
+	*m = l;
+
+	for (y = 1 << j; j < i; j++, y <<= 1)if ((y -= c[j]) < 0)return SG_IO_ERROR;
+	if ((y -= c[i]) < 0)return SG_IO_ERROR;
+	c[i] += y;
+
+	x[1] = j = 0;
+	p = c + 1;  xp = x + 2;
+	while (--i) {
+		*xp++ = (j += *p++);
+	}
+
+	p = b;  i = 0;
+	do {
+		if ((j = *p++) != 0)
+			v[x[j]++] = i;
+	} while (++i < n);
+	n = x[g];
+
+	x[0] = i = 0;
+	p = v;
+	h = -1;
+	w = -l;
+	u[0] = (inflate_huft *)NULL;
+	q = (inflate_huft *)NULL;
+	z = 0;
+	for (; k <= g; k++) {
+		a = c[k];
+		while (a--) {
+			while (k > w + l) {
+				h++;
+				w += l;
+				z = g - w;
+				z = z > (unsigned int)l ? l : z;
+				if ((f = 1 << (j = k - w)) > a + 1) {
+					f -= a + 1;
+					xp = c + k;
+					if (j < z)
+						while (++j < z) {
+							if ((f <<= 1) <= *++xp)break;
+							f -= *xp;
+						}
+				}
+				z = 1 << j;
+				if (*hn + z > MANY)return SG_IO_ERROR;
+				u[h] = q = hp + *hn;
+				*hn += z;
+
+				if (h) {
+					x[h] = i;
+					r.word.what.Bits = (unsigned char)l;
+					r.word.what.Exop = (unsigned char)j;
+					j = i >> (w - l);
+					r.base = (unsigned int)(q - u[h - 1] - j);
+					u[h - 1][j] = r;
+				}
+				else
+					*t = q;
+			}
+
+			r.word.what.Bits = (unsigned char)(k - w);
+			if (p >= v + n)r.word.what.Exop = 128 + 64;
+			else if (*p < s) {
+				r.word.what.Exop = (unsigned char)(*p < 256 ? 0 : 32 + 64);
+				r.base = *p++;
+			}
+			else {
+				r.word.what.Exop = (unsigned char)(e[*p - s] + 16 + 64);
+				r.base = d[*p++ - s];
+			}
+
+			f = 1 << (k - w);
+			for (j = i >> w; j < z; j += f)q[j] = r;
+			for (j = 1 << (k - 1); i & j; j >>= 1)i ^= j;
+			i ^= j;
+
+			mask = (1 << w) - 1;
+			while ((i & mask) != x[h]) {
+				h--;
+				w -= l;
+				mask = (1 << w) - 1;
+			}
+		}
+	}
+	return y != 0 && g != 1 ? SG_IO_ERROR : SG_NO_ERROR;
+}
+int inflate_trees_bits(unsigned int *c, unsigned int *bb, inflate_huft * *tb, inflate_huft *hp, z_stream *z) {
+	int r;
+	unsigned int hn = 0;
+	unsigned int *v;
+
+	if ((v = (unsigned int*)ZALLOC(z, 19, sizeof(unsigned int))) == NULL)return SG_NO_LOAD_MEM;
+	r = huft_build(c, 19, 19, (unsigned int*)NULL, (unsigned int*)NULL,
+		tb, bb, hp, &hn, v);
+	if (*bb == 0)r = SG_IO_ERROR;
+	ZFREE(z, v);
+	return r;
+}
+int inflate_trees_dynamic(unsigned int nl, unsigned int nd, unsigned int *c, unsigned int *bl, unsigned int *bd, inflate_huft * *tl, inflate_huft * *td, inflate_huft *hp, z_stream *z) {
+	int r;
+	unsigned int hn = 0;          // hufts used in space 
+	unsigned int *v;             // work area for huft_build 
+
+	if ((v = (unsigned int*)ZALLOC(z, 288, sizeof(unsigned int))) == NULL)
+		return SG_NO_LOAD_MEM;
+
+	r = huft_build(c, nl, 257, cplens, cplext, tl, bl, hp, &hn, v);
+	if (*bl == 0) {
+		r = SG_IO_ERROR;
+		ZFREE(z, v);
+		return r;
+	}
+
+	r = huft_build(c + nl, nd, 0, cpdist, cpdext, td, bd, hp, &hn, v);
+	if (r != SG_NO_ERROR || (*bd == 0 && nl > 257)){
+		ZFREE(z, v);
+		return r;
+	}
+	ZFREE(z, v);
+	return SG_NO_ERROR;
+}
+int inflate_trees_fixed(unsigned int *bl, unsigned int *bd, const inflate_huft * * tl, const inflate_huft * *td) {
+	*bl = fixed_bl;
+	*bd = fixed_bd;
+	*tl = fixed_tl;
+	*td = fixed_td;
+	return SG_NO_ERROR;
+}
+int inflate_flush(inflate_blocks_statef *s, z_stream *z, int r) {
 	unsigned int n;
 	unsigned char *p;
 	unsigned char *q;
@@ -3129,46 +3317,7 @@ int inflate_flush(inflate_blocks_statef *s, z_streamp z, int r) {
 	return r;
 }
 
-#define exop word.what.Exop
-#define bits word.what.Bits
-
-typedef enum {
-	START,    // x: set up for LEN 
-	LEN,      // i: get length/literal/eob next 
-	LENEXT,   // i: getting length extra (have base) 
-	DIST,     // i: get distance next 
-	DISTEXT,  // i: getting distance extra 
-	COPY,     // o: copying unsigned chars in window, waiting for space
-	LIT,      // o: got literal, waiting for output space 
-	WASH,     // o: got eob, possibly still output waiting 
-	END,      // x: got eob and all data flushed 
-	BADCODE
-}
-inflate_codes_mode;
-
-struct inflate_codes_state {
-	inflate_codes_mode mode;      // current inflate_codes mode 
-
-	unsigned int len;
-	union {
-		struct {
-			const inflate_huft *tree;       // pointer into tree 
-			unsigned int need;                // bits needed 
-		} code;             // if LEN or DIST, where in tree 
-		unsigned int lit;           // if LIT, literal 
-		struct {
-			unsigned int get;                 // bits to get for extra 
-			unsigned int dist;                // distance back to copy from 
-		} copy;             // if EXT or COPY, where and how much 
-	} sub;                // submode
-
-	unsigned char lbits;           // ltree bits decoded per branch 
-	unsigned char dbits;           // dtree bits decoder per branch 
-	const inflate_huft *ltree;          // literal/length/eob tree
-	const inflate_huft *dtree;          // distance tree
-};
-
-inflate_codes_statef *inflate_codes_new(unsigned int bl, unsigned int bd, const inflate_huft *tl, const inflate_huft *td, z_streamp z) {
+inflate_codes_statef *inflate_codes_new(unsigned int bl, unsigned int bd, const inflate_huft *tl, const inflate_huft *td, z_stream *z) {
 	inflate_codes_statef *c;
 
 	if ((c = (inflate_codes_statef *)ZALLOC(z, 1, sizeof(struct inflate_codes_state))) != NULL) {
@@ -3180,7 +3329,10 @@ inflate_codes_statef *inflate_codes_new(unsigned int bl, unsigned int bd, const 
 	}
 	return c;
 }
-int inflate_codes(inflate_blocks_statef *s, z_streamp z, int r) {
+int inflate_codes(inflate_blocks_statef *s, z_stream *z, int r) {
+
+#define OUTBYTE(a) {*q++=(unsigned char)(a);m--;}
+
 	unsigned int j;               // temporary storage
 	const inflate_huft *t;      // temporary pointer
 	unsigned int e;               // extra bits or operation
@@ -3205,8 +3357,8 @@ int inflate_codes(inflate_blocks_statef *s, z_streamp z, int r) {
 			j = c->sub.code.need;
 			NEEDBITS(j)
 				t = c->sub.code.tree + ((unsigned int)b & inflate_mask[j]);
-			DUMPBITS(t->bits)
-				e = (unsigned int)(t->exop);
+			DUMPBITS(t->word.what.Bits)
+				e = (unsigned int)(t->word.what.Exop);
 			if (e == 0) {
 				c->sub.lit = t->base;
 				c->mode = LIT;
@@ -3243,8 +3395,8 @@ int inflate_codes(inflate_blocks_statef *s, z_streamp z, int r) {
 			j = c->sub.code.need;
 			NEEDBITS(j)
 				t = c->sub.code.tree + ((unsigned int)b & inflate_mask[j]);
-			DUMPBITS(t->bits)
-				e = (unsigned int)(t->exop);
+			DUMPBITS(t->word.what.Bits)
+				e = (unsigned int)(t->word.what.Exop);
 			if (e & 16) {
 				c->sub.copy.get = e & 15;
 				c->sub.copy.dist = t->base;
@@ -3306,13 +3458,11 @@ int inflate_codes(inflate_blocks_statef *s, z_streamp z, int r) {
 			LEAVE
 		}
 }
-void inflate_codes_free(inflate_codes_statef *c, z_streamp z) {
+void inflate_codes_free(inflate_codes_statef *c, z_stream *z) {
 	ZFREE(z, c);
 }
 
-const unsigned int border[] = { 16, 17, 18, 0, 8, 7, 9, 6, 10, 5, 11, 4, 12, 3, 13, 2, 14, 1, 15 };
-
-void inflate_blocks_reset(inflate_blocks_statef *s, z_streamp z, unsigned long *c) {
+void inflate_blocks_reset(inflate_blocks_statef *s, z_stream *z, unsigned long *c) {
 	if (c != NULL)
 		*c = s->check;
 	if (s->mode == IBM_BTREE || s->mode == IBM_DTREE)
@@ -3326,7 +3476,7 @@ void inflate_blocks_reset(inflate_blocks_statef *s, z_streamp z, unsigned long *
 	if (s->checkfn != NULL)
 		z->adler = s->check = (*s->checkfn)(0L, (const unsigned char *)NULL, 0);
 }
-inflate_blocks_statef *inflate_blocks_new(z_streamp z, check_func c, unsigned int w) {
+inflate_blocks_statef *inflate_blocks_new(z_stream *z, check_func c, unsigned int w) {
 	inflate_blocks_statef *s;
 
 	if ((s = (inflate_blocks_statef *)ZALLOC(z, 1, sizeof(struct inflate_blocks_state))) == NULL)return s;
@@ -3345,7 +3495,7 @@ inflate_blocks_statef *inflate_blocks_new(z_streamp z, check_func c, unsigned in
 	inflate_blocks_reset(s, z, NULL);
 	return s;
 }
-int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r) {
+int inflate_blocks(inflate_blocks_statef *s, z_stream *z, int r) {
 	unsigned int t;               // temporary storage
 	unsigned long b;              // bit buffer
 	unsigned int k;               // bits in bit buffer
@@ -3372,7 +3522,7 @@ int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r) {
 				unsigned int bl, bd;
 				const inflate_huft *tl, *td;
 
-				inflate_trees_fixed(&bl, &bd, &tl, &td, z);
+				inflate_trees_fixed(&bl, &bd, &tl, &td);
 				s->sub.decode.codes = inflate_codes_new(bl, bd, tl, td, z);
 				if (s->sub.decode.codes == NULL) {
 					r = SG_NO_LOAD_MEM;
@@ -3467,7 +3617,7 @@ int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r) {
 				t = s->sub.trees.bb;
 				NEEDBITS(t)
 					h = s->sub.trees.tb + ((unsigned int)b & inflate_mask[t]);
-				t = h->bits;
+				t = h->word.what.Bits;
 				c = h->base;
 				if (c < 16) {
 					DUMPBITS(t)
@@ -3553,7 +3703,7 @@ int inflate_blocks(inflate_blocks_statef *s, z_streamp z, int r) {
 			LEAVE
 		}
 }
-int inflate_blocks_free(inflate_blocks_statef *s, z_streamp z) {
+int inflate_blocks_free(inflate_blocks_statef *s, z_stream *z) {
 	inflate_blocks_reset(s, z, NULL);
 	ZFREE(z, s->window);
 	ZFREE(z, s->hufts);
@@ -3561,198 +3711,12 @@ int inflate_blocks_free(inflate_blocks_statef *s, z_streamp z) {
 	return SG_NO_ERROR;
 }
 
-const unsigned int cplens[31] = { 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 15, 17, 19, 23, 27, 31, 35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0 };
-const unsigned int cplext[31] = { 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 0, 112, 112 }; // 112==invalid
-const unsigned int cpdist[30] = { 1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193, 257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145, 8193, 12289, 16385, 24577 };
-const unsigned int cpdext[30] = { 0, 0, 0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13 };
-
-#define BMAX 15
-
-int huft_build(unsigned int *b, unsigned int n, unsigned int s, const unsigned int *d, const unsigned int *e, inflate_huft * *t, unsigned int *m, inflate_huft *hp, unsigned int *hn, unsigned int *v) {
-	unsigned int a;                       // counter for codes of length k
-	unsigned int c[BMAX + 1];               // bit length count table
-	unsigned int f;                       // i repeats in table every f entries 
-	int g;                        // maximum code length 
-	int h;                        // table level 
-	register unsigned int i;              // counter, current code 
-	register unsigned int j;              // counter
-	register int k;               // number of bits in current code 
-	int l;                        // bits per table (returned in m) 
-	unsigned int mask;                    // (1 << w) - 1, to avoid cc -O bug on HP 
-	register unsigned int *p;            // pointer into c[], b[], or v[]
-	inflate_huft *q;              // points to current table 
-	struct inflate_huft_s r;      // table entry for structure assignment 
-	inflate_huft *u[BMAX];        // table stack 
-	register int w;               // bits before this table == (l * h) 
-	unsigned int x[BMAX + 1];               // bit offsets, then code stack 
-	unsigned int *xp;                    // pointer into x 
-	int y;                        // number of dummy codes added 
-	unsigned int z;                       // number of entries in current table 
-
-	p = c;
-#define C0 *p++ = 0;
-#define C2 C0 C0 C0 C0
-#define C4 C2 C2 C2 C2
-	C4; p;                          // clear c[]--assume BMAX+1 is 16
-	p = b;  i = n;
-	do {
-		c[*p++]++;                  // assume all entries <= BMAX 
-	} while (--i);
-	if (c[0] == n) {
-		*t = (inflate_huft *)NULL;
-		*m = 0;
-		return SG_NO_ERROR;
-	}
-
-	l = *m;
-	for (j = 1; j <= BMAX; j++)if (c[j])break;
-	k = j;
-	if ((unsigned int)l < j)l = j;
-	for (i = BMAX; i; i--)if (c[i])break;
-	g = i;
-	if ((unsigned int)l > i)l = i;
-	*m = l;
-
-	for (y = 1 << j; j < i; j++, y <<= 1)if ((y -= c[j]) < 0)return SG_IO_ERROR;
-	if ((y -= c[i]) < 0)return SG_IO_ERROR;
-	c[i] += y;
-
-	x[1] = j = 0;
-	p = c + 1;  xp = x + 2;
-	while (--i) {
-		*xp++ = (j += *p++);
-	}
-
-	p = b;  i = 0;
-	do {
-		if ((j = *p++) != 0)
-			v[x[j]++] = i;
-	} while (++i < n);
-	n = x[g];
-
-	x[0] = i = 0;
-	p = v;
-	h = -1;
-	w = -l;
-	u[0] = (inflate_huft *)NULL;
-	q = (inflate_huft *)NULL;
-	z = 0;
-	for (; k <= g; k++) {
-		a = c[k];
-		while (a--) {
-			while (k > w + l) {
-				h++;
-				w += l;
-				z = g - w;
-				z = z > (unsigned int)l ? l : z;
-				if ((f = 1 << (j = k - w)) > a + 1) {
-					f -= a + 1;
-					xp = c + k;
-					if (j < z)
-						while (++j < z) {
-							if ((f <<= 1) <= *++xp)break;
-							f -= *xp;
-						}
-				}
-				z = 1 << j;
-				if (*hn + z > MANY)return SG_IO_ERROR;
-				u[h] = q = hp + *hn;
-				*hn += z;
-
-				if (h) {
-					x[h] = i;
-					r.bits = (unsigned char)l;
-					r.exop = (unsigned char)j;
-					j = i >> (w - l);
-					r.base = (unsigned int)(q - u[h - 1] - j);
-					u[h - 1][j] = r;
-				}
-				else
-					*t = q;
-			}
-
-			r.bits = (unsigned char)(k - w);
-			if (p >= v + n)r.exop = 128 + 64;
-			else if (*p < s) {
-				r.exop = (unsigned char)(*p < 256 ? 0 : 32 + 64);
-				r.base = *p++;
-			}
-			else {
-				r.exop = (unsigned char)(e[*p - s] + 16 + 64);
-				r.base = d[*p++ - s];
-			}
-
-			f = 1 << (k - w);
-			for (j = i >> w; j < z; j += f)q[j] = r;
-			for (j = 1 << (k - 1); i & j; j >>= 1)i ^= j;
-			i ^= j;
-
-			mask = (1 << w) - 1;
-			while ((i & mask) != x[h]) {
-				h--;
-				w -= l;
-				mask = (1 << w) - 1;
-			}
-		}
-	}
-	return y != 0 && g != 1 ? SG_IO_ERROR : SG_NO_ERROR;
-}
-int inflate_trees_bits(unsigned int *c, unsigned int *bb, inflate_huft * *tb, inflate_huft *hp, z_streamp z) {
-	int r;
-	unsigned int hn = 0;
-	unsigned int *v;
-
-	if ((v = (unsigned int*)ZALLOC(z, 19, sizeof(unsigned int))) == NULL)return SG_NO_LOAD_MEM;
-	r = huft_build(c, 19, 19, (unsigned int*)NULL, (unsigned int*)NULL,
-		tb, bb, hp, &hn, v);
-	if (*bb == 0)r = SG_IO_ERROR;
-	ZFREE(z, v);
-	return r;
-}
-int inflate_trees_dynamic(unsigned int nl, unsigned int nd, unsigned int *c, unsigned int *bl, unsigned int *bd, inflate_huft * *tl, inflate_huft * *td, inflate_huft *hp, z_streamp z) {
-	int r;
-	unsigned int hn = 0;          // hufts used in space 
-	unsigned int *v;             // work area for huft_build 
-
-	if ((v = (unsigned int*)ZALLOC(z, 288, sizeof(unsigned int))) == NULL)
-		return SG_NO_LOAD_MEM;
-
-	r = huft_build(c, nl, 257, cplens, cplext, tl, bl, hp, &hn, v);
-	if (*bl == 0) {
-		r = SG_IO_ERROR;
-		ZFREE(z, v);
-		return r;
-	}
-
-	r = huft_build(c + nl, nd, 0, cpdist, cpdext, td, bd, hp, &hn, v);
-	if (r != SG_NO_ERROR || (*bd == 0 && nl > 257)){
-		ZFREE(z, v);
-		return r;
-	}
-	ZFREE(z, v);
-	return SG_NO_ERROR;
-}
-int inflate_trees_fixed(unsigned int *bl, unsigned int *bd, const inflate_huft * * tl, const inflate_huft * *td, z_streamp) {
-	*bl = fixed_bl;
-	*bd = fixed_bd;
-	*tl = fixed_tl;
-	*td = fixed_td;
-	return SG_NO_ERROR;
-}
-
-#define GRABBITS(j) {while(k<(j)){b|=((unsigned long)NEXTBYTE)<<k;k+=8;}}
-#define UNGRAB {c=z->avail_in-n;c=(k>>3)<c?k>>3:c;n+=c;p-=c;k-=c<<3;}
-
 unsigned long ucrc32(unsigned long crc, const unsigned char *buf, unsigned int len) {
 	if (buf == NULL) return 0L;
 	crc = crc ^ 0xffffffffL;
 	if (len) do { crc = crc_table[((int)crc ^ (*buf++)) & 0xff] ^ (crc >> 8); } while (--len);
 	return crc ^ 0xffffffffL;
 }
-
-#define BASE 65521L
-#define NMAX 5552
-
 unsigned long adler32(unsigned long adler, const unsigned char *buf, unsigned int len) {
 	unsigned long s1 = adler & 0xffff;
 	unsigned long s2 = (adler >> 16) & 0xffff;
@@ -3772,52 +3736,8 @@ unsigned long adler32(unsigned long adler, const unsigned char *buf, unsigned in
 	}
 	return (s2 << 16) | s1;
 }
-void * zcalloc(void * opaque, unsigned items, unsigned size) {
-	if (opaque) items += size - size; // make compiler happy
-	return (void *)calloc(items, size);
-}
-void  zcfree(void * opaque, void * ptr) {
-	free(ptr);
-	if (opaque) return;
-}
 
-typedef enum {
-	IM_METHOD,   // waiting for method byte
-	IM_FLAG,     // waiting for flag byte
-	IM_DICT4,    // four dictionary check bytes to go
-	IM_DICT3,    // three dictionary check bytes to go
-	IM_DICT2,    // two dictionary check bytes to go
-	IM_DICT1,    // one dictionary check byte to go
-	IM_DICT0,    // waiting for inflateSetDictionary
-	IM_BLOCKS,   // decompressing blocks
-	IM_CHECK4,   // four check bytes to go
-	IM_CHECK3,   // three check bytes to go
-	IM_CHECK2,   // two check bytes to go
-	IM_CHECK1,   // one check byte to go
-	IM_DONE,     // finished check, done
-	IM_BAD
-}
-inflate_mode;
-
-struct internal_state {
-	inflate_mode  mode;   // current inflate mode
-
-	union {
-		unsigned int method;        // if IM_FLAGS, method byte
-		struct {
-			unsigned long was;                // computed check value
-			unsigned long need;               // stream check value
-		} check;            // if CHECK, check values to compare
-		unsigned int marker;        // if IM_BAD, inflateSync's marker bytes count
-	} sub;        // submode
-
-	int  nowrap;          // flag for no wrapper
-	unsigned int wbits;           // log2(window size)  (8..15, defaults to 15)
-	inflate_blocks_statef
-		*blocks;            // current inflate_blocks state
-};
-
-int inflateReset(z_streamp z) {
+int inflateReset(z_stream *z) {
 	if (z == NULL || z->state == NULL)
 		return SG_IO_ERROR;
 	z->total_in = z->total_out = 0;
@@ -3826,7 +3746,7 @@ int inflateReset(z_streamp z) {
 	inflate_blocks_reset(z->state->blocks, z, NULL);
 	return SG_NO_ERROR;
 }
-int inflateEnd(z_streamp z) {
+int inflateEnd(z_stream *z) {
 	if (z == NULL || z->state == NULL || z->zfree == NULL)
 		return SG_IO_ERROR;
 	if (z->state->blocks != NULL)
@@ -3835,17 +3755,17 @@ int inflateEnd(z_streamp z) {
 	z->state = NULL;
 	return SG_NO_ERROR;
 }
-int inflateInit2(z_streamp z) {
+int inflateInit2(z_stream *z) {
 	int stream_size = sizeof(z_stream);
 
 	int w = -15;
 	if (z == NULL) return SG_IO_ERROR;
 	z->msg = NULL;
 	if (z->zalloc == NULL) {
-		z->zalloc = zcalloc;
+		z->zalloc = calloc;
 		z->opaque = (void *)0;
 	}
-	if (z->zfree == NULL) z->zfree = zcfree;
+	if (z->zfree == NULL) z->zfree = free;
 	if ((z->state = (struct internal_state *)
 		ZALLOC(z, 1, sizeof(struct internal_state))) == NULL)
 		return SG_NO_LOAD_MEM;
@@ -3870,17 +3790,16 @@ int inflateInit2(z_streamp z) {
 	inflateReset(z);
 	return SG_NO_ERROR;
 }
+int inflate(z_stream *z) {
 
 #define IM_NEEDBYTE {if(z->avail_in==0)return r;r=f;}
 #define IM_NEXTBYTE (z->avail_in--,z->total_in++,*z->next_in++)
 
-int inflate(z_streamp z, int f) {
-	int r;
+	int r, f = SG_NO_ERROR;
 	unsigned int b;
 
 	if (z == NULL || z->state == NULL || z->next_in == NULL)
 		return SG_IO_ERROR;
-	f = f == Z_FINISH ? SG_IO_ERROR : SG_NO_ERROR;
 	r = SG_IO_ERROR;
 	for (;;)
 		switch (z->state->mode) {
@@ -3986,20 +3905,6 @@ int inflate(z_streamp z, int f) {
 		}
 }
 
-#define UNZ_BUFSIZE (16384)
-#define UNZ_MAXFILENAMEINZIP (256)
-#define SIZECENTRALDIRITEM (0x2e)
-#define SIZEZIPLOCALHEADER (0x1e)
-
-typedef struct unz_file_info_internal_s {
-	unsigned long offset_curfile;// relative offset of local header 4 bytes
-} unz_file_info_internal;
-typedef struct {
-	HANDLE h;
-	bool herr;
-	unsigned long initial_offset;
-} LUFILE;
-
 int lufclose(LUFILE *stream) {
 	if (stream == NULL) return EOF;
 	CloseHandle(stream->h);
@@ -4013,51 +3918,14 @@ int lufseek(LUFILE *stream, long offset, int whence) {
 	if (whence == SEEK_SET) SetFilePointer(stream->h, stream->initial_offset + offset, 0, FILE_BEGIN);
 	else if (whence == SEEK_CUR) SetFilePointer(stream->h, offset, NULL, FILE_CURRENT);
 	else if (whence == SEEK_END) SetFilePointer(stream->h, offset, NULL, FILE_END);
-	else return 19;
 	return 0;
 }
 size_t lufread(void *ptr, size_t size, size_t n, LUFILE *stream) {
-	unsigned int toread = (unsigned int)(size*n);
-	DWORD red; BOOL res = ReadFile(stream->h, ptr, toread, &red, NULL);
-	if (!res) stream->herr = true;
+	unsigned int toread = size*n;
+	DWORD red;
+	if (!ReadFile(stream->h, ptr, toread, &red, NULL)) stream->herr = true;
 	return red / size;
 }
-
-typedef struct {
-	char  *read_buffer;         // internal buffer for compressed data
-	z_stream stream;            // zLib stream structure for inflate
-
-	unsigned long pos_in_zipfile;       // position in byte on the zipfile, for fseek
-	unsigned long stream_initialised;   // flag set if stream structure is initialised
-
-	unsigned long offset_local_extrafield;// offset of the local extra field
-	unsigned int  size_local_extrafield;// size of the local extra field
-	unsigned long pos_local_extrafield;   // position in the local extra field in read
-
-	unsigned long crc32;                // crc32 of all data uncompressed
-	unsigned long crc32_wait;           // crc32 we must obtain after decompress all
-	unsigned long rest_read_compressed; // number of byte to be decompressed
-	unsigned long rest_read_uncompressed;//number of byte to be obtained after decomp
-	LUFILE* file;                 // io structore of the zipfile
-	unsigned long compression_method;   // compression method (0==store)
-	unsigned long byte_before_the_zipfile;// byte before the zipfile, (>0 for sfx)
-} file_in_zip_read_info_s;
-typedef struct {
-	LUFILE* file;               // io structore of the zipfile
-	unz_global_info gi;         // public global information
-	unsigned long byte_before_the_zipfile;// byte before the zipfile, (>0 for sfx)
-	unsigned long num_file;             // number of the current file in the zipfile
-	unsigned long pos_in_central_dir;   // pos of the current file in the central dir
-	unsigned long current_file_ok;      // flag about the usability of the current file
-	unsigned long central_pos;          // position of the beginning of the central dir
-
-	unsigned long size_central_dir;     // size of the central directory
-	unsigned long offset_central_dir;   // offset of start of central directory with respect to the starting disk number
-
-	unz_file_info cur_file_info; // public info about the current file in zip
-	unz_file_info_internal cur_file_info_internal; // private info about it
-	file_in_zip_read_info_s* pfile_in_zip_read; // structure about the current file if we are decompressing it
-} unz_s, *unzFile;
 
 int unzlocal_getByte(LUFILE *fin, int *pi) {
 	unsigned char c;
@@ -4107,7 +3975,6 @@ int unzlocal_getLong(LUFILE *fin, unsigned long *pX) {
 	else*pX = 0;
 	return err;
 }
-#define BUFREADCOMMENT (0x400)
 
 unsigned long unzlocal_SearchCentralDir(LUFILE *fin) {
 	if (lufseek(fin, 0, SEEK_END) != 0) return 0xFFFFFFFF;
@@ -4151,13 +4018,10 @@ void unzlocal_DosDateToTmuDate(unsigned long ulDosDate, tm_unz* ptm) {
 	ptm->tm_min = (unsigned int)((ulDosDate & 0x7E0) / 0x20);
 	ptm->tm_sec = (unsigned int)(2 * (ulDosDate & 0x1f));
 }
-int unzlocal_GetCurrentFileInfoInternal(unzFile file, unz_file_info *pfile_info,
-	unz_file_info_internal *pfile_info_internal, char *szFileName,
-	unsigned long fileNameBufferSize, void *extraField, unsigned long extraFieldBufferSize,
-	char *szComment, unsigned long commentBufferSize) {
+int unzlocal_GetCurrentFileInfoInternal(unzFile file, unz_file_info *pfile_info, unsigned long *pfile_info_internal, char *szFileName, unsigned long fileNameBufferSize, void *extraField, unsigned long extraFieldBufferSize, char *szComment, unsigned long commentBufferSize) {
 	unz_s* s;
 	unz_file_info file_info;
-	unz_file_info_internal file_info_internal;
+	unsigned long file_info_internal;
 	int err = SG_NO_ERROR;
 	unsigned long uMagic;
 	long lSeek = 0;
@@ -4184,7 +4048,7 @@ int unzlocal_GetCurrentFileInfoInternal(unzFile file, unz_file_info *pfile_info,
 	if (unzlocal_getShort(s->file, &file_info.disk_num_start) != SG_NO_ERROR)err = SG_IO_ERROR;
 	if (unzlocal_getShort(s->file, &file_info.internal_fa) != SG_NO_ERROR)err = SG_IO_ERROR;
 	if (unzlocal_getLong(s->file, &file_info.external_fa) != SG_NO_ERROR)err = SG_IO_ERROR;
-	if (unzlocal_getLong(s->file, &file_info_internal.offset_curfile) != SG_NO_ERROR)err = SG_IO_ERROR;
+	if (unzlocal_getLong(s->file, &file_info_internal) != SG_NO_ERROR)err = SG_IO_ERROR;
 	lSeek += file_info.size_filename;
 	if ((err == SG_NO_ERROR) && (szFileName != NULL)) {
 		unsigned long uSizeRead;
@@ -4231,9 +4095,7 @@ int unzlocal_GetCurrentFileInfoInternal(unzFile file, unz_file_info *pfile_info,
 	if ((err == SG_NO_ERROR) && (pfile_info_internal != NULL))*pfile_info_internal = file_info_internal;
 	return err;
 }
-int unzGetCurrentFileInfo(unzFile file, unz_file_info *pfile_info,
-	char *szFileName, unsigned long fileNameBufferSize, void *extraField, unsigned long extraFieldBufferSize,
-	char *szComment, unsigned long commentBufferSize) {
+int unzGetCurrentFileInfo(unzFile file, unz_file_info *pfile_info, char *szFileName, unsigned long fileNameBufferSize, void *extraField, unsigned long extraFieldBufferSize, char *szComment, unsigned long commentBufferSize) {
 	return unzlocal_GetCurrentFileInfoInternal(file, pfile_info, NULL, szFileName, fileNameBufferSize,
 		extraField, extraFieldBufferSize, szComment, commentBufferSize);
 }
@@ -4300,8 +4162,7 @@ int unzLocateFile(unzFile file, const char *szFileName) {
 	s->pos_in_central_dir = pos_in_central_dirSaved;
 	return err;
 }
-int unzlocal_CheckCurrentFileCoherencyHeader(unz_s *s, unsigned int *piSizeVar,
-	unsigned long *poffset_local_extrafield, unsigned int  *psize_local_extrafield) {
+int unzlocal_CheckCurrentFileCoherencyHeader(unz_s *s, unsigned int *piSizeVar, unsigned long *poffset_local_extrafield, unsigned int  *psize_local_extrafield) {
 	unsigned long uMagic, uData, uFlags;
 	unsigned long size_filename;
 	unsigned long size_extra_field;
@@ -4311,7 +4172,7 @@ int unzlocal_CheckCurrentFileCoherencyHeader(unz_s *s, unsigned int *piSizeVar,
 	*poffset_local_extrafield = 0;
 	*psize_local_extrafield = 0;
 
-	if (lufseek(s->file, s->cur_file_info_internal.offset_curfile + s->byte_before_the_zipfile, SEEK_SET) != 0)
+	if (lufseek(s->file, s->cur_file_info_internal + s->byte_before_the_zipfile, SEEK_SET) != 0)
 		return SG_IO_ERROR;
 
 	if (err == SG_NO_ERROR)
@@ -4337,7 +4198,7 @@ int unzlocal_CheckCurrentFileCoherencyHeader(unz_s *s, unsigned int *piSizeVar,
 
 	if (unzlocal_getShort(s->file, &size_extra_field) != SG_NO_ERROR)
 		err = SG_IO_ERROR;
-	*poffset_local_extrafield = s->cur_file_info_internal.offset_curfile +
+	*poffset_local_extrafield = s->cur_file_info_internal +
 		SIZEZIPLOCALHEADER + size_filename;
 	*psize_local_extrafield = (unsigned int)size_extra_field;
 	*piSizeVar += (unsigned int)size_extra_field;
@@ -4427,7 +4288,7 @@ int unzOpenCurrentFile(unzFile file) {
 	pfile_in_zip_read_info->rest_read_uncompressed = s->cur_file_info.uncompressed_size;
 	bool extlochead = (s->cur_file_info.flag & 8) != 0;
 
-	pfile_in_zip_read_info->pos_in_zipfile = s->cur_file_info_internal.offset_curfile + SIZEZIPLOCALHEADER + iSizeVar;
+	pfile_in_zip_read_info->pos_in_zipfile = s->cur_file_info_internal + SIZEZIPLOCALHEADER + iSizeVar;
 	pfile_in_zip_read_info->stream.avail_in = (unsigned int)0;
 	s->pfile_in_zip_read = pfile_in_zip_read_info;
 
@@ -4496,10 +4357,9 @@ int unzReadCurrentFile(unzFile file, void * buf, unsigned len, bool *reached_eof
 			unsigned long uTotalOutBefore, uTotalOutAfter;
 			const unsigned char *bufBefore;
 			unsigned long uOutThis;
-			int flush = Z_SYNC_FLUSH;
 			uTotalOutBefore = pfile_in_zip_read_info->stream.total_out;
 			bufBefore = pfile_in_zip_read_info->stream.next_out;
-			err = inflate(&pfile_in_zip_read_info->stream, flush);
+			err = inflate(&pfile_in_zip_read_info->stream);
 			uTotalOutAfter = pfile_in_zip_read_info->stream.total_out;
 			uOutThis = uTotalOutAfter - uTotalOutBefore;
 			pfile_in_zip_read_info->crc32 = ucrc32(pfile_in_zip_read_info->crc32, bufBefore, (unsigned int)(uOutThis));
@@ -4529,27 +4389,6 @@ int unzClose(unzFile file) {
 	return SG_NO_ERROR;
 }
 
-FILETIME timet2filetime(const lutime_t t) {
-	LONGLONG i = Int32x32To64(t, 10000000) + 116444736000000000;
-	FILETIME ft;
-	ft.dwLowDateTime = (DWORD)i;
-	ft.dwHighDateTime = (DWORD)(i >> 32);
-	return ft;
-}
-FILETIME dosdatetime2filetime(WORD dosdate, WORD dostime) {
-	SYSTEMTIME st;
-	st.wYear = (WORD)(((dosdate >> 9) & 0x7f) + 1980);
-	st.wMonth = (WORD)((dosdate >> 5) & 0xf);
-	st.wDay = (WORD)(dosdate & 0x1f);
-	st.wHour = (WORD)((dostime >> 11) & 0x1f);
-	st.wMinute = (WORD)((dostime >> 5) & 0x3f);
-	st.wSecond = (WORD)((dostime & 0x1f) * 2);
-	st.wMilliseconds = 0;
-	FILETIME ft;
-	SystemTimeToFileTime(&st, &ft);
-	return ft;
-}
-
 class TUnzip {
 public:
 	TUnzip() : uf(0), unzbuf(0), currentfile(-1) {}
@@ -4562,7 +4401,7 @@ public:
 	char *unzbuf;
 	int currentfile;
 
-	ZRESULT Open(void *z) {
+	int Open(void *z) {
 		HANDLE h = CreateFile((const TCHAR*)z, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 		if (h == INVALID_HANDLE_VALUE)return NULL;
 
@@ -4607,7 +4446,7 @@ public:
 		if (uf == 0) return SG_OBJECT_NOT_FOUND;
 		return SG_NO_ERROR;
 	}
-	ZRESULT Get(int index, ZIPENTRY *ze) {
+	int Get(int index, ZIPENTRY *ze) {
 		if (index<-1 || index >= (int)uf->gi.number_entry) return SG_IO_ERROR;
 		if (index == -1) {
 			ze->index = uf->gi.number_entry;
@@ -4673,7 +4512,7 @@ public:
 
 		WORD dostime = (WORD)(ufi.dosDate & 0xFFFF);
 		WORD dosdate = (WORD)((ufi.dosDate >> 16) & 0xFFFF);
-		FILETIME ftd = dosdatetime2filetime(dosdate, dostime);
+		FILETIME ftd = dosdatetimeFiletime(dosdate, dostime);
 		FILETIME ft; LocalFileTimeToFileTime(&ftd, &ft);
 		ze->atime = ft; ze->ctime = ft; ze->mtime = ft;
 
@@ -4688,19 +4527,19 @@ public:
 			bool hasctime = (flags & 4) != 0;
 			epos += 5;
 			if (hasmtime) {
-				lutime_t mtime = ((extra[epos + 0]) << 0) | ((extra[epos + 1]) << 8) | ((extra[epos + 2]) << 16) | ((extra[epos + 3]) << 24);
+				long long mtime = ((extra[epos + 0]) << 0) | ((extra[epos + 1]) << 8) | ((extra[epos + 2]) << 16) | ((extra[epos + 3]) << 24);
 				epos += 4;
-				ze->mtime = timet2filetime(mtime);
+				ze->mtime = intFiletime(mtime);
 			}
 			if (hasatime) {
-				lutime_t atime = ((extra[epos + 0]) << 0) | ((extra[epos + 1]) << 8) | ((extra[epos + 2]) << 16) | ((extra[epos + 3]) << 24);
+				long long atime = ((extra[epos + 0]) << 0) | ((extra[epos + 1]) << 8) | ((extra[epos + 2]) << 16) | ((extra[epos + 3]) << 24);
 				epos += 4;
-				ze->atime = timet2filetime(atime);
+				ze->atime = intFiletime(atime);
 			}
 			if (hasctime) {
-				lutime_t ctime = ((extra[epos + 0]) << 0) | ((extra[epos + 1]) << 8) | ((extra[epos + 2]) << 16) | ((extra[epos + 3]) << 24);
+				long long ctime = ((extra[epos + 0]) << 0) | ((extra[epos + 1]) << 8) | ((extra[epos + 2]) << 16) | ((extra[epos + 3]) << 24);
 				epos += 4;
-				ze->ctime = timet2filetime(ctime);
+				ze->ctime = intFiletime(ctime);
 			}
 			break;
 		}
@@ -4708,7 +4547,7 @@ public:
 		if (extra != 0) delete[] extra;
 		return SG_NO_ERROR;
 	}
-	ZRESULT Find(SGWINSTR tname, int *index, ZIPENTRY *ze) {
+	int Find(SGWINSTR tname, int *index, ZIPENTRY *ze) {
 		char name[MAX_PATH];
 		_strcpy(name, _shorten(tname));
 		int res = unzLocateFile(uf, name);
@@ -4721,12 +4560,12 @@ public:
 		int i = (int)uf->num_file;
 		if (index != NULL) *index = i;
 		if (ze != NULL) {
-			ZRESULT zres = Get(i, ze);
+			int zres = Get(i, ze);
 			if (zres != SG_NO_ERROR) return zres;
 		}
 		return SG_NO_ERROR;
 	}
-	ZRESULT Unzip(int index, void *dst, unsigned int len, DWORD flags) {
+	int Unzip(int index, void *dst, unsigned int len, DWORD flags) {
 		if (flags == ZIP_MEMORY) {
 			if (index != currentfile) {
 				if (currentfile != -1) unzCloseCurrentFile(uf); currentfile = -1;
@@ -4782,7 +4621,7 @@ public:
 			return SG_NO_ERROR;
 		}
 	}
-	ZRESULT Close() {
+	int Close() {
 		if (currentfile != -1) unzCloseCurrentFile(uf);
 		currentfile = -1;
 		if (uf != 0) unzClose(uf);

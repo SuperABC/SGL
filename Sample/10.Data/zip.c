@@ -11,8 +11,17 @@ void sgSetup() {
 	zipMemory(zip, "hello", 6, "2");
 	zipFinish(zip);
 
-	HANDLE unzip = createUnzip("test.zip");
+	HANDLE zip1 = createZip("test1.zip");
+	zipFile(zip1, "test.zip", "test.zip");
+	zipFinish(zip1);
+
+	HANDLE unzip1 = createUnzip("test1.zip");
 	SGstring res = malloc(MAX_PATH);
+	readUnzip(unzip1, 0, res);
+	unzipFile(unzip1, res, "unzip.zip");
+	zipFinish(unzip1);
+
+	HANDLE unzip = createUnzip("unzip.zip");
 	readUnzip(unzip, 0, res);
 	debugf("%s\n", res);
 	readUnzip(unzip, 1, res);
@@ -24,6 +33,7 @@ void sgSetup() {
 	debugf("%s\n", text);
 	readUnzip(unzip, 3, res);
 	debugf("%s\n", res);
+	zipFinish(unzip);
 }
 void sgLoop() {
 
