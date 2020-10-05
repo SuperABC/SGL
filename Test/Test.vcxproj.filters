@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Sample\10.Data\zip.c">
+    <ClCompile Include="..\Sample\3.Canvas\bitmap.c">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

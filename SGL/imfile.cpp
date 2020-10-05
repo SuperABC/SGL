@@ -731,27 +731,6 @@ namespace loadpng {
 #endif /* LOADPNG_COMPILE_DISK */
 #endif /* LOADPNG_COMPILE_PNG */
 
-#ifdef LOADPNG_COMPILE_ZLIB
-#ifdef LOADPNG_COMPILE_DECODER
-	/* Zlib-decompress an unsigned char buffer */
-	unsigned decompress(std::vector<unsigned char>& out, const unsigned char* in, size_t insize,
-		const LoadPNGDecompressSettings& settings = loadpng_default_decompress_settings);
-
-	/* Zlib-decompress an std::vector */
-	unsigned decompress(std::vector<unsigned char>& out, const std::vector<unsigned char>& in,
-		const LoadPNGDecompressSettings& settings = loadpng_default_decompress_settings);
-#endif /* LOADPNG_COMPILE_DECODER */
-
-#ifdef LOADPNG_COMPILE_ENCODER
-	/* Zlib-compress an unsigned char buffer */
-	unsigned compress(std::vector<unsigned char>& out, const unsigned char* in, size_t insize,
-		const LoadPNGCompressSettings& settings = loadpng_default_compress_settings);
-
-	/* Zlib-compress an std::vector */
-	unsigned compress(std::vector<unsigned char>& out, const std::vector<unsigned char>& in,
-		const LoadPNGCompressSettings& settings = loadpng_default_compress_settings);
-#endif /* LOADPNG_COMPILE_ENCODER */
-#endif /* LOADPNG_COMPILE_ZLIB */
 } /* namespace loadpng */
 #endif /*LOADPNG_COMPILE_CPP*/
 
@@ -6730,47 +6709,6 @@ namespace loadpng {
 		return loadpng_save_file(buffer.empty() ? 0 : &buffer[0], buffer.size(), filename.c_str());
 	}
 #endif /* LOADPNG_COMPILE_DISK */
-
-#ifdef LOADPNG_COMPILE_ZLIB
-#ifdef LOADPNG_COMPILE_DECODER
-	unsigned decompress(std::vector<unsigned char>& out, const unsigned char* in, size_t insize,
-		const LoadPNGDecompressSettings& settings) {
-		unsigned char* buffer = 0;
-		size_t buffersize = 0;
-		unsigned error = zlib_decompress(&buffer, &buffersize, 0, in, insize, &settings);
-		if (buffer) {
-			out.insert(out.end(), &buffer[0], &buffer[buffersize]);
-			loadpng_free(buffer);
-		}
-		return error;
-	}
-
-	unsigned decompress(std::vector<unsigned char>& out, const std::vector<unsigned char>& in,
-		const LoadPNGDecompressSettings& settings) {
-		return decompress(out, in.empty() ? 0 : &in[0], in.size(), settings);
-	}
-#endif /* LOADPNG_COMPILE_DECODER */
-
-#ifdef LOADPNG_COMPILE_ENCODER
-	unsigned compress(std::vector<unsigned char>& out, const unsigned char* in, size_t insize,
-		const LoadPNGCompressSettings& settings) {
-		unsigned char* buffer = 0;
-		size_t buffersize = 0;
-		unsigned error = zlib_compress(&buffer, &buffersize, in, insize, &settings);
-		if (buffer) {
-			out.insert(out.end(), &buffer[0], &buffer[buffersize]);
-			loadpng_free(buffer);
-		}
-		return error;
-	}
-
-	unsigned compress(std::vector<unsigned char>& out, const std::vector<unsigned char>& in,
-		const LoadPNGCompressSettings& settings) {
-		return compress(out, in.empty() ? 0 : &in[0], in.size(), settings);
-	}
-#endif /* LOADPNG_COMPILE_ENCODER */
-#endif /* LOADPNG_COMPILE_ZLIB */
-
 
 #ifdef LOADPNG_COMPILE_PNG
 
