@@ -23,7 +23,7 @@
     <ProjectGuid>{4C783CE9-4F98-4BA9-B91A-44EEA9F68566}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>SGL</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
