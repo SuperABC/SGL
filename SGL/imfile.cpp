@@ -151,7 +151,6 @@ struct LoadPNGDecompressSettings {
 	const void* custom_context; /*optional custom settings for custom functions*/
 };
 
-extern const LoadPNGDecompressSettings loadpng_default_decompress_settings;
 void loadpng_decompress_settings_init(LoadPNGDecompressSettings* settings);
 #endif /*LOADPNG_COMPILE_DECODER*/
 
@@ -181,7 +180,6 @@ struct LoadPNGCompressSettings /*deflate = compress*/ {
 	const void* custom_context; /*optional custom settings for custom functions*/
 };
 
-extern const LoadPNGCompressSettings loadpng_default_compress_settings;
 void loadpng_compress_settings_init(LoadPNGCompressSettings* settings);
 #endif /*LOADPNG_COMPILE_ENCODER*/
 
@@ -491,22 +489,6 @@ namespace loadpng {
 } /* namespace loadpng */
 #endif /*LOADPNG_COMPILE_CPP*/
 
-#ifdef LOADPNG_COMPILE_DISK
-#include <limits.h> /* LONG_MAX */
-#include <stdio.h> /* file handling */
-#endif /* LOADPNG_COMPILE_DISK */
-
-#ifdef LOADPNG_COMPILE_ALLOCATORS
-#include <stdlib.h> /* allocations */
-#endif /* LOADPNG_COMPILE_ALLOCATORS */
-
-#if defined(_MSC_VER) && (_MSC_VER >= 1310) /*Visual Studio: A few warning types are not desired here.*/
-#pragma warning( disable : 4244 ) /*implicit conversions: not warned by gcc -Wall -Wextra and requires too much casts*/
-#pragma warning( disable : 4996 ) /*VS does not like fopen, but fopen_s is not standard C so unusable here*/
-#endif /*_MSC_VER */
-
-const char* LOADPNG_VERSION_STRING = "20200306";
-
 #ifdef LOADPNG_COMPILE_ALLOCATORS
 static void* loadpng_malloc(size_t size) {
 #ifdef LOADPNG_MAX_ALLOC
@@ -532,48 +514,6 @@ void* loadpng_malloc(size_t size);
 void* loadpng_realloc(void* ptr, size_t new_size);
 void loadpng_free(void* ptr);
 #endif /*LOADPNG_COMPILE_ALLOCATORS*/
-
-/* convince the compiler to inline a function, for use when this measurably improves performance */
-/* inline is not available in C90, but use it when supported by the compiler */
-#if (defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L)) || (defined(__cplusplus) && (__cplusplus >= 199711L))
-#define LOADPNG_INLINE inline
-#else
-#define LOADPNG_INLINE /* not available */
-#endif
-
-/* restrict is not available in C90, but use it when supported by the compiler */
-#if (defined(__GNUC__) && (__GNUC__ > 3 || (__GNUC__ == 3 && __GNUC_MINOR__ >= 1))) ||\
-    (defined(_MSC_VER) && (_MSC_VER >= 1400)) || \
-    (defined(__WATCOMC__) && (__WATCOMC__ >= 1250) && !defined(__cplusplus))
-#define LOADPNG_RESTRICT __restrict
-#else
-#define LOADPNG_RESTRICT /* not available */
-#endif
-
-/* Replacements for C library functions such as memcpy and strlen, to support platforms
-where a full C library is not available. The compiler can recognize them and compile
-to something as fast. */
-
-static void loadpng_memcpy(void* LOADPNG_RESTRICT dst,
-	const void* LOADPNG_RESTRICT src, size_t size) {
-	size_t i;
-	for (i = 0; i < size; i++) ((char*)dst)[i] = ((const char*)src)[i];
-}
-
-static void loadpng_memset(void* LOADPNG_RESTRICT dst,
-	int value, size_t num) {
-	size_t i;
-	for (i = 0; i < num; i++) ((char*)dst)[i] = (char)value;
-}
-
-/* does not check memory out of bounds, do not use on untrusted data */
-static size_t loadpng_strlen(const char* a) {
-	const char* orig = a;
-	/* avoid warning about unused function in case of disabled COMPILE... macros */
-	(void)(&loadpng_strlen);
-	while (*a) a++;
-	return (size_t)(a - orig);
-}
 
 #define LOADPNG_MAX(a, b) (((a) > (b)) ? (a) : (b))
 #define LOADPNG_MIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -891,7 +831,7 @@ static unsigned ensureBits17(LoadPNGBitReader* reader, size_t nbits) {
 }
 
 /*See ensureBits documentation above. This one ensures up to 25 bits */
-static LOADPNG_INLINE unsigned ensureBits25(LoadPNGBitReader* reader, size_t nbits) {
+static inline unsigned ensureBits25(LoadPNGBitReader* reader, size_t nbits) {
 	size_t start = reader->bp >> 3u;
 	size_t size = reader->size;
 	if (start + 3u < size) {
@@ -911,7 +851,7 @@ static LOADPNG_INLINE unsigned ensureBits25(LoadPNGBitReader* reader, size_t nbi
 }
 
 /*See ensureBits documentation above. This one ensures up to 32 bits */
-static LOADPNG_INLINE unsigned ensureBits32(LoadPNGBitReader* reader, size_t nbits) {
+static inline unsigned ensureBits32(LoadPNGBitReader* reader, size_t nbits) {
 	size_t start = reader->bp >> 3u;
 	size_t size = reader->size;
 	if (start + 4u < size) {
@@ -1050,7 +990,7 @@ static unsigned HuffmanTree_makeTable(HuffmanTree* tree) {
 	if (!maxlens) return 83; /*alloc fail*/
 
 							 /* compute maxlens: max total bit length of symbols sharing prefix in the first table*/
-	loadpng_memset(maxlens, 0, headsize * sizeof(*maxlens));
+	memset(maxlens, 0, headsize * sizeof(*maxlens));
 	for (i = 0; i < tree->numcodes; i++) {
 		unsigned symbol = tree->codes[i];
 		unsigned l = tree->lengths[i];
@@ -1276,7 +1216,7 @@ static void bpmnode_sort(BPMNode* leaves, size_t num) {
 		}
 		counter++;
 	}
-	if (counter & 1) loadpng_memcpy(leaves, mem, sizeof(*leaves) * num);
+	if (counter & 1) memcpy(leaves, mem, sizeof(*leaves) * num);
 	loadpng_free(mem);
 }
 
@@ -1328,7 +1268,7 @@ unsigned loadpng_huffman_code_lengths(unsigned* lengths, const unsigned* frequen
 		}
 	}
 
-	loadpng_memset(lengths, 0, numcodes * sizeof(*lengths));
+	memset(lengths, 0, numcodes * sizeof(*lengths));
 
 	/*ensure at least two present symbols. There should be at least one symbol
 	according to RFC 1951 section 3.2.7. Some decoders incorrectly require two. To
@@ -1766,7 +1706,7 @@ static unsigned deflateNoCompression(ucvector* out, const unsigned char* data, s
 		out->data[pos + 2] = (unsigned char)(LEN >> 8u);
 		out->data[pos + 3] = (unsigned char)(NLEN & 255);
 		out->data[pos + 4] = (unsigned char)(NLEN >> 8u);
-		loadpng_memcpy(out->data + pos + 5, data + datapos, LEN);
+		memcpy(out->data + pos + 5, data + datapos, LEN);
 		datapos += LEN;
 	}
 
@@ -1843,9 +1783,9 @@ static unsigned deflateDynamic(LoadPNGBitWriter* writer, Hash* hash,
 																		  /*This while loop never loops due to a break at the end, it is here to
 																		  allow breaking out of it to the cleanup phase on error conditions.*/
 	while (!error) {
-		loadpng_memset(frequencies_ll, 0, 286 * sizeof(*frequencies_ll));
-		loadpng_memset(frequencies_d, 0, 30 * sizeof(*frequencies_d));
-		loadpng_memset(frequencies_cl, 0, NUM_CODE_LENGTH_CODES * sizeof(*frequencies_cl));
+		memset(frequencies_ll, 0, 286 * sizeof(*frequencies_ll));
+		memset(frequencies_d, 0, 30 * sizeof(*frequencies_d));
+		memset(frequencies_cl, 0, NUM_CODE_LENGTH_CODES * sizeof(*frequencies_cl));
 
 		if (settings->use_lz77) {
 			error = encodeLZ77(&lz77_encoded, hash, data, datapos, dataend, settings->windowsize,
@@ -2178,8 +2118,8 @@ static unsigned getTreeInflateDynamic(HuffmanTree* tree_ll, HuffmanTree* tree_d,
 		bitlen_ll = (unsigned*)loadpng_malloc(NUM_DEFLATE_CODE_SYMBOLS * sizeof(unsigned));
 		bitlen_d = (unsigned*)loadpng_malloc(NUM_DISTANCE_SYMBOLS * sizeof(unsigned));
 		if (!bitlen_ll || !bitlen_d) ERROR_BREAK(83 /*alloc fail*/);
-		loadpng_memset(bitlen_ll, 0, NUM_DEFLATE_CODE_SYMBOLS * sizeof(*bitlen_ll));
-		loadpng_memset(bitlen_d, 0, NUM_DISTANCE_SYMBOLS * sizeof(*bitlen_d));
+		memset(bitlen_ll, 0, NUM_DEFLATE_CODE_SYMBOLS * sizeof(*bitlen_ll));
+		memset(bitlen_d, 0, NUM_DISTANCE_SYMBOLS * sizeof(*bitlen_d));
 
 		/*i is the current symbol we're reading in the part that contains the code lengths of lit/len and dist codes*/
 		i = 0;
@@ -2332,14 +2272,14 @@ static unsigned inflateHuffmanBlock(ucvector* out, LoadPNGBitReader* reader,
 			if (!ucvector_resize(out, out->size + length)) ERROR_BREAK(83 /*alloc fail*/);
 			if (distance < length) {
 				size_t forward;
-				loadpng_memcpy(out->data + start, out->data + backward, distance);
+				memcpy(out->data + start, out->data + backward, distance);
 				start += distance;
 				for (forward = distance; forward < length; ++forward) {
 					out->data[start++] = out->data[backward++];
 				}
 			}
 			else {
-				loadpng_memcpy(out->data + start, out->data + backward, length);
+				memcpy(out->data + start, out->data + backward, length);
 			}
 		}
 		else if (code_ll == 256) {
@@ -2387,7 +2327,7 @@ static unsigned inflateNoCompression(ucvector* out, LoadPNGBitReader* reader,
 														   /*read the literal data: LEN bytes are now stored in the out buffer*/
 	if (bytepos + LEN > size) return 23; /*error: reading outside of in buffer*/
 
-	loadpng_memcpy(out->data + out->size - LEN, reader->data + bytepos, LEN);
+	memcpy(out->data + out->size - LEN, reader->data + bytepos, LEN);
 	bytepos += LEN;
 
 	reader->bp = bytepos << 3u;
@@ -2615,10 +2555,6 @@ void loadpng_compress_settings_init(LoadPNGCompressSettings* settings) {
 	settings->custom_deflate = 0;
 	settings->custom_context = 0;
 }
-
-const LoadPNGCompressSettings loadpng_default_compress_settings = { 2, 1, DEFAULT_WINDOWSIZE, 3, 128, 1, 0, 0, 0 };
-
-
 #endif /*LOADPNG_COMPILE_ENCODER*/
 
 #ifdef LOADPNG_COMPILE_DECODER
@@ -2631,9 +2567,6 @@ void loadpng_decompress_settings_init(LoadPNGDecompressSettings* settings) {
 	settings->custom_inflate = 0;
 	settings->custom_context = 0;
 }
-
-const LoadPNGDecompressSettings loadpng_default_decompress_settings = { 0, 0, 0, 0, 0 };
-
 #endif /*LOADPNG_COMPILE_DECODER*/
 
 #ifdef LOADPNG_COMPILE_PNG
@@ -2727,7 +2660,7 @@ void loadpng_chunk_type(char type[5], const unsigned char* chunk) {
 }
 
 unsigned char loadpng_chunk_type_equals(const unsigned char* chunk, const char* type) {
-	if (loadpng_strlen(type) != 4) return 0;
+	if (strlen(type) != 4) return 0;
 	return (chunk[4] == type[0] && chunk[5] == type[1] && chunk[6] == type[2] && chunk[7] == type[3]);
 }
 
@@ -2848,7 +2781,7 @@ static unsigned loadpng_chunk_init(unsigned char** chunk,
 	loadpng_set32bitInt(*chunk, length);
 
 	/*2: chunk name (4 letters)*/
-	loadpng_memcpy(*chunk + 4, type, 4);
+	memcpy(*chunk + 4, type, 4);
 
 	return 0;
 }
@@ -2860,7 +2793,7 @@ static unsigned loadpng_chunk_createv(ucvector* out,
 	CERROR_TRY_RETURN(loadpng_chunk_init(&chunk, out, length, type));
 
 	/*3: the data*/
-	loadpng_memcpy(chunk + 8, data, length);
+	memcpy(chunk + 8, data, length);
 
 	/*4: CRC (of the chunkname characters and the data)*/
 	loadpng_chunk_generate_crc(chunk);
@@ -2940,11 +2873,11 @@ void loadpng_color_mode_cleanup(LoadPNGColorMode* info) {
 
 unsigned loadpng_color_mode_copy(LoadPNGColorMode* dest, const LoadPNGColorMode* source) {
 	loadpng_color_mode_cleanup(dest);
-	loadpng_memcpy(dest, source, sizeof(LoadPNGColorMode));
+	memcpy(dest, source, sizeof(LoadPNGColorMode));
 	if (source->palette) {
 		dest->palette = (unsigned char*)loadpng_malloc(1024);
 		if (!dest->palette && source->palettesize) return 83; /*alloc fail*/
-		loadpng_memcpy(dest->palette, source->palette, source->palettesize * 4);
+		memcpy(dest->palette, source->palette, source->palettesize * 4);
 	}
 	return 0;
 }
@@ -3087,7 +3020,7 @@ void loadpng_info_cleanup(LoadPNGInfo* info) {
 
 unsigned loadpng_info_copy(LoadPNGInfo* dest, const LoadPNGInfo* source) {
 	loadpng_info_cleanup(dest);
-	loadpng_memcpy(dest, source, sizeof(LoadPNGInfo));
+	memcpy(dest, source, sizeof(LoadPNGInfo));
 	loadpng_color_mode_init(&dest->color);
 	CERROR_TRY_RETURN(loadpng_color_mode_copy(&dest->color, &source->color));
 	return 0;
@@ -3112,7 +3045,7 @@ struct ColorTree {
 };
 
 static void color_tree_init(ColorTree* tree) {
-	loadpng_memset(tree->children, 0, 16 * sizeof(*tree->children));
+	memset(tree->children, 0, 16 * sizeof(*tree->children));
 	tree->index = -1;
 }
 
@@ -3336,8 +3269,8 @@ static void getPixelColorRGBA8(unsigned char* r, unsigned char* g,
 	}
 }
 
-static void getPixelColorsRGBA8(unsigned char* LOADPNG_RESTRICT buffer, size_t numpixels,
-	const unsigned char* LOADPNG_RESTRICT in,
+static void getPixelColorsRGBA8(unsigned char* __restrict buffer, size_t numpixels,
+	const unsigned char* __restrict in,
 	const LoadPNGColorMode* mode) {
 	unsigned num_channels = 4;
 	size_t i;
@@ -3373,7 +3306,7 @@ static void getPixelColorsRGBA8(unsigned char* LOADPNG_RESTRICT buffer, size_t n
 	else if (mode->colortype == LCT_RGB) {
 		if (mode->bitdepth == 8) {
 			for (i = 0; i != numpixels; ++i, buffer += num_channels) {
-				loadpng_memcpy(buffer, &in[i * 3], 3);
+				memcpy(buffer, &in[i * 3], 3);
 				buffer[3] = 255;
 			}
 			if (mode->key_defined) {
@@ -3400,7 +3333,7 @@ static void getPixelColorsRGBA8(unsigned char* LOADPNG_RESTRICT buffer, size_t n
 			for (i = 0; i != numpixels; ++i, buffer += num_channels) {
 				unsigned index = in[i];
 				/*out of bounds of palette not checked: see loadpng_color_mode_alloc_palette.*/
-				loadpng_memcpy(buffer, &mode->palette[index * 4], 4);
+				memcpy(buffer, &mode->palette[index * 4], 4);
 			}
 		}
 		else {
@@ -3408,7 +3341,7 @@ static void getPixelColorsRGBA8(unsigned char* LOADPNG_RESTRICT buffer, size_t n
 			for (i = 0; i != numpixels; ++i, buffer += num_channels) {
 				unsigned index = readBitsFromReversedStream(&j, in, mode->bitdepth);
 				/*out of bounds of palette not checked: see loadpng_color_mode_alloc_palette.*/
-				loadpng_memcpy(buffer, &mode->palette[index * 4], 4);
+				memcpy(buffer, &mode->palette[index * 4], 4);
 			}
 		}
 	}
@@ -3428,7 +3361,7 @@ static void getPixelColorsRGBA8(unsigned char* LOADPNG_RESTRICT buffer, size_t n
 	}
 	else if (mode->colortype == LCT_RGBA) {
 		if (mode->bitdepth == 8) {
-			loadpng_memcpy(buffer, in, numpixels * 4);
+			memcpy(buffer, in, numpixels * 4);
 		}
 		else {
 			for (i = 0; i != numpixels; ++i, buffer += num_channels) {
@@ -3442,8 +3375,8 @@ static void getPixelColorsRGBA8(unsigned char* LOADPNG_RESTRICT buffer, size_t n
 }
 
 /*Similar to getPixelColorsRGBA8, but with 3-channel RGB output.*/
-static void getPixelColorsRGB8(unsigned char* LOADPNG_RESTRICT buffer, size_t numpixels,
-	const unsigned char* LOADPNG_RESTRICT in,
+static void getPixelColorsRGB8(unsigned char* __restrict buffer, size_t numpixels,
+	const unsigned char* __restrict in,
 	const LoadPNGColorMode* mode) {
 	const unsigned num_channels = 3;
 	size_t i;
@@ -3469,7 +3402,7 @@ static void getPixelColorsRGB8(unsigned char* LOADPNG_RESTRICT buffer, size_t nu
 	}
 	else if (mode->colortype == LCT_RGB) {
 		if (mode->bitdepth == 8) {
-			loadpng_memcpy(buffer, in, numpixels * 3);
+			memcpy(buffer, in, numpixels * 3);
 		}
 		else {
 			for (i = 0; i != numpixels; ++i, buffer += num_channels) {
@@ -3484,7 +3417,7 @@ static void getPixelColorsRGB8(unsigned char* LOADPNG_RESTRICT buffer, size_t nu
 			for (i = 0; i != numpixels; ++i, buffer += num_channels) {
 				unsigned index = in[i];
 				/*out of bounds of palette not checked: see loadpng_color_mode_alloc_palette.*/
-				loadpng_memcpy(buffer, &mode->palette[index * 4], 3);
+				memcpy(buffer, &mode->palette[index * 4], 3);
 			}
 		}
 		else {
@@ -3492,7 +3425,7 @@ static void getPixelColorsRGB8(unsigned char* LOADPNG_RESTRICT buffer, size_t nu
 			for (i = 0; i != numpixels; ++i, buffer += num_channels) {
 				unsigned index = readBitsFromReversedStream(&j, in, mode->bitdepth);
 				/*out of bounds of palette not checked: see loadpng_color_mode_alloc_palette.*/
-				loadpng_memcpy(buffer, &mode->palette[index * 4], 3);
+				memcpy(buffer, &mode->palette[index * 4], 3);
 			}
 		}
 	}
@@ -3511,7 +3444,7 @@ static void getPixelColorsRGB8(unsigned char* LOADPNG_RESTRICT buffer, size_t nu
 	else if (mode->colortype == LCT_RGBA) {
 		if (mode->bitdepth == 8) {
 			for (i = 0; i != numpixels; ++i, buffer += num_channels) {
-				loadpng_memcpy(buffer, &in[i * 4], 3);
+				memcpy(buffer, &in[i * 4], 3);
 			}
 		}
 		else {
@@ -3567,7 +3500,7 @@ unsigned loadpng_convert(unsigned char* out, const unsigned char* in,
 
 	if (loadpng_color_mode_equal(mode_out, mode_in)) {
 		size_t numbytes = loadpng_get_raw_size(w, h, mode_in);
-		loadpng_memcpy(out, in, numbytes);
+		memcpy(out, in, numbytes);
 		return 0;
 	}
 
@@ -3586,7 +3519,7 @@ unsigned loadpng_convert(unsigned char* out, const unsigned char* in,
 			even in case there are duplicate colors in the palette.*/
 			if (mode_in->colortype == LCT_PALETTE && mode_in->bitdepth == mode_out->bitdepth) {
 				size_t numbytes = loadpng_get_raw_size(w, h, mode_in);
-				loadpng_memcpy(out, in, numbytes);
+				memcpy(out, in, numbytes);
 				return 0;
 			}
 		}
@@ -4404,7 +4337,7 @@ static void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h,
 			size_t newsize;
 			if (loadpng_addofl(idatsize, chunkLength, &newsize)) CERROR_BREAK(state->error, 95);
 			if (newsize > insize) CERROR_BREAK(state->error, 95);
-			loadpng_memcpy(idat + idatsize, data, chunkLength);
+			memcpy(idat + idatsize, data, chunkLength);
 			idatsize += chunkLength;
 		}
 		else if (loadpng_chunk_type_equals(chunk, "IEND")) {
@@ -4474,7 +4407,7 @@ static void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h,
 		if (!*out) state->error = 83; /*alloc fail*/
 	}
 	if (!state->error) {
-		loadpng_memset(*out, 0, outsize);
+		memset(*out, 0, outsize);
 		state->error = postProcessScanlines(*out, scanlines, *w, *h, &state->info_png);
 	}
 	loadpng_free(scanlines);
@@ -4563,7 +4496,7 @@ static unsigned writeSignature(ucvector* out) {
 	const unsigned char signature[] = { 137, 80, 78, 71, 13, 10, 26, 10 };
 	/*8 bytes PNG signature, aka the magic bytes*/
 	if (!ucvector_resize(out, out->size + 8)) return 83; /*alloc fail*/
-	loadpng_memcpy(out->data + pos, signature, 8);
+	memcpy(out->data + pos, signature, 8);
 	return 0;
 }
 
@@ -4840,7 +4773,7 @@ static unsigned filter(unsigned char* out, const unsigned char* in, unsigned w, 
 				for (type = 0; type != 5; ++type) {
 					size_t sum = 0;
 					filterScanline(attempt[type], &in[y * linebytes], prevline, linebytes, bytewidth, type);
-					loadpng_memset(count, 0, 256 * sizeof(*count));
+					memset(count, 0, 256 * sizeof(*count));
 					for (x = 0; x != linebytes; ++x) ++count[attempt[type][x]];
 					++count[type]; /*the filter type itself is part of the scanline*/
 					for (x = 0; x != 256; ++x) {
@@ -4883,7 +4816,7 @@ static unsigned filter(unsigned char* out, const unsigned char* in, unsigned w, 
 		unsigned type = 0, bestType = 0;
 		unsigned char* dummy;
 		LoadPNGCompressSettings zlibsettings;
-		loadpng_memcpy(&zlibsettings, &settings->zlibsettings, sizeof(LoadPNGCompressSettings));
+		memcpy(&zlibsettings, &settings->zlibsettings, sizeof(LoadPNGCompressSettings));
 		/*use fixed tree on the attempts so that the tree is not adapted to the filtertype on purpose,
 		to simulate the true case where the tree is the same for the whole image. Sometimes it gives
 		better result with dynamic tree anyway. Using the fixed tree sometimes gives worse, but in rare
