@@ -1274,10 +1274,6 @@ FILETIME dosdatetimeFiletime(WORD dosdate, WORD dostime) {
 }
 
 
-#define EB_UT_LEN(n)      (1 + 4 * (n))
-#define EB_L_UT_SIZE    (4 + EB_UT_LEN(3))
-#define EB_C_UT_SIZE    (4 + EB_UT_LEN(1))
-
 #define LOCSIG     0x04034b50L
 #define CENSIG     0x02014b50L
 #define ENDSIG     0x06054b50L
@@ -2600,11 +2596,11 @@ public:
 									   // stuff the 'times' structure into zfi.extra
 
 									   // nb. apparently there's a problem with PocketPC CE(zip)->CE(unzip) fails. And removing the following block fixes it up.
-		char xloc[EB_L_UT_SIZE]; zfi.extra = xloc;  zfi.ext = EB_L_UT_SIZE;
-		char xcen[EB_C_UT_SIZE]; zfi.cextra = xcen; zfi.cext = EB_C_UT_SIZE;
+		char xloc[17]; zfi.extra = xloc;  zfi.ext = 17;
+		char xcen[9]; zfi.cextra = xcen; zfi.cext = 9;
 		xloc[0] = 'U';
 		xloc[1] = 'T';
-		xloc[2] = EB_UT_LEN(3);       // length of data part of e.f.
+		xloc[2] = 13;       // length of data part of e.f.
 		xloc[3] = 0;
 		xloc[4] = (1 << 0) | (1 << 1) | (1 << 2);
 		xloc[5] = (char)(times.mtime);
@@ -2619,8 +2615,8 @@ public:
 		xloc[14] = (char)(times.ctime >> 8);
 		xloc[15] = (char)(times.ctime >> 16);
 		xloc[16] = (char)(times.ctime >> 24);
-		memcpy(zfi.cextra, zfi.extra, EB_C_UT_SIZE);
-		zfi.cextra[2] = EB_UT_LEN(1);
+		memcpy(zfi.cextra, zfi.extra, 9);
+		zfi.cextra[2] = 5;
 
 
 		// (1) Start by writing the local header:
