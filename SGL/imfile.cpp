@@ -4424,10 +4424,16 @@ namespace loadpng {
 		return *this;
 	}
 
-	unsigned decode(std::vector<unsigned char>& out, unsigned& w, unsigned& h, const unsigned char* in,
-		size_t insize, LoadPNGColorType colortype, unsigned bitdepth) {
+	unsigned decode(std::vector<unsigned char>& out, unsigned& w, unsigned& h, const std::string& filename, LoadPNGColorType colortype, unsigned bitdepth) {
+		std::vector<unsigned char> file;
+		w = h = 0;
+		unsigned error = load_file(file, filename);
+		if (error) return error;
+
+		const unsigned char* in = file.data();
+		size_t insize = file.size();
 		unsigned char* buffer = 0;
-		unsigned error = loadpng_decode_memory(&buffer, &w, &h, in, insize, colortype, bitdepth);
+		error = loadpng_decode_memory(&buffer, &w, &h, in, insize, colortype, bitdepth);
 		if (buffer && !error) {
 			State state;
 			state.info_raw.colortype = colortype;
@@ -4438,17 +4444,8 @@ namespace loadpng {
 		free(buffer);
 		return error;
 	}
-	unsigned decode(std::vector<unsigned char>& out, unsigned& w, unsigned& h, const std::string& filename,
-		LoadPNGColorType colortype, unsigned bitdepth) {
-		std::vector<unsigned char> buffer;
-		/* safe output values in case error happens */
-		w = h = 0;
-		unsigned error = load_file(buffer, filename);
-		if (error) return error;
-		return decode(out, w, h, buffer.data(), buffer.size(), colortype, bitdepth);
-	}
-	unsigned encode(std::vector<unsigned char>& out, const unsigned char* in, unsigned w, unsigned h,
-		LoadPNGColorType colortype, unsigned bitdepth) {
+	unsigned encode(const std::string& filename, const unsigned char* in, unsigned w, unsigned h, LoadPNGColorType colortype, unsigned bitdepth) {
+		std::vector<unsigned char> out;
 		unsigned char* buffer;
 		size_t buffersize;
 		unsigned error = loadpng_encode_memory(&buffer, &buffersize, in, w, h, colortype, bitdepth);
@@ -4457,13 +4454,7 @@ namespace loadpng {
 			free(buffer);
 		}
 		return error;
-	}
-	unsigned encode(const std::string& filename,
-		const unsigned char* in, unsigned w, unsigned h,
-		LoadPNGColorType colortype, unsigned bitdepth) {
-		std::vector<unsigned char> buffer;
-		unsigned error = encode(buffer, in, w, h, colortype, bitdepth);
-		if (!error) error = save_file(buffer, filename);
+		if (!error) error = save_file(out, filename);
 		return error;
 	}
 }
