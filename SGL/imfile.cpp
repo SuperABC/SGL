@@ -92,7 +92,7 @@ void saveBmp(SGtext filename, bitMap bmp) {
 #define LOADPNG_COMPILE_ALLOCATORS
 #define LOADPNG_COMPILE_CPP
 
-typedef enum LoadPNGColorType {
+typedef enum {
 	LCT_GREY = 0, /*grayscale: 1,2,4,8,16 bit*/
 	LCT_RGB = 2, /*RGB: 8,16 bit*/
 	LCT_PALETTE = 3, /*palette: 1,2,4,8 bit*/
@@ -101,24 +101,14 @@ typedef enum LoadPNGColorType {
 	LCT_MAX_OCTET_VALUE = 255
 } LoadPNGColorType;
 
-typedef struct LoadPNGDecompressSettings {
+typedef struct {
 	/* Check LoadPNGDecoderSettings for more ignorable errors such as ignore_crc */
 	unsigned ignore_adler32; /*if 1, continue and don't give an error message if the Adler32 checksum is corrupted*/
 	unsigned ignore_nlen; /*ignore complement of len checksum in uncompressed blocks*/
 
-						  /*use custom zlib decoder instead of built in one (default: null)*/
-	unsigned(*custom_zlib)(unsigned char**, size_t*,
-		const unsigned char*, size_t,
-		const LoadPNGDecompressSettings*);
-	/*use custom deflate decoder instead of built in one (default: null)
-	if custom_zlib is not null, custom_inflate is ignored (the zlib format uses deflate)*/
-	unsigned(*custom_inflate)(unsigned char**, size_t*,
-		const unsigned char*, size_t,
-		const LoadPNGDecompressSettings*);
-
 	const void* custom_context; /*optional custom settings for custom functions*/
 } LoadPNGDecompressSettings;
-typedef struct LoadPNGCompressSettings /*deflate = compress*/ {
+typedef struct /*deflate = compress*/ {
 	/*LZ77 related settings*/
 	unsigned btype; /*the block type for LZ (0, 1, 2 or 3, see zlib standard). Should be 2 for proper compression.*/
 	unsigned use_lz77; /*whether or not to use LZ77. Should be 1 for proper compression.*/
@@ -127,21 +117,10 @@ typedef struct LoadPNGCompressSettings /*deflate = compress*/ {
 	unsigned nicematch; /*stop searching if >= this length found. Set to 258 for best compression. Default: 128*/
 	unsigned lazymatching; /*use lazy matching: better compression but a bit slower. Default: true*/
 
-						   /*use custom zlib encoder instead of built in one (default: null)*/
-	unsigned(*custom_zlib)(unsigned char**, size_t*,
-		const unsigned char*, size_t,
-		const LoadPNGCompressSettings*);
-	/*use custom deflate encoder instead of built in one (default: null)
-	if custom_zlib is used, custom_deflate is ignored since only the built in
-	zlib function will call custom_deflate*/
-	unsigned(*custom_deflate)(unsigned char**, size_t*,
-		const unsigned char*, size_t,
-		const LoadPNGCompressSettings*);
-
 	const void* custom_context; /*optional custom settings for custom functions*/
 } LoadPNGCompressSettings;
 
-typedef struct LoadPNGColorMode {
+typedef struct {
 	/*header (IHDR)*/
 	LoadPNGColorType colortype; /*color type, see PNG standard or documentation further in this header file*/
 	unsigned bitdepth;  /*bits per sample, see PNG standard or documentation further in this header file*/
@@ -154,7 +133,7 @@ typedef struct LoadPNGColorMode {
 	unsigned key_g;       /*green component of color key*/
 	unsigned key_b;       /*blue component of color key*/
 } LoadPNGColorMode;
-typedef struct LoadPNGInfo {
+typedef struct {
 	/*header (IHDR), palette (PLTE) and transparency (tRNS) chunks*/
 	unsigned compression_method;/*compression method of the original file. Always 0.*/
 	unsigned filter_method;     /*filter method of the original file*/
@@ -162,7 +141,7 @@ typedef struct LoadPNGInfo {
 	LoadPNGColorMode color;     /*color type and bits, palette and transparency of the PNG file*/
 } LoadPNGInfo;
 
-typedef struct LoadPNGDecoderSettings {
+typedef struct {
 	LoadPNGDecompressSettings zlibsettings; /*in here is the setting to ignore Adler32 checksums*/
 
 											/* Check LoadPNGDecompressSettings for more ignorable errors such as ignore_adler32 */
@@ -176,7 +155,7 @@ typedef struct LoadPNGDecoderSettings {
 
 	unsigned color_convert; /*whether to convert the PNG to the color type you want. Default: yes*/
 } LoadPNGDecoderSettings;
-typedef enum LoadPNGFilterStrategy {
+typedef enum {
 	/*every filter at zero*/
 	LFS_ZERO = 0,
 	/*every filter at 1, 2, 3 or 4 (paeth), unlike LFS_ZERO not a good choice, but for testing*/
@@ -197,7 +176,7 @@ typedef enum LoadPNGFilterStrategy {
 	/*use predefined_filters buffer: you specify the filter type for each scanline*/
 	LFS_PREDEFINED
 } LoadPNGFilterStrategy;
-typedef struct LoadPNGColorStats {
+typedef struct {
 	unsigned colored; /*not grayscale*/
 	unsigned key; /*image is not opaque and color key is possible instead of full alpha*/
 	unsigned short key_r; /*key values, always as 16-bit, in 8-bit case the byte is duplicated, e.g. 65535 means 255*/
@@ -214,7 +193,7 @@ typedef struct LoadPNGColorStats {
 	unsigned allow_greyscale; /*default 1. if 0, choose RGB or RGBA even if the image only has gray colors*/
 } LoadPNGColorStats;
 
-typedef struct LoadPNGEncoderSettings {
+typedef struct {
 	LoadPNGCompressSettings zlibsettings; /*settings for the zlib encoder, such as window size, ...*/
 
 	unsigned auto_convert; /*automatically choose output PNG color type. Default: true*/
@@ -237,7 +216,7 @@ typedef struct LoadPNGEncoderSettings {
 	If colortype is 3, PLTE is _always_ created.*/
 	unsigned force_palette;
 } LoadPNGEncoderSettings;
-typedef struct LoadPNGState {
+typedef struct {
 #ifdef LOADPNG_COMPILE_DECODER
 	LoadPNGDecoderSettings decoder; /*the decoding settings*/
 #endif /*LOADPNG_COMPILE_DECODER*/
@@ -1633,12 +1612,7 @@ unsigned loadpng_deflate(unsigned char** out, size_t* outsize,
 static unsigned deflate(unsigned char** out, size_t* outsize,
 	const unsigned char* in, size_t insize,
 	const LoadPNGCompressSettings* settings) {
-	if (settings->custom_deflate) {
-		return settings->custom_deflate(out, outsize, in, insize, settings);
-	}
-	else {
-		return loadpng_deflate(out, outsize, in, insize, settings);
-	}
+	return loadpng_deflate(out, outsize, in, insize, settings);
 }
 
 static unsigned getTreeInflateFixed(HuffmanTree* tree_ll, HuffmanTree* tree_d) {
@@ -1960,14 +1934,7 @@ static unsigned loadpng_inflatev(ucvector* out,
 }
 static unsigned inflatev(ucvector* out, const unsigned char* in, size_t insize,
 	const LoadPNGDecompressSettings* settings) {
-	if (settings->custom_inflate) {
-		unsigned error = settings->custom_inflate(&out->data, &out->size, in, insize, settings);
-		out->allocsize = out->size;
-		return error;
-	}
-	else {
-		return loadpng_inflatev(out, in, insize, settings);
-	}
+	return loadpng_inflatev(out, in, insize, settings);
 }
 
 static unsigned update_adler32(unsigned adler, const unsigned char* data, unsigned len) {
@@ -2031,12 +1998,7 @@ unsigned loadpng_zlib_compress(unsigned char** out, size_t* outsize, const unsig
 }
 static unsigned zlib_compress(unsigned char** out, size_t* outsize, const unsigned char* in,
 	size_t insize, const LoadPNGCompressSettings* settings) {
-	if (settings->custom_zlib) {
-		return settings->custom_zlib(out, outsize, in, insize, settings);
-	}
-	else {
-		return loadpng_zlib_compress(out, outsize, in, insize, settings);
-	}
+	return loadpng_zlib_compress(out, outsize, in, insize, settings);
 }
 
 static unsigned loadpng_zlib_decompressv(ucvector* out,
@@ -2081,22 +2043,17 @@ static unsigned loadpng_zlib_decompressv(ucvector* out,
 }
 static unsigned zlib_decompress(unsigned char** out, size_t* outsize, size_t expected_size,
 	const unsigned char* in, size_t insize, const LoadPNGDecompressSettings* settings) {
-	if (settings->custom_zlib) {
-		return settings->custom_zlib(out, outsize, in, insize, settings);
+	unsigned error;
+	ucvector v = ucvector_init(*out, *outsize);
+	if (expected_size) {
+		/*reserve the memory to avoid intermediate reallocations*/
+		ucvector_resize(&v, *outsize + expected_size);
+		v.size = *outsize;
 	}
-	else {
-		unsigned error;
-		ucvector v = ucvector_init(*out, *outsize);
-		if (expected_size) {
-			/*reserve the memory to avoid intermediate reallocations*/
-			ucvector_resize(&v, *outsize + expected_size);
-			v.size = *outsize;
-		}
-		error = loadpng_zlib_decompressv(&v, in, insize, settings);
-		*out = v.data;
-		*outsize = v.size;
-		return error;
-	}
+	error = loadpng_zlib_decompressv(&v, in, insize, settings);
+	*out = v.data;
+	*outsize = v.size;
+	return error;
 }
 
 #define DEFAULT_WINDOWSIZE 2048
@@ -2109,16 +2066,12 @@ void loadpng_compress_settings_init(LoadPNGCompressSettings* settings) {
 	settings->nicematch = 128;
 	settings->lazymatching = 1;
 
-	settings->custom_zlib = 0;
-	settings->custom_deflate = 0;
 	settings->custom_context = 0;
 }
 void loadpng_decompress_settings_init(LoadPNGDecompressSettings* settings) {
 	settings->ignore_adler32 = 0;
 	settings->ignore_nlen = 0;
 
-	settings->custom_zlib = 0;
-	settings->custom_inflate = 0;
 	settings->custom_context = 0;
 }
 
@@ -4122,8 +4075,6 @@ static unsigned filter(unsigned char* out, const unsigned char* in, unsigned w, 
 		zlibsettings.btype = 1;
 		/*a custom encoder likely doesn't read the btype setting and is optimized for complete PNG
 		images only, so disable it*/
-		zlibsettings.custom_zlib = 0;
-		zlibsettings.custom_deflate = 0;
 		for (type = 0; type != 5; ++type) {
 			attempt[type] = (unsigned char*)malloc(linebytes);
 			if (!attempt[type]) error = 83; /*alloc fail*/
@@ -4453,7 +4404,6 @@ namespace loadpng {
 			out.insert(out.end(), &buffer[0], &buffer[buffersize]);
 			free(buffer);
 		}
-		return error;
 		if (!error) error = save_file(out, filename);
 		return error;
 	}
