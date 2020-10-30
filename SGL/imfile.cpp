@@ -289,31 +289,6 @@ static unsigned uivector_push_back(uivector* p, unsigned c) {
 	return 1;
 }
 
-typedef struct ucvector {
-	unsigned char* data;
-	size_t size; /*used size*/
-	size_t allocsize; /*allocated size*/
-} ucvector;
-static unsigned ucvector_resize(ucvector* p, size_t size) {
-	if (size > p->allocsize) {
-		size_t newsize = size + (p->allocsize >> 1u);
-		void* data = realloc(p->data, newsize);
-		if (data) {
-			p->allocsize = newsize;
-			p->data = (unsigned char*)data;
-		}
-		else return 0; /*error: not enough memory*/
-	}
-	p->size = size;
-	return 1; /*success*/
-}
-static ucvector ucvector_init(unsigned char* buffer, size_t size) {
-	ucvector v;
-	v.data = buffer;
-	v.allocsize = v.size = size;
-	return v;
-}
-
 static unsigned loadpng_read32bitInt(const unsigned char* buffer) {
 	return (((unsigned)buffer[0] << 24u) | ((unsigned)buffer[1] << 16u) | ((unsigned)buffer[2] << 8u) | (unsigned)buffer[3]);
 }
@@ -366,17 +341,16 @@ unsigned loadpng_save_file(const unsigned char* buffer, size_t buffersize, const
 #define WRITEBIT(writer, bit){\
   /* append new byte */\
   if(((writer->bp) & 7u) == 0) {\
-    if(!ucvector_resize(writer->data, writer->data->size + 1)) return;\
-    writer->data->data[writer->data->size - 1] = 0;\
+    (*(writer->data)).push_back(0);\
   }\
-  (writer->data->data[writer->data->size - 1]) |= (bit << ((writer->bp) & 7u));\
+  ((*(writer->data))[(*(writer->data)).size() - 1]) |= (bit << ((writer->bp) & 7u));\
   ++writer->bp;\
 }
 typedef struct {
-	ucvector* data;
+	vector<unsigned char> *data;
 	unsigned char bp; /*ok to overflow, indicates bit pos inside byte*/
 } LoadPNGBitWriter;
-static void LoadPNGBitWriter_init(LoadPNGBitWriter* writer, ucvector* data) {
+static void LoadPNGBitWriter_init(LoadPNGBitWriter* writer, vector<unsigned char> *data) {
 	writer->data = data;
 	writer->bp = 0;
 }
@@ -1238,7 +1212,7 @@ static unsigned encodeLZ77(uivector* out, Hash* hash,
 
 	return error;
 }
-static unsigned deflateNoCompression(ucvector* out, const unsigned char* data, size_t datasize) {
+static unsigned deflateNoCompression(vector<unsigned char> &out, const unsigned char* data, size_t datasize) {
 	/*non compressed deflate block data: 1 bit BFINAL,2 bits BTYPE,(5 bits): it jumps to start of next byte,
 	2 bytes LEN, 2 bytes NLEN, LEN bytes literal DATA*/
 
@@ -1247,7 +1221,7 @@ static unsigned deflateNoCompression(ucvector* out, const unsigned char* data, s
 	for (i = 0; i != numdeflateblocks; ++i) {
 		unsigned BFINAL, BTYPE, LEN, NLEN;
 		unsigned char firstbyte;
-		size_t pos = out->size;
+		size_t pos = out.size();
 
 		BFINAL = (i == numdeflateblocks - 1);
 		BTYPE = 0;
@@ -1256,15 +1230,15 @@ static unsigned deflateNoCompression(ucvector* out, const unsigned char* data, s
 		if (datasize - datapos < 65535u) LEN = (unsigned)datasize - datapos;
 		NLEN = 65535 - LEN;
 
-		if (!ucvector_resize(out, out->size + LEN + 5)) return 83; /*alloc fail*/
+		out.resize(out.size() + LEN + 5); /*alloc fail*/
 
 		firstbyte = (unsigned char)(BFINAL + ((BTYPE & 1u) << 1u) + ((BTYPE & 2u) << 1u));
-		out->data[pos + 0] = firstbyte;
-		out->data[pos + 1] = (unsigned char)(LEN & 255);
-		out->data[pos + 2] = (unsigned char)(LEN >> 8u);
-		out->data[pos + 3] = (unsigned char)(NLEN & 255);
-		out->data[pos + 4] = (unsigned char)(NLEN >> 8u);
-		memcpy(out->data + pos + 5, data + datapos, LEN);
+		out[pos + 0] = firstbyte;
+		out[pos + 1] = (unsigned char)(LEN & 255);
+		out[pos + 2] = (unsigned char)(LEN >> 8u);
+		out[pos + 3] = (unsigned char)(NLEN & 255);
+		out[pos + 4] = (unsigned char)(NLEN >> 8u);
+		memcpy(out.data() + pos + 5, data + datapos, LEN);
 		datapos += LEN;
 	}
 
@@ -1560,14 +1534,14 @@ static unsigned deflateFixed(LoadPNGBitWriter* writer, Hash* hash,
 
 	return error;
 }
-static unsigned loadpng_deflatev(ucvector* out, const unsigned char* in, size_t insize,
+static unsigned loadpng_deflatev(vector<unsigned char> &out, const unsigned char* in, size_t insize,
 	const LoadPNGCompressSettings* settings) {
 	unsigned error = 0;
 	size_t i, blocksize, numdeflateblocks;
 	Hash hash;
 	LoadPNGBitWriter writer;
 
-	LoadPNGBitWriter_init(&writer, out);
+	LoadPNGBitWriter_init(&writer, &out);
 
 	if (settings->btype > 2) return 61;
 	else if (settings->btype == 0) return deflateNoCompression(out, in, insize);
@@ -1603,10 +1577,11 @@ static unsigned loadpng_deflatev(ucvector* out, const unsigned char* in, size_t 
 unsigned loadpng_deflate(unsigned char** out, size_t* outsize,
 	const unsigned char* in, size_t insize,
 	const LoadPNGCompressSettings* settings) {
-	ucvector v = ucvector_init(*out, *outsize);
-	unsigned error = loadpng_deflatev(&v, in, insize, settings);
-	*out = v.data;
-	*outsize = v.size;
+	vector<unsigned char> v(*out, *out + *outsize);
+	unsigned error = loadpng_deflatev(v, in, insize, settings);
+	*out = (unsigned char *)malloc(v.size());
+	memcpy(*out, v.data(), v.size());
+	*outsize = v.size();
 	return error;
 }
 static unsigned deflate(unsigned char** out, size_t* outsize,
@@ -1758,7 +1733,7 @@ static unsigned getTreeInflateDynamic(HuffmanTree* tree_ll, HuffmanTree* tree_d,
 			break;
 		}
 
-												  /*now we've finally got HLIT and HDIST, so generate the code trees, and the function is done*/
+		/*now we've finally got HLIT and HDIST, so generate the code trees, and the function is done*/
 		error = HuffmanTree_makeFromLengths(tree_ll, bitlen_ll, NUM_DEFLATE_CODE_SYMBOLS, 15);
 		if (error) break;
 		error = HuffmanTree_makeFromLengths(tree_d, bitlen_d, NUM_DISTANCE_SYMBOLS, 15);
@@ -1773,7 +1748,7 @@ static unsigned getTreeInflateDynamic(HuffmanTree* tree_ll, HuffmanTree* tree_d,
 
 	return error;
 }
-static unsigned inflateHuffmanBlock(ucvector* out, LoadPNGBitReader* reader,
+static unsigned inflateHuffmanBlock(vector<unsigned char> &out, LoadPNGBitReader* reader,
 	unsigned btype) {
 	unsigned error = 0;
 	HuffmanTree tree_ll; /*the huffman tree for literal and length codes*/
@@ -1791,11 +1766,7 @@ static unsigned inflateHuffmanBlock(ucvector* out, LoadPNGBitReader* reader,
 		ensureBits25(reader, 20); /* up to 15 for the huffman symbol, up to 5 for the length extra bits */
 		code_ll = huffmanDecodeSymbol(reader, &tree_ll);
 		if (code_ll <= 255) /*literal symbol*/ {
-			if (!ucvector_resize(out, out->size + 1)) {
-				error = 83;
-				break;
-			}
-			out->data[out->size - 1] = (unsigned char)code_ll;
+			out.push_back((unsigned char)code_ll);
 		}
 		else if (code_ll >= FIRST_LENGTH_CODE_INDEX && code_ll <= LAST_LENGTH_CODE_INDEX) /*length code*/ {
 			unsigned code_d, distance;
@@ -1835,27 +1806,24 @@ static unsigned inflateHuffmanBlock(ucvector* out, LoadPNGBitReader* reader,
 			}
 
 			/*part 5: fill in all the out[n] values based on the length and dist*/
-			start = out->size;
+			start = out.size();
 			if (distance > start) {
 				error = 52;
 				break;
 			}
 			backward = start - distance;
 
-			if (!ucvector_resize(out, out->size + length)) {
-				error = 83;
-				break;
-			}
+			out.resize(out.size() + length);
 			if (distance < length) {
 				size_t forward;
-				memcpy(out->data + start, out->data + backward, distance);
+				memcpy(out.data() + start, out.data() + backward, distance);
 				start += distance;
 				for (forward = distance; forward < length; ++forward) {
-					out->data[start++] = out->data[backward++];
+					out[start++] = out[backward++];
 				}
 			}
 			else {
-				memcpy(out->data + start, out->data + backward, length);
+				memcpy(out.data() + start, out.data() + backward, length);
 			}
 		}
 		else if (code_ll == 256) {
@@ -1877,7 +1845,7 @@ static unsigned inflateHuffmanBlock(ucvector* out, LoadPNGBitReader* reader,
 
 	return error;
 }
-static unsigned inflateNoCompression(ucvector* out, LoadPNGBitReader* reader,
+static unsigned inflateNoCompression(vector<unsigned char> &out, LoadPNGBitReader* reader,
 	const LoadPNGDecompressSettings* settings) {
 	size_t bytepos;
 	size_t size = reader->size;
@@ -1896,19 +1864,19 @@ static unsigned inflateNoCompression(ucvector* out, LoadPNGBitReader* reader,
 		return 21; /*error: NLEN is not one's complement of LEN*/
 	}
 
-	if (!ucvector_resize(out, out->size + LEN)) return 83; /*alloc fail*/
+	out.resize(out.size() + LEN);
 
-														   /*read the literal data: LEN bytes are now stored in the out buffer*/
+	/*read the literal data: LEN bytes are now stored in the out buffer*/
 	if (bytepos + LEN > size) return 23; /*error: reading outside of in buffer*/
 
-	memcpy(out->data + out->size - LEN, reader->data + bytepos, LEN);
+	memcpy(out.data() + out.size() - LEN, reader->data + bytepos, LEN);
 	bytepos += LEN;
 
 	reader->bp = bytepos << 3u;
 
 	return error;
 }
-static unsigned loadpng_inflatev(ucvector* out,
+static unsigned loadpng_inflatev(vector<unsigned char> &out,
 	const unsigned char* in, size_t insize,
 	const LoadPNGDecompressSettings* settings) {
 	unsigned BFINAL = 0;
@@ -1932,7 +1900,7 @@ static unsigned loadpng_inflatev(ucvector* out,
 
 	return error;
 }
-static unsigned inflatev(ucvector* out, const unsigned char* in, size_t insize,
+static unsigned inflatev(vector<unsigned char> &out, const unsigned char* in, size_t insize,
 	const LoadPNGDecompressSettings* settings) {
 	return loadpng_inflatev(out, in, insize, settings);
 }
@@ -2001,7 +1969,7 @@ static unsigned zlib_compress(unsigned char** out, size_t* outsize, const unsign
 	return loadpng_zlib_compress(out, outsize, in, insize, settings);
 }
 
-static unsigned loadpng_zlib_decompressv(ucvector* out,
+static unsigned loadpng_zlib_decompressv(vector<unsigned char> &out,
 	const unsigned char* in, size_t insize,
 	const LoadPNGDecompressSettings* settings) {
 	unsigned error = 0;
@@ -2035,7 +2003,7 @@ static unsigned loadpng_zlib_decompressv(ucvector* out,
 
 	if (!settings->ignore_adler32) {
 		unsigned ADLER32 = loadpng_read32bitInt(&in[insize - 4]);
-		unsigned checksum = adler32(out->data, (unsigned)(out->size));
+		unsigned checksum = adler32(out.data(), (unsigned)(out.size()));
 		if (checksum != ADLER32) return 58; /*error, adler checksum not correct, data must be corrupted*/
 	}
 
@@ -2044,15 +2012,15 @@ static unsigned loadpng_zlib_decompressv(ucvector* out,
 static unsigned zlib_decompress(unsigned char** out, size_t* outsize, size_t expected_size,
 	const unsigned char* in, size_t insize, const LoadPNGDecompressSettings* settings) {
 	unsigned error;
-	ucvector v = ucvector_init(*out, *outsize);
-	if (expected_size) {
-		/*reserve the memory to avoid intermediate reallocations*/
-		ucvector_resize(&v, *outsize + expected_size);
-		v.size = *outsize;
-	}
-	error = loadpng_zlib_decompressv(&v, in, insize, settings);
-	*out = v.data;
-	*outsize = v.size;
+	vector<unsigned char> v(*out, *out + *outsize);
+	//if (expected_size) {
+	//	/*reserve the memory to avoid intermediate reallocations*/
+	//	v.resize(*outsize + expected_size);
+	//}
+	error = loadpng_zlib_decompressv(v, in, insize, settings);
+	*out = (unsigned char *)malloc(v.size());
+	memcpy(*out, v.data(), v.size());
+	*outsize = v.size();
 	return error;
 }
 
@@ -2195,12 +2163,12 @@ const unsigned char* loadpng_chunk_next_const(const unsigned char* chunk, const 
 		return result;
 	}
 }
-static unsigned loadpng_chunk_init(unsigned char** chunk, ucvector* out, 	unsigned length, const char* type) {
-	size_t new_length = out->size;
+static unsigned loadpng_chunk_init(unsigned char** chunk, vector<unsigned char> &out, unsigned length, const char* type) {
+	size_t new_length = out.size();
 	if (loadpng_addofl(new_length, length, &new_length)) return 77;
 	if (loadpng_addofl(new_length, 12, &new_length)) return 77;
-	if (!ucvector_resize(out, new_length)) return 83; /*alloc fail*/
-	*chunk = out->data + new_length - length - 12u;
+	out.resize(new_length);
+	*chunk = out.data() + new_length - length - 12u;
 
 	/*1: length*/
 	loadpng_set32bitInt(*chunk, length);
@@ -2210,9 +2178,9 @@ static unsigned loadpng_chunk_init(unsigned char** chunk, ucvector* out, 	unsign
 
 	return 0;
 }
-static unsigned loadpng_chunk_createv(ucvector* out, unsigned length, const char* type, const unsigned char* data) {
+static unsigned loadpng_chunk_createv(vector<unsigned char> &out, unsigned length, const char* type, const unsigned char* data) {
 	unsigned char* chunk;
-	if(unsigned error = loadpng_chunk_init(&chunk, out, length, type))return error;
+	if (unsigned error = loadpng_chunk_init(&chunk, out, length, type))return error;
 
 	/*3: the data*/
 	memcpy(chunk + 8, data, length);
@@ -3570,7 +3538,7 @@ static void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h, LoadPNG
 
 	/*for unknown chunk order*/
 	unsigned unknown = 0;
-							   /* safe output values in case error happens */
+	/* safe output values in case error happens */
 	*out = 0;
 	*w = *h = 0;
 
@@ -3758,15 +3726,15 @@ unsigned loadpng_decode_memory(unsigned char** out, unsigned* w, unsigned* h, co
 	return error;
 }
 
-static unsigned writeSignature(ucvector* out) {
-	size_t pos = out->size;
+static unsigned writeSignature(vector<unsigned char> &out) {
+	size_t pos = out.size();
 	const unsigned char signature[] = { 137, 80, 78, 71, 13, 10, 26, 10 };
 	/*8 bytes PNG signature, aka the magic bytes*/
-	if (!ucvector_resize(out, out->size + 8)) return 83; /*alloc fail*/
-	memcpy(out->data + pos, signature, 8);
+	out.resize(out.size() + 8);
+	memcpy(out.data() + pos, signature, 8);
 	return 0;
 }
-static unsigned addChunk_IHDR(ucvector* out, unsigned w, unsigned h, LoadPNGColorType colortype, unsigned bitdepth, unsigned interlace_method) {
+static unsigned addChunk_IHDR(vector<unsigned char> &out, unsigned w, unsigned h, LoadPNGColorType colortype, unsigned bitdepth, unsigned interlace_method) {
 	unsigned char *chunk, *data;
 	if (unsigned error = loadpng_chunk_init(&chunk, out, 13, "IHDR"))return error;
 	data = chunk + 8;
@@ -3782,7 +3750,7 @@ static unsigned addChunk_IHDR(ucvector* out, unsigned w, unsigned h, LoadPNGColo
 	loadpng_chunk_generate_crc(chunk);
 	return 0;
 }
-static unsigned addChunk_PLTE(ucvector* out, const LoadPNGColorMode* info) {
+static unsigned addChunk_PLTE(vector<unsigned char> &out, const LoadPNGColorMode* info) {
 	unsigned char* chunk;
 	size_t i, j = 8;
 
@@ -3798,7 +3766,7 @@ static unsigned addChunk_PLTE(ucvector* out, const LoadPNGColorMode* info) {
 	loadpng_chunk_generate_crc(chunk);
 	return 0;
 }
-static unsigned addChunk_tRNS(ucvector* out, const LoadPNGColorMode* info) {
+static unsigned addChunk_tRNS(vector<unsigned char> &out, const LoadPNGColorMode* info) {
 	unsigned char* chunk = 0;
 
 	if (info->colortype == LCT_PALETTE) {
@@ -3836,7 +3804,7 @@ static unsigned addChunk_tRNS(ucvector* out, const LoadPNGColorMode* info) {
 	if (chunk) loadpng_chunk_generate_crc(chunk);
 	return 0;
 }
-static unsigned addChunk_IDAT(ucvector* out, const unsigned char* data, size_t datasize, LoadPNGCompressSettings* zlibsettings) {
+static unsigned addChunk_IDAT(vector<unsigned char> &out, const unsigned char* data, size_t datasize, LoadPNGCompressSettings* zlibsettings) {
 	unsigned error = 0;
 	unsigned char* zlib = 0;
 	size_t zlibsize = 0;
@@ -3848,7 +3816,7 @@ static unsigned addChunk_IDAT(ucvector* out, const unsigned char* data, size_t d
 	free(zlib);
 	return error;
 }
-static unsigned addChunk_IEND(ucvector* out) {
+static unsigned addChunk_IEND(vector<unsigned char> &out) {
 	return loadpng_chunk_createv(out, 0, "IEND", 0);
 }
 static void filterScanline(unsigned char* out, const unsigned char* scanline, const unsigned char* prevline, size_t length, size_t bytewidth, unsigned char filterType) {
@@ -4073,8 +4041,6 @@ static unsigned filter(unsigned char* out, const unsigned char* in, unsigned w, 
 		better result with dynamic tree anyway. Using the fixed tree sometimes gives worse, but in rare
 		cases better compression. It does make this a bit less slow, so it's worth doing this.*/
 		zlibsettings.btype = 1;
-		/*a custom encoder likely doesn't read the btype setting and is optimized for complete PNG
-		images only, so disable it*/
 		for (type = 0; type != 5; ++type) {
 			attempt[type] = (unsigned char*)malloc(linebytes);
 			if (!attempt[type]) error = 83; /*alloc fail*/
@@ -4238,7 +4204,7 @@ static unsigned preProcessScanlines(unsigned char** out, size_t* outsize, const 
 unsigned loadpng_encode(unsigned char** out, size_t* outsize, const unsigned char* image, unsigned w, unsigned h, LoadPNGState* state) {
 	unsigned char* data = 0; /*uncompressed version of the IDAT chunk data*/
 	size_t datasize = 0;
-	ucvector outv = ucvector_init(NULL, 0);
+	vector<unsigned char> outv;
 	LoadPNGInfo info;
 	const LoadPNGInfo* info_png = &state->info_png;
 
@@ -4300,28 +4266,28 @@ unsigned loadpng_encode(unsigned char** out, size_t* outsize, const unsigned cha
 
 	/* output all PNG chunks */ {
 		/*write signature and chunks*/
-		state->error = writeSignature(&outv);
+		state->error = writeSignature(outv);
 		if (state->error) goto cleanup;
 		/*IHDR*/
-		state->error = addChunk_IHDR(&outv, w, h, info.color.colortype, info.color.bitdepth, info.interlace_method);
+		state->error = addChunk_IHDR(outv, w, h, info.color.colortype, info.color.bitdepth, info.interlace_method);
 		if (state->error) goto cleanup;
 		/*PLTE*/
 		if (info.color.colortype == LCT_PALETTE) {
-			state->error = addChunk_PLTE(&outv, &info.color);
+			state->error = addChunk_PLTE(outv, &info.color);
 			if (state->error) goto cleanup;
 		}
 		if (state->encoder.force_palette && (info.color.colortype == LCT_RGB || info.color.colortype == LCT_RGBA)) {
 			/*force_palette means: write suggested palette for truecolor in PLTE chunk*/
-			state->error = addChunk_PLTE(&outv, &info.color);
+			state->error = addChunk_PLTE(outv, &info.color);
 			if (state->error) goto cleanup;
 		}
 		/*tRNS (this will only add if when necessary) */
-		state->error = addChunk_tRNS(&outv, &info.color);
+		state->error = addChunk_tRNS(outv, &info.color);
 		if (state->error) goto cleanup;
 		/*IDAT (multiple IDAT chunks must be consecutive)*/
-		state->error = addChunk_IDAT(&outv, data, datasize, &state->encoder.zlibsettings);
+		state->error = addChunk_IDAT(outv, data, datasize, &state->encoder.zlibsettings);
 		if (state->error) goto cleanup;
-		state->error = addChunk_IEND(&outv);
+		state->error = addChunk_IEND(outv);
 		if (state->error) goto cleanup;
 	}
 
@@ -4330,8 +4296,9 @@ cleanup:
 	free(data);
 
 	/*instead of cleaning the vector up, give it to the output*/
-	*out = outv.data;
-	*outsize = outv.size;
+	*out = (unsigned char *)malloc(outv.size());
+	memcpy(*out, outv.data(), outv.size());
+	*outsize = outv.size();
 
 	return state->error;
 }
