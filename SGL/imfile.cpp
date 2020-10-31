@@ -76,7 +76,9 @@ void saveBmp(SGtext filename, bitMap bmp) {
 	head.biXPelsPerMeter = 0;
 	head.biYPelsPerMeter = 0;
 	fwrite(&head, sizeof(BITMAPINFOHEADER), 1, fp);
-	fwrite(bmp.data, bmp.sizeY*lineByte, 1, fp);
+	for (int i = 0; i < bmp.sizeY; i++) {
+		fwrite(bmp.data + (bmp.sizeY - 1 - i) * lineByte, lineByte, 1, fp);
+	}
 	fclose(fp);
 }
 
@@ -228,19 +230,6 @@ typedef struct {
 	unsigned error;
 } LoadPNGState;
 
-namespace loadpng {
-	class State : public LoadPNGState {
-	public:
-		State();
-		State(const State& other);
-		~State();
-		State& operator=(const State& other);
-	};
-	unsigned load_file(std::vector<unsigned char>& buffer, const std::string& filename);
-	unsigned save_file(const std::vector<unsigned char>& buffer, const std::string& filename);
-}
-
-
 static int loadpng_addofl(size_t a, size_t b, size_t* result) {
 	*result = a + b; /* Unsigned addition is well defined and safe in C90 */
 	return *result < a;
@@ -253,40 +242,6 @@ static int loadpng_gtofl(size_t a, size_t b, size_t c) {
 	size_t d;
 	if (loadpng_addofl(a, b, &d)) return 1;
 	return d > c;
-}
-
-typedef struct uivector {
-	unsigned* data;
-	size_t size; /*size in number of unsigned longs*/
-	size_t allocsize; /*allocated size in bytes*/
-} uivector;
-static void uivector_cleanup(void* p) {
-	((uivector*)p)->size = ((uivector*)p)->allocsize = 0;
-	free(((uivector*)p)->data);
-	((uivector*)p)->data = NULL;
-}
-static unsigned uivector_resize(uivector* p, size_t size) {
-	size_t allocsize = size * sizeof(unsigned);
-	if (allocsize > p->allocsize) {
-		size_t newsize = allocsize + (p->allocsize >> 1u);
-		void* data = realloc(p->data, newsize);
-		if (data) {
-			p->allocsize = newsize;
-			p->data = (unsigned*)data;
-		}
-		else return 0; /*error: not enough memory*/
-	}
-	p->size = size;
-	return 1; /*success*/
-}
-static void uivector_init(uivector* p) {
-	p->data = NULL;
-	p->size = p->allocsize = 0;
-}
-static unsigned uivector_push_back(uivector* p, unsigned c) {
-	if (!uivector_resize(p, p->size + 1)) return 0;
-	p->data[p->size - 1] = c;
-	return 1;
 }
 
 static unsigned loadpng_read32bitInt(const unsigned char* buffer) {
@@ -355,15 +310,9 @@ static void LoadPNGBitWriter_init(LoadPNGBitWriter* writer, vector<unsigned char
 	writer->bp = 0;
 }
 static void writeBits(LoadPNGBitWriter* writer, unsigned value, size_t nbits) {
-	if (nbits == 1) { /* compiler should statically compile this case if nbits == 1 */
-		WRITEBIT(writer, value);
-	}
-	else {
-		/* TODO: increase output size only once here rather than in each WRITEBIT */
-		size_t i;
-		for (i = 0; i != nbits; ++i) {
-			WRITEBIT(writer, (unsigned char)((value >> i) & 1));
-		}
+	size_t i;
+	for (i = 0; i != nbits; ++i) {
+		WRITEBIT(writer, (unsigned char)((value >> i) & 1));
 	}
 }
 static void writeBitsReversed(LoadPNGBitWriter* writer, unsigned value, size_t nbits) {
@@ -476,24 +425,6 @@ static unsigned readBits(LoadPNGBitReader* reader, size_t nbits) {
 	unsigned result = peekBits(reader, nbits);
 	advanceBits(reader, nbits);
 	return result;
-}
-unsigned load_png_test_bitreader(const unsigned char* data, size_t size,
-	size_t numsteps, const size_t* steps, unsigned* result) {
-	size_t i;
-	LoadPNGBitReader reader;
-	unsigned error = LoadPNGBitReader_init(&reader, data, size);
-	if (error) return 0;
-	for (i = 0; i < numsteps; i++) {
-		size_t step = steps[i];
-		unsigned ok;
-		if (step > 25) ok = ensureBits32(&reader, step);
-		else if (step > 17) ok = ensureBits25(&reader, step);
-		else if (step > 9) ok = ensureBits17(&reader, step);
-		else ok = ensureBits9(&reader, step);
-		if (!ok) return 0;
-		result[i] = readBits(&reader, step);
-	}
-	return 1;
 }
 
 static unsigned reverseBits(unsigned bits, unsigned num) {
@@ -942,22 +873,17 @@ static size_t searchCodeIndex(const unsigned* array, size_t array_size, size_t v
 	if (left >= array_size || array[left] > value) left--;
 	return left;
 }
-static void addLengthDistance(uivector* values, size_t length, size_t distance) {
+static void addLengthDistance(vector<unsigned int> &values, size_t length, size_t distance) {
 
 	unsigned length_code = (unsigned)searchCodeIndex(LENGTHBASE, 29, length);
 	unsigned extra_length = (unsigned)(length - LENGTHBASE[length_code]);
 	unsigned dist_code = (unsigned)searchCodeIndex(DISTANCEBASE, 30, distance);
 	unsigned extra_distance = (unsigned)(distance - DISTANCEBASE[dist_code]);
 
-	size_t pos = values->size;
-	/*TODO: return error when this fails (out of memory)*/
-	unsigned ok = uivector_resize(values, values->size + 4);
-	if (ok) {
-		values->data[pos + 0] = length_code + FIRST_LENGTH_CODE_INDEX;
-		values->data[pos + 1] = extra_length;
-		values->data[pos + 2] = dist_code;
-		values->data[pos + 3] = extra_distance;
-	}
+	values.push_back(length_code + FIRST_LENGTH_CODE_INDEX);
+	values.push_back(extra_length);
+	values.push_back(dist_code);
+	values.push_back(extra_distance);
 }
 static const unsigned HASH_NUM_VALUES = 65536;
 static const unsigned HASH_BIT_MASK = 65535; /*HASH_NUM_VALUES - 1, but C90 does not like that as initializer*/
@@ -1043,7 +969,7 @@ static void updateHashChain(Hash* hash, size_t wpos, unsigned hashval, unsigned 
 	if (hash->headz[numzeros] != -1) hash->chainz[wpos] = hash->headz[numzeros];
 	hash->headz[numzeros] = (int)wpos;
 }
-static unsigned encodeLZ77(uivector* out, Hash* hash,
+static unsigned encodeLZ77(vector<unsigned int> &out, Hash* hash,
 	const unsigned char* in, size_t inpos, size_t insize, unsigned windowsize,
 	unsigned minmatch, unsigned nicematch, unsigned lazymatching) {
 	size_t pos;
@@ -1158,10 +1084,7 @@ static unsigned encodeLZ77(uivector* out, Hash* hash,
 				}
 				if (length > lazylength + 1) {
 					/*push the previous character as literal*/
-					if (!uivector_push_back(out, in[pos - 1])) {
-						error = 83;
-						break;
-					}
+					out.push_back(in[pos - 1]);
 				}
 				else {
 					length = lazylength;
@@ -1179,18 +1102,12 @@ static unsigned encodeLZ77(uivector* out, Hash* hash,
 
 		/*encode it as length/distance pair or literal value*/
 		if (length < 3) /*only lengths of 3 or higher are supported as length/distance pair*/ {
-			if (!uivector_push_back(out, in[pos])) {
-				error = 83;
-				break;
-			}
+			out.push_back(in[pos]);
 		}
 		else if (length < minmatch || (length == 3 && offset > 4096)) {
 			/*compensate for the fact that longer offsets have more extra bits, a
 			length of only 3 may be not worth it then*/
-			if (!uivector_push_back(out, in[pos])) {
-				error = 83;
-				break;
-			}
+			out.push_back(in[pos]);
 		}
 		else {
 			addLengthDistance(out, length, offset);
@@ -1244,22 +1161,22 @@ static unsigned deflateNoCompression(vector<unsigned char> &out, const unsigned 
 
 	return 0;
 }
-static void writeLZ77data(LoadPNGBitWriter* writer, const uivector* lz77_encoded,
+static void writeLZ77data(LoadPNGBitWriter* writer, const vector<unsigned int> &lz77_encoded,
 	const HuffmanTree* tree_ll, const HuffmanTree* tree_d) {
 	size_t i = 0;
-	for (i = 0; i != lz77_encoded->size; ++i) {
-		unsigned val = lz77_encoded->data[i];
+	for (i = 0; i != lz77_encoded.size(); ++i) {
+		unsigned val = lz77_encoded[i];
 		writeBitsReversed(writer, tree_ll->codes[val], tree_ll->lengths[val]);
 		if (val > 256) /*for a length code, 3 more things have to be added*/ {
 			unsigned length_index = val - FIRST_LENGTH_CODE_INDEX;
 			unsigned n_length_extra_bits = LENGTHEXTRA[length_index];
-			unsigned length_extra_bits = lz77_encoded->data[++i];
+			unsigned length_extra_bits = lz77_encoded[++i];
 
-			unsigned distance_code = lz77_encoded->data[++i];
+			unsigned distance_code = lz77_encoded[++i];
 
 			unsigned distance_index = distance_code;
 			unsigned n_distance_extra_bits = DISTANCEEXTRA[distance_index];
-			unsigned distance_extra_bits = lz77_encoded->data[++i];
+			unsigned distance_extra_bits = lz77_encoded[++i];
 
 			writeBits(writer, length_extra_bits, n_length_extra_bits);
 			writeBitsReversed(writer, tree_d->codes[distance_code], tree_d->lengths[distance_code]);
@@ -1273,7 +1190,7 @@ static unsigned deflateDynamic(LoadPNGBitWriter* writer, Hash* hash,
 	unsigned error = 0;
 
 	/*The lz77 encoded data, represented with integers since there will also be length and distance codes in it*/
-	uivector lz77_encoded;
+	vector<unsigned int> lz77_encoded;
 	HuffmanTree tree_ll; /*tree for lit,len values*/
 	HuffmanTree tree_d; /*tree for distance codes*/
 	HuffmanTree tree_cl; /*tree for encoding the code lengths representing tree_ll and tree_d*/
@@ -1298,7 +1215,6 @@ static unsigned deflateDynamic(LoadPNGBitWriter* writer, Hash* hash,
 	size_t numcodes_ll, numcodes_d, numcodes_lld, numcodes_lld_e, numcodes_cl;
 	unsigned HLIT, HDIST, HCLEN;
 
-	uivector_init(&lz77_encoded);
 	HuffmanTree_init(&tree_ll);
 	HuffmanTree_init(&tree_d);
 	HuffmanTree_init(&tree_cl);
@@ -1317,24 +1233,21 @@ static unsigned deflateDynamic(LoadPNGBitWriter* writer, Hash* hash,
 		memset(frequencies_cl, 0, NUM_CODE_LENGTH_CODES * sizeof(*frequencies_cl));
 
 		if (settings->use_lz77) {
-			error = encodeLZ77(&lz77_encoded, hash, data, datapos, dataend, settings->windowsize,
+			error = encodeLZ77(lz77_encoded, hash, data, datapos, dataend, settings->windowsize,
 				settings->minmatch, settings->nicematch, settings->lazymatching);
 			if (error) break;
 		}
 		else {
-			if (!uivector_resize(&lz77_encoded, datasize)) {
-				error = 83;
-				break;
-			}
-			for (i = datapos; i < dataend; ++i) lz77_encoded.data[i - datapos] = data[i]; /*no LZ77, but still will be Huffman compressed*/
+			lz77_encoded.resize(datasize);
+			for (i = datapos; i < dataend; ++i) lz77_encoded[i - datapos] = data[i]; /*no LZ77, but still will be Huffman compressed*/
 		}
 
 		/*Count the frequencies of lit, len and dist codes*/
-		for (i = 0; i != lz77_encoded.size; ++i) {
-			unsigned symbol = lz77_encoded.data[i];
+		for (i = 0; i != lz77_encoded.size(); ++i) {
+			unsigned symbol = lz77_encoded[i];
 			++frequencies_ll[symbol];
 			if (symbol > 256) {
-				unsigned dist = lz77_encoded.data[i + 2];
+				unsigned dist = lz77_encoded[i + 2];
 				++frequencies_d[dist];
 				i += 3;
 			}
@@ -1463,7 +1376,7 @@ static unsigned deflateDynamic(LoadPNGBitWriter* writer, Hash* hash,
 		}
 
 		/*write the compressed data symbols*/
-		writeLZ77data(writer, &lz77_encoded, &tree_ll, &tree_d);
+		writeLZ77data(writer, lz77_encoded, &tree_ll, &tree_d);
 		/*error: the length of the end code 256 must be larger than 0*/
 		if (tree_ll.lengths[256] == 0) {
 			error = 64;
@@ -1477,7 +1390,6 @@ static unsigned deflateDynamic(LoadPNGBitWriter* writer, Hash* hash,
 	}
 
 	/*cleanup*/
-	uivector_cleanup(&lz77_encoded);
 	HuffmanTree_cleanup(&tree_ll);
 	HuffmanTree_cleanup(&tree_d);
 	HuffmanTree_cleanup(&tree_cl);
@@ -1512,12 +1424,10 @@ static unsigned deflateFixed(LoadPNGBitWriter* writer, Hash* hash,
 		writeBits(writer, 0, 1); /*second bit of BTYPE*/
 
 		if (settings->use_lz77) /*LZ77 encoded*/ {
-			uivector lz77_encoded;
-			uivector_init(&lz77_encoded);
-			error = encodeLZ77(&lz77_encoded, hash, data, datapos, dataend, settings->windowsize,
+			vector<unsigned int> lz77_encoded;
+			error = encodeLZ77(lz77_encoded, hash, data, datapos, dataend, settings->windowsize,
 				settings->minmatch, settings->nicematch, settings->lazymatching);
-			if (!error) writeLZ77data(writer, &lz77_encoded, &tree_ll, &tree_d);
-			uivector_cleanup(&lz77_encoded);
+			if (!error) writeLZ77data(writer, lz77_encoded, &tree_ll, &tree_d);
 		}
 		else /*no LZ77, but still will be Huffman compressed*/ {
 			for (i = datapos; i < dataend; ++i) {
@@ -1964,12 +1874,7 @@ unsigned loadpng_zlib_compress(unsigned char** out, size_t* outsize, const unsig
 	free(deflatedata);
 	return error;
 }
-static unsigned zlib_compress(unsigned char** out, size_t* outsize, const unsigned char* in,
-	size_t insize, const LoadPNGCompressSettings* settings) {
-	return loadpng_zlib_compress(out, outsize, in, insize, settings);
-}
-
-static unsigned loadpng_zlib_decompressv(vector<unsigned char> &out,
+unsigned loadpng_zlib_decompress(vector<unsigned char> &out,
 	const unsigned char* in, size_t insize,
 	const LoadPNGDecompressSettings* settings) {
 	unsigned error = 0;
@@ -2013,11 +1918,7 @@ static unsigned zlib_decompress(unsigned char** out, size_t* outsize, size_t exp
 	const unsigned char* in, size_t insize, const LoadPNGDecompressSettings* settings) {
 	unsigned error;
 	vector<unsigned char> v(*out, *out + *outsize);
-	//if (expected_size) {
-	//	/*reserve the memory to avoid intermediate reallocations*/
-	//	v.resize(*outsize + expected_size);
-	//}
-	error = loadpng_zlib_decompressv(v, in, insize, settings);
+	error = loadpng_zlib_decompress(v, in, insize, settings);
 	*out = (unsigned char *)malloc(v.size());
 	memcpy(*out, v.data(), v.size());
 	*outsize = v.size();
@@ -3726,14 +3627,6 @@ unsigned loadpng_decode_memory(unsigned char** out, unsigned* w, unsigned* h, co
 	return error;
 }
 
-static unsigned writeSignature(vector<unsigned char> &out) {
-	size_t pos = out.size();
-	const unsigned char signature[] = { 137, 80, 78, 71, 13, 10, 26, 10 };
-	/*8 bytes PNG signature, aka the magic bytes*/
-	out.resize(out.size() + 8);
-	memcpy(out.data() + pos, signature, 8);
-	return 0;
-}
 static unsigned addChunk_IHDR(vector<unsigned char> &out, unsigned w, unsigned h, LoadPNGColorType colortype, unsigned bitdepth, unsigned interlace_method) {
 	unsigned char *chunk, *data;
 	if (unsigned error = loadpng_chunk_init(&chunk, out, 13, "IHDR"))return error;
@@ -3809,7 +3702,7 @@ static unsigned addChunk_IDAT(vector<unsigned char> &out, const unsigned char* d
 	unsigned char* zlib = 0;
 	size_t zlibsize = 0;
 
-	error = zlib_compress(&zlib, &zlibsize, data, datasize, zlibsettings);
+	error = loadpng_zlib_compress(&zlib, &zlibsize, data, datasize, zlibsettings);
 	if (!error) {
 		error = loadpng_chunk_createv(out, zlibsize, "IDAT", zlib);
 	}
@@ -3863,23 +3756,6 @@ static void filterScanline(unsigned char* out, const unsigned char* scanline, co
 		break;
 	default: return; /*invalid filter type given*/
 	}
-}
-static size_t ilog2(size_t i) {
-	size_t result = 0;
-	if (i >= 65536) { result += 16; i >>= 16; }
-	if (i >= 256) { result += 8; i >>= 8; }
-	if (i >= 16) { result += 4; i >>= 4; }
-	if (i >= 4) { result += 2; i >>= 2; }
-	if (i >= 2) { result += 1; /*i >>= 1;*/ }
-	return result;
-}
-static size_t ilog2i(size_t i) {
-	size_t l;
-	if (i == 0) return 0;
-	l = ilog2(i);
-	/* approximate i*log2(i): l is integer logarithm, ((i - (1u << l)) << 1u)
-	linearly approximates the missing fractional part multiplied by i */
-	return i * l + ((i - (1u << l)) << 1u);
 }
 static unsigned filter(unsigned char* out, const unsigned char* in, unsigned w, unsigned h, const LoadPNGColorMode* color, const LoadPNGEncoderSettings* settings) {
 	/*
@@ -3996,7 +3872,7 @@ static unsigned filter(unsigned char* out, const unsigned char* in, unsigned w, 
 					for (x = 0; x != linebytes; ++x) ++count[attempt[type][x]];
 					++count[type]; /*the filter type itself is part of the scanline*/
 					for (x = 0; x != 256; ++x) {
-						sum += ilog2i(count[x]);
+						sum += count[x] * log2(count[x]);
 					}
 					/*check if this is smallest sum (or if type == 0 it's the first case so always store the values)*/
 					if (type == 0 || sum > bestSum) {
@@ -4054,7 +3930,7 @@ static unsigned filter(unsigned char* out, const unsigned char* in, unsigned w, 
 					filterScanline(attempt[type], &in[y * linebytes], prevline, linebytes, bytewidth, type);
 					size[type] = 0;
 					dummy = 0;
-					zlib_compress(&dummy, &size[type], attempt[type], testsize, &zlibsettings);
+					loadpng_zlib_compress(&dummy, &size[type], attempt[type], testsize, &zlibsettings);
 					free(dummy);
 					/*check if this is smallest size (or if type == 0 it's the first case so always store the values)*/
 					if (type == 0 || size[type] < smallest) {
@@ -4264,32 +4140,29 @@ unsigned loadpng_encode(unsigned char** out, size_t* outsize, const unsigned cha
 		if (state->error) goto cleanup;
 	}
 
-	/* output all PNG chunks */ {
-		/*write signature and chunks*/
-		state->error = writeSignature(outv);
-		if (state->error) goto cleanup;
-		/*IHDR*/
-		state->error = addChunk_IHDR(outv, w, h, info.color.colortype, info.color.bitdepth, info.interlace_method);
-		if (state->error) goto cleanup;
-		/*PLTE*/
-		if (info.color.colortype == LCT_PALETTE) {
-			state->error = addChunk_PLTE(outv, &info.color);
-			if (state->error) goto cleanup;
-		}
-		if (state->encoder.force_palette && (info.color.colortype == LCT_RGB || info.color.colortype == LCT_RGBA)) {
-			/*force_palette means: write suggested palette for truecolor in PLTE chunk*/
-			state->error = addChunk_PLTE(outv, &info.color);
-			if (state->error) goto cleanup;
-		}
-		/*tRNS (this will only add if when necessary) */
-		state->error = addChunk_tRNS(outv, &info.color);
-		if (state->error) goto cleanup;
-		/*IDAT (multiple IDAT chunks must be consecutive)*/
-		state->error = addChunk_IDAT(outv, data, datasize, &state->encoder.zlibsettings);
-		if (state->error) goto cleanup;
-		state->error = addChunk_IEND(outv);
+	outv.insert(outv.end(), { 137, 80, 78, 71, 13, 10, 26, 10 });
+	if (state->error) goto cleanup;
+	/*IHDR*/
+	state->error = addChunk_IHDR(outv, w, h, info.color.colortype, info.color.bitdepth, info.interlace_method);
+	if (state->error) goto cleanup;
+	/*PLTE*/
+	if (info.color.colortype == LCT_PALETTE) {
+		state->error = addChunk_PLTE(outv, &info.color);
 		if (state->error) goto cleanup;
 	}
+	if (state->encoder.force_palette && (info.color.colortype == LCT_RGB || info.color.colortype == LCT_RGBA)) {
+		/*force_palette means: write suggested palette for truecolor in PLTE chunk*/
+		state->error = addChunk_PLTE(outv, &info.color);
+		if (state->error) goto cleanup;
+	}
+	/*tRNS (this will only add if when necessary) */
+	state->error = addChunk_tRNS(outv, &info.color);
+	if (state->error) goto cleanup;
+	/*IDAT (multiple IDAT chunks must be consecutive)*/
+	state->error = addChunk_IDAT(outv, data, datasize, &state->encoder.zlibsettings);
+	if (state->error) goto cleanup;
+	state->error = addChunk_IEND(outv);
+	if (state->error) goto cleanup;
 
 cleanup:
 	loadpng_info_cleanup(&info);
@@ -4316,53 +4189,37 @@ unsigned loadpng_encode_memory(unsigned char** out, size_t* outsize, const unsig
 	return error;
 }
 
-namespace loadpng {
-	unsigned load_file(std::vector<unsigned char>& buffer, const std::string& filename) {
-		long size = loadpng_filesize(filename.c_str());
-		if (size < 0) return 78;
-		buffer.resize((size_t)size);
-		return size == 0 ? 0 : loadpng_buffer_file(&buffer[0], (size_t)size, filename.c_str());
-	}
-	unsigned save_file(const std::vector<unsigned char>& buffer, const std::string& filename) {
-		return loadpng_save_file(buffer.empty() ? 0 : &buffer[0], buffer.size(), filename.c_str());
-	}
+unsigned load_file(std::vector<unsigned char>& buffer, const std::string& filename) {
+	long size = loadpng_filesize(filename.c_str());
+	if (size < 0) return 78;
+	buffer.resize((size_t)size);
+	return size == 0 ? 0 : loadpng_buffer_file(&buffer[0], (size_t)size, filename.c_str());
+}
+unsigned save_file(const std::vector<unsigned char>& buffer, const std::string& filename) {
+	return loadpng_save_file(buffer.empty() ? 0 : &buffer[0], buffer.size(), filename.c_str());
+}
 
-	State::State() {
-		loadpng_state_init(this);
-	}
-	State::State(const State& other) {
-		loadpng_state_init(this);
-		loadpng_state_copy(this, &other);
-	}
-	State::~State() {
-		loadpng_state_cleanup(this);
-	}
-	State& State::operator=(const State& other) {
-		loadpng_state_copy(this, &other);
-		return *this;
-	}
+unsigned decode(std::vector<unsigned char>& out, unsigned& w, unsigned& h, const std::string& filename, LoadPNGColorType colortype, unsigned bitdepth) {
+	std::vector<unsigned char> file;
+	w = h = 0;
+	unsigned error = load_file(file, filename);
+	if (error) return error;
 
-	unsigned decode(std::vector<unsigned char>& out, unsigned& w, unsigned& h, const std::string& filename, LoadPNGColorType colortype, unsigned bitdepth) {
-		std::vector<unsigned char> file;
-		w = h = 0;
-		unsigned error = load_file(file, filename);
-		if (error) return error;
-
-		const unsigned char* in = file.data();
-		size_t insize = file.size();
-		unsigned char* buffer = 0;
-		error = loadpng_decode_memory(&buffer, &w, &h, in, insize, colortype, bitdepth);
-		if (buffer && !error) {
-			State state;
-			state.info_raw.colortype = colortype;
-			state.info_raw.bitdepth = bitdepth;
-			size_t buffersize = loadpng_get_raw_size(w, h, &state.info_raw);
-			out.insert(out.end(), &buffer[0], &buffer[buffersize]);
-		}
-		free(buffer);
-		return error;
+	const unsigned char* in = file.data();
+	size_t insize = file.size();
+	unsigned char* buffer = 0;
+	error = loadpng_decode_memory(&buffer, &w, &h, in, insize, colortype, bitdepth);
+	if (buffer && !error) {
+		LoadPNGColorMode info_raw;
+		info_raw.colortype = colortype;
+		info_raw.bitdepth = bitdepth;
+		size_t buffersize = loadpng_get_raw_size(w, h, &info_raw);
+		out.insert(out.end(), &buffer[0], &buffer[buffersize]);
 	}
-	unsigned encode(const std::string& filename, const unsigned char* in, unsigned w, unsigned h, LoadPNGColorType colortype, unsigned bitdepth) {
+	free(buffer);
+	return error;
+}
+unsigned encode(const std::string& filename, const unsigned char* in, unsigned w, unsigned h, LoadPNGColorType colortype, unsigned bitdepth) {
 		std::vector<unsigned char> out;
 		unsigned char* buffer;
 		size_t buffersize;
@@ -4374,7 +4231,7 @@ namespace loadpng {
 		if (!error) error = save_file(out, filename);
 		return error;
 	}
-}
+
 
 
 
@@ -4383,7 +4240,7 @@ namespace loadpng {
 bitMap loadPng(SGtext filename) {
 	std::vector<unsigned char> image;
 	unsigned width, height;
-	loadpng::decode(image, width, height, filename, LCT_RGB, 8);
+	decode(image, width, height, filename, LCT_RGB, 8);
 	bitMap res = bitMap();
 	res.sizeX = width;
 	res.sizeY = height;
@@ -4395,7 +4252,7 @@ bitMap loadPng(SGtext filename) {
 void savePng(SGtext filename, bitMap png) {
 	std::vector<unsigned char> image(png.sizeX * png.sizeY * 3);
 	memcpy(image.data(), png.data, image.size());
-	loadpng::encode(filename, image.data(), png.sizeX, png.sizeY, LCT_RGB, 8);
+	encode(filename, image.data(), png.sizeX, png.sizeY, LCT_RGB, 8);
 }
 
 //JPG
