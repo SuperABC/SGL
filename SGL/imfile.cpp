@@ -86,14 +86,6 @@ void saveBmp(SGtext filename, bitMap bmp) {
 
 
 
-#define LOADPNG_COMPILE_ZLIB
-#define LOADPNG_COMPILE_PNG
-#define LOADPNG_COMPILE_DECODER
-#define LOADPNG_COMPILE_ENCODER
-#define LOADPNG_COMPILE_DISK
-#define LOADPNG_COMPILE_ALLOCATORS
-#define LOADPNG_COMPILE_CPP
-
 typedef enum {
 	LCT_GREY = 0, /*grayscale: 1,2,4,8,16 bit*/
 	LCT_RGB = 2, /*RGB: 8,16 bit*/
@@ -107,8 +99,6 @@ typedef struct {
 	/* Check LoadPNGDecoderSettings for more ignorable errors such as ignore_crc */
 	unsigned ignore_adler32; /*if 1, continue and don't give an error message if the Adler32 checksum is corrupted*/
 	unsigned ignore_nlen; /*ignore complement of len checksum in uncompressed blocks*/
-
-	const void* custom_context; /*optional custom settings for custom functions*/
 } LoadPNGDecompressSettings;
 typedef struct /*deflate = compress*/ {
 	/*LZ77 related settings*/
@@ -118,8 +108,6 @@ typedef struct /*deflate = compress*/ {
 	unsigned minmatch; /*minimum lz77 length. 3 is normally best, 6 can be better for some PNGs. Default: 0*/
 	unsigned nicematch; /*stop searching if >= this length found. Set to 258 for best compression. Default: 128*/
 	unsigned lazymatching; /*use lazy matching: better compression but a bit slower. Default: true*/
-
-	const void* custom_context; /*optional custom settings for custom functions*/
 } LoadPNGCompressSettings;
 
 typedef struct {
@@ -154,8 +142,6 @@ typedef struct {
 						 errors: srgb rendering intent value, size of content of ancillary chunks, more than 79 characters for some
 						 strings, placement/combination rules for ancillary chunks, crc of unknown chunks, allowed characters
 						 in string keys, etc... */
-
-	unsigned color_convert; /*whether to convert the PNG to the color type you want. Default: yes*/
 } LoadPNGDecoderSettings;
 typedef enum {
 	/*every filter at zero*/
@@ -198,12 +184,6 @@ typedef struct {
 typedef struct {
 	LoadPNGCompressSettings zlibsettings; /*settings for the zlib encoder, such as window size, ...*/
 
-	unsigned auto_convert; /*automatically choose output PNG color type. Default: true*/
-
-						   /*If true, follows the official PNG heuristic: if the PNG uses a palette or lower than
-						   8 bit depth, set all filters to zero. Otherwise use the filter_strategy. Note that to
-						   completely follow the official PNG heuristic, filter_palette_zero must be true and
-						   filter_strategy must be LFS_MINSUM*/
 	unsigned filter_palette_zero;
 	/*Which filter strategy to use when not using zeroes due to filter_palette_zero.
 	Set filter_palette_zero to 0 to ensure always using your chosen strategy. Default: LFS_MINSUM*/
@@ -219,12 +199,8 @@ typedef struct {
 	unsigned force_palette;
 } LoadPNGEncoderSettings;
 typedef struct {
-#ifdef LOADPNG_COMPILE_DECODER
 	LoadPNGDecoderSettings decoder; /*the decoding settings*/
-#endif /*LOADPNG_COMPILE_DECODER*/
-#ifdef LOADPNG_COMPILE_ENCODER
 	LoadPNGEncoderSettings encoder; /*the encoding settings*/
-#endif /*LOADPNG_COMPILE_ENCODER*/
 	LoadPNGColorMode info_raw; /*specifies the format in which you would like to get the raw pixel buffer*/
 	LoadPNGInfo info_png; /*info of the PNG image obtained after decoding*/
 	unsigned error;
@@ -252,45 +228,6 @@ static void loadpng_set32bitInt(unsigned char* buffer, unsigned value) {
 	buffer[1] = (unsigned char)((value >> 16) & 0xff);
 	buffer[2] = (unsigned char)((value >> 8) & 0xff);
 	buffer[3] = (unsigned char)((value) & 0xff);
-}
-
-static long loadpng_filesize(const char* filename) {
-	FILE* file;
-	long size;
-	file = fopen(filename, "rb");
-	if (!file) return -1;
-
-	if (fseek(file, 0, SEEK_END) != 0) {
-		fclose(file);
-		return -1;
-	}
-
-	size = ftell(file);
-	/* It may give LONG_MAX as directory size, this is invalid for us. */
-	if (size == LONG_MAX) size = -1;
-
-	fclose(file);
-	return size;
-}
-static unsigned loadpng_buffer_file(unsigned char* out, size_t size, const char* filename) {
-	FILE* file;
-	size_t readsize;
-	file = fopen(filename, "rb");
-	if (!file) return 78;
-
-	readsize = fread(out, 1, size, file);
-	fclose(file);
-
-	if (readsize != size) return 78;
-	return 0;
-}
-unsigned loadpng_save_file(const unsigned char* buffer, size_t buffersize, const char* filename) {
-	FILE* file;
-	file = fopen(filename, "wb");
-	if (!file) return 79;
-	fwrite(buffer, 1, buffersize, file);
-	fclose(file);
-	return 0;
 }
 
 #define WRITEBIT(writer, bit){\
@@ -1838,8 +1775,7 @@ static unsigned adler32(const unsigned char* data, unsigned len) {
 	return update_adler32(1u, data, len);
 }
 
-unsigned loadpng_zlib_compress(unsigned char** out, size_t* outsize, const unsigned char* in,
-	size_t insize, const LoadPNGCompressSettings* settings) {
+unsigned loadpng_zlib_compress(unsigned char** out, size_t* outsize, const unsigned char* in, size_t insize, const LoadPNGCompressSettings* settings) {
 	size_t i;
 	unsigned error;
 	unsigned char* deflatedata = 0;
@@ -1874,9 +1810,7 @@ unsigned loadpng_zlib_compress(unsigned char** out, size_t* outsize, const unsig
 	free(deflatedata);
 	return error;
 }
-unsigned loadpng_zlib_decompress(vector<unsigned char> &out,
-	const unsigned char* in, size_t insize,
-	const LoadPNGDecompressSettings* settings) {
+unsigned loadpng_zlib_decompress(vector<unsigned char> &out, const unsigned char* in, size_t insize, const LoadPNGDecompressSettings* settings) {
 	unsigned error = 0;
 	unsigned CM, CINFO, FDICT;
 
@@ -1914,16 +1848,6 @@ unsigned loadpng_zlib_decompress(vector<unsigned char> &out,
 
 	return 0; /*no error*/
 }
-static unsigned zlib_decompress(unsigned char** out, size_t* outsize, size_t expected_size,
-	const unsigned char* in, size_t insize, const LoadPNGDecompressSettings* settings) {
-	unsigned error;
-	vector<unsigned char> v(*out, *out + *outsize);
-	error = loadpng_zlib_decompress(v, in, insize, settings);
-	*out = (unsigned char *)malloc(v.size());
-	memcpy(*out, v.data(), v.size());
-	*outsize = v.size();
-	return error;
-}
 
 #define DEFAULT_WINDOWSIZE 2048
 void loadpng_compress_settings_init(LoadPNGCompressSettings* settings) {
@@ -1934,14 +1858,10 @@ void loadpng_compress_settings_init(LoadPNGCompressSettings* settings) {
 	settings->minmatch = 3;
 	settings->nicematch = 128;
 	settings->lazymatching = 1;
-
-	settings->custom_context = 0;
 }
 void loadpng_decompress_settings_init(LoadPNGDecompressSettings* settings) {
 	settings->ignore_adler32 = 0;
 	settings->ignore_nlen = 0;
-
-	settings->custom_context = 0;
 }
 
 static unsigned loadpng_crc32_table[256] = {
@@ -3063,7 +2983,6 @@ static void Adam7_getpassvalues(unsigned passw[7], unsigned passh[7], size_t fil
 	}
 }
 void loadpng_decoder_settings_init(LoadPNGDecoderSettings* settings) {
-	settings->color_convert = 1;
 	settings->ignore_crc = 0;
 	settings->ignore_critical = 0;
 	settings->ignore_end = 0;
@@ -3073,7 +2992,6 @@ void loadpng_encoder_settings_init(LoadPNGEncoderSettings* settings) {
 	loadpng_compress_settings_init(&settings->zlibsettings);
 	settings->filter_palette_zero = 1;
 	settings->filter_strategy = LFS_MINSUM;
-	settings->auto_convert = 1;
 	settings->force_palette = 0;
 	settings->predefined_filters = 0;
 }
@@ -3565,7 +3483,11 @@ static void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h, LoadPNG
 			expected_size += loadpng_get_raw_size_idat((*w + 0), (*h + 0) >> 1, bpp);
 		}
 
-		state->error = zlib_decompress(&scanlines, &scanlines_size, expected_size, idat, idatsize, &state->decoder.zlibsettings);
+		vector<unsigned char> v(scanlines, scanlines + scanlines_size);
+		state->error = loadpng_zlib_decompress(v, idat, idatsize, &state->decoder.zlibsettings);
+		scanlines = (unsigned char *)malloc(v.size());
+		memcpy(scanlines, v.data(), v.size());
+		scanlines_size = v.size();
 	}
 	if (!state->error && scanlines_size != expected_size) state->error = 91; /*decompressed size doesn't match prediction*/
 	free(idat);
@@ -3585,35 +3507,24 @@ unsigned loadpng_decode(unsigned char** out, unsigned* w, unsigned* h, LoadPNGSt
 	*out = 0;
 	decodeGeneric(out, w, h, state, in, insize);
 	if (state->error) return state->error;
-	if (!state->decoder.color_convert || loadpng_color_mode_equal(&state->info_raw, &state->info_png.color)) {
-		/*same color type, no copying or converting of data needed*/
-		/*store the info_png color settings on the info_raw so that the info_raw still reflects what colortype
-		the raw image has to the end user*/
-		if (!state->decoder.color_convert) {
-			state->error = loadpng_color_mode_copy(&state->info_raw, &state->info_png.color);
-			if (state->error) return state->error;
-		}
-	}
-	else { /*color conversion needed*/
-		unsigned char* data = *out;
-		size_t outsize;
+	unsigned char* data = *out;
+	size_t outsize;
 
-		/*TODO: check if this works according to the statement in the documentation: "The converter can convert
-		from grayscale input color type, to 8-bit grayscale or grayscale with alpha"*/
-		if (!(state->info_raw.colortype == LCT_RGB || state->info_raw.colortype == LCT_RGBA)
-			&& !(state->info_raw.bitdepth == 8)) {
-			return 56; /*unsupported color mode conversion*/
-		}
-
-		outsize = loadpng_get_raw_size(*w, *h, &state->info_raw);
-		*out = (unsigned char*)malloc(outsize);
-		if (!(*out)) {
-			state->error = 83; /*alloc fail*/
-		}
-		else state->error = loadpng_convert(*out, data, &state->info_raw,
-			&state->info_png.color, *w, *h);
-		free(data);
+	/*TODO: check if this works according to the statement in the documentation: "The converter can convert
+	from grayscale input color type, to 8-bit grayscale or grayscale with alpha"*/
+	if (!(state->info_raw.colortype == LCT_RGB || state->info_raw.colortype == LCT_RGBA)
+		&& !(state->info_raw.bitdepth == 8)) {
+		return 56; /*unsupported color mode conversion*/
 	}
+
+	outsize = loadpng_get_raw_size(*w, *h, &state->info_raw);
+	*out = (unsigned char*)malloc(outsize);
+	if (!(*out)) {
+		state->error = 83; /*alloc fail*/
+	}
+	else state->error = loadpng_convert(*out, data, &state->info_raw,
+		&state->info_png.color, *w, *h);
+	free(data);
 	return state->error;
 }
 unsigned loadpng_decode_memory(unsigned char** out, unsigned* w, unsigned* h, const unsigned char* in, size_t insize, LoadPNGColorType colortype, unsigned bitdepth) {
@@ -4077,92 +3988,98 @@ static unsigned preProcessScanlines(unsigned char** out, size_t* outsize, const 
 
 	return error;
 }
-unsigned loadpng_encode(unsigned char** out, size_t* outsize, const unsigned char* image, unsigned w, unsigned h, LoadPNGState* state) {
+unsigned loadpng_encode_memory(unsigned char** out, size_t* outsize, const unsigned char* image, unsigned w, unsigned h, LoadPNGColorType colortype, unsigned bitdepth) {
+	unsigned error;
+	LoadPNGState state;
+	loadpng_state_init(&state);
+	state.info_raw.colortype = colortype;
+	state.info_raw.bitdepth = bitdepth;
+	state.info_png.color.colortype = colortype;
+	state.info_png.color.bitdepth = bitdepth;
+
 	unsigned char* data = 0; /*uncompressed version of the IDAT chunk data*/
 	size_t datasize = 0;
 	vector<unsigned char> outv;
 	LoadPNGInfo info;
-	const LoadPNGInfo* info_png = &state->info_png;
+	const LoadPNGInfo* info_png = &state.info_png;
 
 	loadpng_info_init(&info);
 
 	/*provide some proper output values if error will happen*/
 	*out = 0;
 	*outsize = 0;
-	state->error = 0;
+	state.error = 0;
 
 	/*check input values validity*/
-	if ((info_png->color.colortype == LCT_PALETTE || state->encoder.force_palette)
+	if ((info_png->color.colortype == LCT_PALETTE || state.encoder.force_palette)
 		&& (info_png->color.palettesize == 0 || info_png->color.palettesize > 256)) {
-		state->error = 68; /*invalid palette size, it is only allowed to be 1-256*/
+		state.error = 68; /*invalid palette size, it is only allowed to be 1-256*/
 		goto cleanup;
 	}
-	if (state->encoder.zlibsettings.btype > 2) {
-		state->error = 61; /*error: invalid btype*/
+	if (state.encoder.zlibsettings.btype > 2) {
+		state.error = 61; /*error: invalid btype*/
 		goto cleanup;
 	}
 	if (info_png->interlace_method > 1) {
-		state->error = 71; /*error: invalid interlace mode*/
+		state.error = 71; /*error: invalid interlace mode*/
 		goto cleanup;
 	}
-	state->error = checkColorValidity(info_png->color.colortype, info_png->color.bitdepth);
-	if (state->error) goto cleanup; /*error: invalid color type given*/
-	state->error = checkColorValidity(state->info_raw.colortype, state->info_raw.bitdepth);
-	if (state->error) goto cleanup; /*error: invalid color type given*/
+	state.error = checkColorValidity(info_png->color.colortype, info_png->color.bitdepth);
+	if (state.error) goto cleanup; /*error: invalid color type given*/
+	state.error = checkColorValidity(state.info_raw.colortype, state.info_raw.bitdepth);
+	if (state.error) goto cleanup; /*error: invalid color type given*/
 
 									/* color convert and compute scanline filter types */
-	loadpng_info_copy(&info, &state->info_png);
-	if (state->encoder.auto_convert) {
-		LoadPNGColorStats stats;
-		loadpng_color_stats_init(&stats);
-		state->error = loadpng_compute_color_stats(&stats, image, w, h, &state->info_raw);
-		if (state->error) goto cleanup;
-		state->error = auto_choose_color(&info.color, &state->info_raw, &stats);
-		if (state->error) goto cleanup;
-	}
-	if (!loadpng_color_mode_equal(&state->info_raw, &info.color)) {
+	loadpng_info_copy(&info, &state.info_png);
+	LoadPNGColorStats stats;
+	loadpng_color_stats_init(&stats);
+	state.error = loadpng_compute_color_stats(&stats, image, w, h, &state.info_raw);
+	if (state.error) goto cleanup;
+	state.error = auto_choose_color(&info.color, &state.info_raw, &stats);
+	if (state.error) goto cleanup;
+	if (!loadpng_color_mode_equal(&state.info_raw, &info.color)) {
 		unsigned char* converted;
 		size_t size = ((size_t)w * (size_t)h * (size_t)loadpng_get_bpp(&info.color) + 7u) / 8u;
 
 		converted = (unsigned char*)malloc(size);
-		if (!converted && size) state->error = 83; /*alloc fail*/
-		if (!state->error) {
-			state->error = loadpng_convert(converted, image, &info.color, &state->info_raw, w, h);
+		if (!converted && size) state.error = 83; /*alloc fail*/
+		if (!state.error) {
+			state.error = loadpng_convert(converted, image, &info.color, &state.info_raw, w, h);
 		}
-		if (!state->error) {
-			state->error = preProcessScanlines(&data, &datasize, converted, w, h, &info, &state->encoder);
+		if (!state.error) {
+			state.error = preProcessScanlines(&data, &datasize, converted, w, h, &info, &state.encoder);
 		}
 		free(converted);
-		if (state->error) goto cleanup;
+		if (state.error) goto cleanup;
 	}
 	else {
-		state->error = preProcessScanlines(&data, &datasize, image, w, h, &info, &state->encoder);
-		if (state->error) goto cleanup;
+		state.error = preProcessScanlines(&data, &datasize, image, w, h, &info, &state.encoder);
+		if (state.error) goto cleanup;
 	}
 
 	outv.insert(outv.end(), { 137, 80, 78, 71, 13, 10, 26, 10 });
-	if (state->error) goto cleanup;
+	if (state.error) goto cleanup;
 	/*IHDR*/
-	state->error = addChunk_IHDR(outv, w, h, info.color.colortype, info.color.bitdepth, info.interlace_method);
-	if (state->error) goto cleanup;
+	state.error = addChunk_IHDR(outv, w, h, info.color.colortype, info.color.bitdepth, info.interlace_method);
+	if (state.error) goto cleanup;
 	/*PLTE*/
 	if (info.color.colortype == LCT_PALETTE) {
-		state->error = addChunk_PLTE(outv, &info.color);
-		if (state->error) goto cleanup;
+		state.error = addChunk_PLTE(outv, &info.color);
+		if (state.error) goto cleanup;
 	}
-	if (state->encoder.force_palette && (info.color.colortype == LCT_RGB || info.color.colortype == LCT_RGBA)) {
+	if (state.encoder.force_palette && (info.color.colortype == LCT_RGB || info.color.colortype == LCT_RGBA)) {
 		/*force_palette means: write suggested palette for truecolor in PLTE chunk*/
-		state->error = addChunk_PLTE(outv, &info.color);
-		if (state->error) goto cleanup;
+		state.error = addChunk_PLTE(outv, &info.color);
+		if (state.error) goto cleanup;
 	}
 	/*tRNS (this will only add if when necessary) */
-	state->error = addChunk_tRNS(outv, &info.color);
-	if (state->error) goto cleanup;
+	state.error = addChunk_tRNS(outv, &info.color);
+	if (state.error) goto cleanup;
 	/*IDAT (multiple IDAT chunks must be consecutive)*/
-	state->error = addChunk_IDAT(outv, data, datasize, &state->encoder.zlibsettings);
-	if (state->error) goto cleanup;
-	state->error = addChunk_IEND(outv);
-	if (state->error) goto cleanup;
+	state.error = addChunk_IDAT(outv, data, datasize, &state.encoder.zlibsettings);
+	if (state.error) goto cleanup;
+	state.error = addChunk_IEND(outv);
+	if (state.error) goto cleanup;
 
 cleanup:
 	loadpng_info_cleanup(&info);
@@ -4173,74 +4090,43 @@ cleanup:
 	memcpy(*out, outv.data(), outv.size());
 	*outsize = outv.size();
 
-	return state->error;
-}
-unsigned loadpng_encode_memory(unsigned char** out, size_t* outsize, const unsigned char* image, unsigned w, unsigned h, LoadPNGColorType colortype, unsigned bitdepth) {
-	unsigned error;
-	LoadPNGState state;
-	loadpng_state_init(&state);
-	state.info_raw.colortype = colortype;
-	state.info_raw.bitdepth = bitdepth;
-	state.info_png.color.colortype = colortype;
-	state.info_png.color.bitdepth = bitdepth;
-	loadpng_encode(out, outsize, image, w, h, &state);
 	error = state.error;
 	loadpng_state_cleanup(&state);
 	return error;
 }
 
-unsigned load_file(std::vector<unsigned char>& buffer, const std::string& filename) {
-	long size = loadpng_filesize(filename.c_str());
-	if (size < 0) return 78;
-	buffer.resize((size_t)size);
-	return size == 0 ? 0 : loadpng_buffer_file(&buffer[0], (size_t)size, filename.c_str());
-}
-unsigned save_file(const std::vector<unsigned char>& buffer, const std::string& filename) {
-	return loadpng_save_file(buffer.empty() ? 0 : &buffer[0], buffer.size(), filename.c_str());
-}
-
-unsigned decode(std::vector<unsigned char>& out, unsigned& w, unsigned& h, const std::string& filename, LoadPNGColorType colortype, unsigned bitdepth) {
-	std::vector<unsigned char> file;
-	w = h = 0;
-	unsigned error = load_file(file, filename);
-	if (error) return error;
-
-	const unsigned char* in = file.data();
-	size_t insize = file.size();
-	unsigned char* buffer = 0;
-	error = loadpng_decode_memory(&buffer, &w, &h, in, insize, colortype, bitdepth);
-	if (buffer && !error) {
-		LoadPNGColorMode info_raw;
-		info_raw.colortype = colortype;
-		info_raw.bitdepth = bitdepth;
-		size_t buffersize = loadpng_get_raw_size(w, h, &info_raw);
-		out.insert(out.end(), &buffer[0], &buffer[buffersize]);
-	}
-	free(buffer);
-	return error;
-}
-unsigned encode(const std::string& filename, const unsigned char* in, unsigned w, unsigned h, LoadPNGColorType colortype, unsigned bitdepth) {
-		std::vector<unsigned char> out;
-		unsigned char* buffer;
-		size_t buffersize;
-		unsigned error = loadpng_encode_memory(&buffer, &buffersize, in, w, h, colortype, bitdepth);
-		if (buffer) {
-			out.insert(out.end(), &buffer[0], &buffer[buffersize]);
-			free(buffer);
-		}
-		if (!error) error = save_file(out, filename);
-		return error;
-	}
-
-
-
 
 
 
 bitMap loadPng(SGtext filename) {
-	std::vector<unsigned char> image;
+	FILE* fp;
+	long size;
+	fp = fopen(filename, "rb");
+	if (!fp) return bitMap();
+	fseek(fp, 0, SEEK_END);
+	size = ftell(fp);
+	vector<unsigned char> file;
+	file.resize(size);
+	fseek(fp, 0, SEEK_SET);
+	fread(file.data(), 1, size, fp);
+	fclose(fp);
+
+	vector<unsigned char> image;
 	unsigned width, height;
-	decode(image, width, height, filename, LCT_RGB, 8);
+
+	const unsigned char* in = file.data();
+	size_t insize = file.size();
+	unsigned char* buffer = 0;
+	loadpng_decode_memory(&buffer, &width, &height, in, insize, LCT_RGB, 8);
+	if (buffer) {
+		LoadPNGColorMode info_raw;
+		info_raw.colortype = LCT_RGB;
+		info_raw.bitdepth = 8;
+		size_t buffersize = loadpng_get_raw_size(width, height, &info_raw);
+		image.insert(image.end(), &buffer[0], &buffer[buffersize]);
+	}
+	free(buffer);
+
 	bitMap res = bitMap();
 	res.sizeX = width;
 	res.sizeY = height;
@@ -4250,9 +4136,18 @@ bitMap loadPng(SGtext filename) {
 	return res;
 }
 void savePng(SGtext filename, bitMap png) {
-	std::vector<unsigned char> image(png.sizeX * png.sizeY * 3);
+	vector<unsigned char> image(png.sizeX * png.sizeY * 3);
+	convertColor(png);
 	memcpy(image.data(), png.data, image.size());
-	encode(filename, image.data(), png.sizeX, png.sizeY, LCT_RGB, 8);
+
+	unsigned char* buffer;
+	size_t buffersize;
+	loadpng_encode_memory(&buffer, &buffersize, image.data(), png.sizeX, png.sizeY, LCT_RGB, 8);
+	FILE* file;
+	file = fopen(filename, "wb");
+	if (!file) return;
+	fwrite(buffer, 1, buffersize, file);
+	fclose(file);
 }
 
 //JPG
