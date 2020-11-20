@@ -277,6 +277,14 @@ void setIcon(SGtext ico) {
 	_windowList[_currentWindow]->setIcon(LoadImage(NULL, _widen(ico), IMAGE_ICON, 0, 0,
 		LR_LOADFROMFILE | LR_DEFAULTSIZE));
 }
+bool safeAdd(SGuint a, SGuint b, SGuint *c) {
+	*c = a + b;
+	return *c < a;
+}
+bool safeMul(SGuint a, SGuint b, SGuint *c) {
+	*c = a * b;
+	return (a != 0 && *c / a != b);
+}
 
 
 /*

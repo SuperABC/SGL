@@ -94,22 +94,6 @@ typedef enum {
 	LCT_RGBA = 6, /*RGB with alpha: 8,16 bit*/
 	LCT_MAX_OCTET_VALUE = 255
 } LoadPNGColorType;
-
-typedef struct {
-	/* Check LoadPNGDecoderSettings for more ignorable errors such as ignore_crc */
-	unsigned ignore_adler32; /*if 1, continue and don't give an error message if the Adler32 checksum is corrupted*/
-	unsigned ignore_nlen; /*ignore complement of len checksum in uncompressed blocks*/
-} LoadPNGDecompressSettings;
-typedef struct /*deflate = compress*/ {
-	/*LZ77 related settings*/
-	unsigned btype; /*the block type for LZ (0, 1, 2 or 3, see zlib standard). Should be 2 for proper compression.*/
-	unsigned use_lz77; /*whether or not to use LZ77. Should be 1 for proper compression.*/
-	unsigned windowsize; /*must be a power of two <= 32768. higher compresses more but is slower. Default value: 2048.*/
-	unsigned minmatch; /*minimum lz77 length. 3 is normally best, 6 can be better for some PNGs. Default: 0*/
-	unsigned nicematch; /*stop searching if >= this length found. Set to 258 for best compression. Default: 128*/
-	unsigned lazymatching; /*use lazy matching: better compression but a bit slower. Default: true*/
-} LoadPNGCompressSettings;
-
 typedef struct {
 	/*header (IHDR)*/
 	LoadPNGColorType colortype; /*color type, see PNG standard or documentation further in this header file*/
@@ -130,19 +114,22 @@ typedef struct {
 	unsigned interlace_method;  /*interlace method of the original file: 0=none, 1=Adam7*/
 	LoadPNGColorMode color;     /*color type and bits, palette and transparency of the PNG file*/
 } LoadPNGInfo;
-
 typedef struct {
-	LoadPNGDecompressSettings zlibsettings; /*in here is the setting to ignore Adler32 checksums*/
+	unsigned colored; /*not grayscale*/
+	unsigned key; /*image is not opaque and color key is possible instead of full alpha*/
+	unsigned short key_r; /*key values, always as 16-bit, in 8-bit case the byte is duplicated, e.g. 65535 means 255*/
+	unsigned short key_g;
+	unsigned short key_b;
+	unsigned alpha; /*image is not opaque and alpha channel or alpha palette required*/
+	unsigned numcolors; /*amount of colors, up to 257. Not valid if bits == 16 or allow_palette is disabled.*/
+	unsigned char palette[1024]; /*Remembers up to the first 256 RGBA colors, in no particular order, only valid when numcolors is valid*/
+	unsigned bits; /*bits per channel (not for palette). 1,2 or 4 for grayscale only. 16 if 16-bit per channel required.*/
+	size_t numpixels;
 
-											/* Check LoadPNGDecompressSettings for more ignorable errors such as ignore_adler32 */
-	unsigned ignore_crc; /*ignore CRC checksums*/
-	unsigned ignore_critical; /*ignore unknown critical chunks*/
-	unsigned ignore_end; /*ignore issues at end of file if possible (missing IEND chunk, too large chunk, ...)*/
-						 /* TODO: make a system involving warnings with levels and a strict mode instead. Other potentially recoverable
-						 errors: srgb rendering intent value, size of content of ancillary chunks, more than 79 characters for some
-						 strings, placement/combination rules for ancillary chunks, crc of unknown chunks, allowed characters
-						 in string keys, etc... */
-} LoadPNGDecoderSettings;
+	/*user settings for computing/using the stats*/
+	unsigned allow_palette; /*default 1. if 0, disallow choosing palette colortype in auto_choose_color, and don't count numcolors*/
+	unsigned allow_greyscale; /*default 1. if 0, choose RGB or RGBA even if the image only has gray colors*/
+} LoadPNGColorStats;
 typedef enum {
 	/*every filter at zero*/
 	LFS_ZERO = 0,
@@ -164,23 +151,33 @@ typedef enum {
 	/*use predefined_filters buffer: you specify the filter type for each scanline*/
 	LFS_PREDEFINED
 } LoadPNGFilterStrategy;
+
 typedef struct {
-	unsigned colored; /*not grayscale*/
-	unsigned key; /*image is not opaque and color key is possible instead of full alpha*/
-	unsigned short key_r; /*key values, always as 16-bit, in 8-bit case the byte is duplicated, e.g. 65535 means 255*/
-	unsigned short key_g;
-	unsigned short key_b;
-	unsigned alpha; /*image is not opaque and alpha channel or alpha palette required*/
-	unsigned numcolors; /*amount of colors, up to 257. Not valid if bits == 16 or allow_palette is disabled.*/
-	unsigned char palette[1024]; /*Remembers up to the first 256 RGBA colors, in no particular order, only valid when numcolors is valid*/
-	unsigned bits; /*bits per channel (not for palette). 1,2 or 4 for grayscale only. 16 if 16-bit per channel required.*/
-	size_t numpixels;
+	/* Check LoadPNGDecoderSettings for more ignorable errors such as ignore_crc */
+	unsigned ignore_adler32; /*if 1, continue and don't give an error message if the Adler32 checksum is corrupted*/
+	unsigned ignore_nlen; /*ignore complement of len checksum in uncompressed blocks*/
+} LoadPNGDecompressSettings;
+typedef struct {
+	LoadPNGDecompressSettings zlibsettings; /*in here is the setting to ignore Adler32 checksums*/
 
-	/*user settings for computing/using the stats*/
-	unsigned allow_palette; /*default 1. if 0, disallow choosing palette colortype in auto_choose_color, and don't count numcolors*/
-	unsigned allow_greyscale; /*default 1. if 0, choose RGB or RGBA even if the image only has gray colors*/
-} LoadPNGColorStats;
-
+											/* Check LoadPNGDecompressSettings for more ignorable errors such as ignore_adler32 */
+	unsigned ignore_crc; /*ignore CRC checksums*/
+	unsigned ignore_critical; /*ignore unknown critical chunks*/
+	unsigned ignore_end; /*ignore issues at end of file if possible (missing IEND chunk, too large chunk, ...)*/
+						 /* TODO: make a system involving warnings with levels and a strict mode instead. Other potentially recoverable
+						 errors: srgb rendering intent value, size of content of ancillary chunks, more than 79 characters for some
+						 strings, placement/combination rules for ancillary chunks, crc of unknown chunks, allowed characters
+						 in string keys, etc... */
+} LoadPNGDecoderSettings;
+typedef struct /*deflate = compress*/ {
+	/*LZ77 related settings*/
+	unsigned btype; /*the block type for LZ (0, 1, 2 or 3, see zlib standard). Should be 2 for proper compression.*/
+	unsigned use_lz77; /*whether or not to use LZ77. Should be 1 for proper compression.*/
+	unsigned windowsize; /*must be a power of two <= 32768. higher compresses more but is slower. Default value: 2048.*/
+	unsigned minmatch; /*minimum lz77 length. 3 is normally best, 6 can be better for some PNGs. Default: 0*/
+	unsigned nicematch; /*stop searching if >= this length found. Set to 258 for best compression. Default: 128*/
+	unsigned lazymatching; /*use lazy matching: better compression but a bit slower. Default: true*/
+} LoadPNGCompressSettings;
 typedef struct {
 	LoadPNGCompressSettings zlibsettings; /*settings for the zlib encoder, such as window size, ...*/
 
@@ -205,20 +202,6 @@ typedef struct {
 	LoadPNGInfo info_png; /*info of the PNG image obtained after decoding*/
 	unsigned error;
 } LoadPNGState;
-
-static int loadpng_addofl(size_t a, size_t b, size_t* result) {
-	*result = a + b; /* Unsigned addition is well defined and safe in C90 */
-	return *result < a;
-}
-static int loadpng_mulofl(size_t a, size_t b, size_t* result) {
-	*result = a * b; /* Unsigned multiplication is well defined and safe in C90 */
-	return (a != 0 && *result / a != b);
-}
-static int loadpng_gtofl(size_t a, size_t b, size_t c) {
-	size_t d;
-	if (loadpng_addofl(a, b, &d)) return 1;
-	return d > c;
-}
 
 static unsigned loadpng_read32bitInt(const unsigned char* buffer) {
 	return (((unsigned)buffer[0] << 24u) | ((unsigned)buffer[1] << 16u) | ((unsigned)buffer[2] << 8u) | (unsigned)buffer[3]);
@@ -272,10 +255,10 @@ static unsigned LoadPNGBitReader_init(LoadPNGBitReader* reader, const unsigned c
 	reader->data = data;
 	reader->size = size;
 	/* size in bits, return error if overflow (if size_t is 32 bit this supports up to 500MB)  */
-	if (loadpng_mulofl(size, 8u, &reader->bitsize)) return 105;
+	if (safeMul(size, 8u, &reader->bitsize)) return 105;
 	/*ensure incremented bp can be compared to bitsize without overflow even when it would be incremented 32 too much and
 	trying to ensure 32 more bits*/
-	if (loadpng_addofl(reader->bitsize, 64u, &temp)) return 105;
+	if (safeAdd(reader->bitsize, 64u, &temp)) return 105;
 	reader->bp = 0;
 	reader->buffer = 0;
 	return 0; /*ok*/
@@ -557,8 +540,7 @@ static unsigned HuffmanTree_makeFromLengths2(HuffmanTree* tree) {
 	if (!error) error = HuffmanTree_makeTable(tree);
 	return error;
 }
-static unsigned HuffmanTree_makeFromLengths(HuffmanTree* tree, const unsigned* bitlen,
-	size_t numcodes, unsigned maxbitlen) {
+static unsigned HuffmanTree_makeFromLengths(HuffmanTree* tree, const unsigned* bitlen, size_t numcodes, unsigned maxbitlen) {
 	unsigned i;
 	tree->lengths = (unsigned*)malloc(numcodes * sizeof(unsigned));
 	if (!tree->lengths) return 83; /*alloc fail*/
@@ -1471,7 +1453,7 @@ static unsigned getTreeInflateDynamic(HuffmanTree* tree_ll, HuffmanTree* tree_d,
 
 	while (!error) {
 		/*read the code length codes out of 3 * (amount of code length codes) bits*/
-		if (loadpng_gtofl(reader->bp, HCLEN * 3, reader->bitsize)) {
+		if (reader->bp + HCLEN * 3 > reader->bitsize) {
 			error = 50;
 			break;
 		}
@@ -1848,13 +1830,11 @@ unsigned loadpng_zlib_decompress(vector<unsigned char> &out, const unsigned char
 
 	return 0; /*no error*/
 }
-
-#define DEFAULT_WINDOWSIZE 2048
 void loadpng_compress_settings_init(LoadPNGCompressSettings* settings) {
 	/*compress with dynamic huffman tree (not in the mathematical sense, just not the predefined one)*/
 	settings->btype = 2;
 	settings->use_lz77 = 1;
-	settings->windowsize = DEFAULT_WINDOWSIZE;
+	settings->windowsize = 2048;
 	settings->minmatch = 3;
 	settings->nicematch = 128;
 	settings->lazymatching = 1;
@@ -1962,7 +1942,7 @@ unsigned char* loadpng_chunk_next(unsigned char* chunk, unsigned char* end) {
 	else {
 		size_t total_chunk_length;
 		unsigned char* result;
-		if (loadpng_addofl(loadpng_chunk_length(chunk), 12, &total_chunk_length)) return end;
+		if (safeAdd(loadpng_chunk_length(chunk), 12, &total_chunk_length)) return end;
 		result = chunk + total_chunk_length;
 		if (result < chunk) return end; /*pointer overflow*/
 		return result;
@@ -1978,7 +1958,7 @@ const unsigned char* loadpng_chunk_next_const(const unsigned char* chunk, const 
 	else {
 		size_t total_chunk_length;
 		const unsigned char* result;
-		if (loadpng_addofl(loadpng_chunk_length(chunk), 12, &total_chunk_length)) return end;
+		if (safeAdd(loadpng_chunk_length(chunk), 12, &total_chunk_length)) return end;
 		result = chunk + total_chunk_length;
 		if (result < chunk) return end; /*pointer overflow*/
 		return result;
@@ -1986,8 +1966,8 @@ const unsigned char* loadpng_chunk_next_const(const unsigned char* chunk, const 
 }
 static unsigned loadpng_chunk_init(unsigned char** chunk, vector<unsigned char> &out, unsigned length, const char* type) {
 	size_t new_length = out.size();
-	if (loadpng_addofl(new_length, length, &new_length)) return 77;
-	if (loadpng_addofl(new_length, 12, &new_length)) return 77;
+	if (safeAdd(new_length, length, &new_length)) return 77;
+	if (safeAdd(new_length, 12, &new_length)) return 77;
 	out.resize(new_length);
 	*chunk = out.data() + new_length - length - 12u;
 
@@ -2151,15 +2131,15 @@ static int loadpng_pixel_overflow(unsigned w, unsigned h, const LoadPNGColorMode
 	size_t numpixels, total;
 	size_t line; /* bytes per line in worst case */
 
-	if (loadpng_mulofl((size_t)w, (size_t)h, &numpixels)) return 1;
-	if (loadpng_mulofl(numpixels, 8, &total)) return 1; /* bit pointer with 8-bit color, or 8 bytes per channel color */
+	if (safeMul((size_t)w, (size_t)h, &numpixels)) return 1;
+	if (safeMul(numpixels, 8, &total)) return 1; /* bit pointer with 8-bit color, or 8 bytes per channel color */
 
 														/* Bytes per scanline with the expression "(w / 8u) * bpp) + ((w & 7u) * bpp + 7u) / 8u" */
-	if (loadpng_mulofl((size_t)(w / 8u), bpp, &line)) return 1;
-	if (loadpng_addofl(line, ((w & 7u) * bpp + 7u) / 8u, &line)) return 1;
+	if (safeMul((size_t)(w / 8u), bpp, &line)) return 1;
+	if (safeAdd(line, ((w & 7u) * bpp + 7u) / 8u, &line)) return 1;
 
-	if (loadpng_addofl(line, 5, &line)) return 1; /* 5 bytes overhead per line: 1 filterbyte, 4 for Adam7 worst case */
-	if (loadpng_mulofl(line, h, &total)) return 1; /* Total bytes in worst case */
+	if (safeAdd(line, 5, &line)) return 1; /* 5 bytes overhead per line: 1 filterbyte, 4 for Adam7 worst case */
+	if (safeMul(line, h, &total)) return 1; /* Total bytes in worst case */
 
 	return 0; /* no overflow */
 }
@@ -3346,14 +3326,19 @@ static unsigned readChunk_tRNS(LoadPNGColorMode* color, const unsigned char* dat
 
 	return 0; /* OK */
 }
-static void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h, LoadPNGState* state, const unsigned char* in, size_t insize) {
+unsigned loadpng_decode_memory(unsigned char** out, unsigned* w, unsigned* h, const unsigned char* in, size_t insize, LoadPNGColorType colortype, unsigned bitdepth) {
+	LoadPNGState state;
+	loadpng_state_init(&state);
+	state.info_raw.colortype = colortype;
+	state.info_raw.bitdepth = bitdepth; *out = 0;
+
 	unsigned char IEND = 0;
 	const unsigned char* chunk;
 	unsigned char* idat; /*the data from idat chunks, zlib compressed*/
 	size_t idatsize = 0;
 	unsigned char* scanlines = 0;
 	size_t scanlines_size = 0, expected_size = 0;
-	size_t outsize = 0;
+	size_t pngsize = 0;
 
 	/*for unknown chunk order*/
 	unsigned unknown = 0;
@@ -3361,33 +3346,33 @@ static void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h, LoadPNG
 	*out = 0;
 	*w = *h = 0;
 
-	state->error = loadpng_inspect(w, h, state, in, insize); /*reads header and resets other parameters in state->info_png*/
-	if (state->error) return;
+	state.error = loadpng_inspect(w, h, &state, in, insize); /*reads header and resets other parameters in state->info_png*/
+	if (state.error) return state.error;
 
-	if (loadpng_pixel_overflow(*w, *h, &state->info_png.color, &state->info_raw)) {
-		state->error = 92;
-		return;
+	if (loadpng_pixel_overflow(*w, *h, &state.info_png.color, &state.info_raw)) {
+		state.error = 92;
+		return state.error;
 	}
 
 	/*the input filesize is a safe upper bound for the sum of idat chunks size*/
 	idat = (unsigned char*)malloc(insize);
 	if (!idat) {
-		state->error = 83;
-		return;
+		state.error = 83;
+		return state.error;
 	}
 
 	chunk = &in[33]; /*first byte of the first chunk after the header*/
 
 					 /*loop through the chunks, ignoring unknown chunks and stopping at IEND chunk.
 					 IDAT data is put at the start of the in buffer*/
-	while (!IEND && !state->error) {
+	while (!IEND && !state.error) {
 		unsigned chunkLength;
 		const unsigned char* data; /*the data in the chunk*/
 
 								   /*error: size of the in buffer too small to contain next chunk*/
 		if ((size_t)((chunk - in) + 12) > insize || chunk < in) {
-			if (state->decoder.ignore_end) break; /*other errors may still happen though*/
-			state->error = 30;
+			if (state.decoder.ignore_end) break; /*other errors may still happen though*/
+			state.error = 30;
 			break;
 		}
 
@@ -3395,13 +3380,13 @@ static void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h, LoadPNG
 		chunkLength = loadpng_chunk_length(chunk);
 		/*error: chunk length larger than the max PNG chunk size*/
 		if (chunkLength > 2147483647) {
-			if (state->decoder.ignore_end) break; /*other errors may still happen though*/
-			state->error = 63;
+			if (state.decoder.ignore_end) break; /*other errors may still happen though*/
+			state.error = 63;
 			break;
 		}
 
 		if ((size_t)((chunk - in) + chunkLength + 12) > insize || (chunk + chunkLength + 12) < in) {
-			state->error = 64;
+			state.error = 64;
 			break;
 		}
 
@@ -3412,12 +3397,12 @@ static void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h, LoadPNG
 		/*IDAT chunk, containing compressed image data*/
 		if (loadpng_chunk_type_equals(chunk, "IDAT")) {
 			size_t newsize;
-			if (loadpng_addofl(idatsize, chunkLength, &newsize)) {
-				state->error = 95;
+			if (safeAdd(idatsize, chunkLength, &newsize)) {
+				state.error = 95;
 				break;
 			}
 			if (newsize > insize) {
-				state->error = 95;
+				state.error = 95;
 				break;
 			}
 			memcpy(idat + idatsize, data, chunkLength);
@@ -3429,29 +3414,29 @@ static void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h, LoadPNG
 		}
 		else if (loadpng_chunk_type_equals(chunk, "PLTE")) {
 			/*palette chunk (PLTE)*/
-			state->error = readChunk_PLTE(&state->info_png.color, data, chunkLength);
-			if (state->error) break;
+			state.error = readChunk_PLTE(&state.info_png.color, data, chunkLength);
+			if (state.error) break;
 		}
 		else if (loadpng_chunk_type_equals(chunk, "tRNS")) {
 			/*palette transparency chunk (tRNS). Even though this one is an ancillary chunk , it is still compiled
 			in without 'LOADPNG_COMPILE_ANCILLARY_CHUNKS' because it contains essential color information that
 			affects the alpha channel of pixels. */
-			state->error = readChunk_tRNS(&state->info_png.color, data, chunkLength);
-			if (state->error) break;
+			state.error = readChunk_tRNS(&state.info_png.color, data, chunkLength);
+			if (state.error) break;
 		}
 		else /*it's not an implemented chunk type, so ignore it: skip over the data*/ {
 			/*error: unknown critical chunk (5th bit of first byte of chunk type is 0)*/
-			if (!state->decoder.ignore_critical && !loadpng_chunk_ancillary(chunk)) {
-				state->error = 69;
+			if (!state.decoder.ignore_critical && !loadpng_chunk_ancillary(chunk)) {
+				state.error = 69;
 				break;
 			}
 
 			unknown = 1;
 		}
 
-		if (!state->decoder.ignore_crc && !unknown) {
+		if (!state.decoder.ignore_crc && !unknown) {
 			if (loadpng_chunk_check_crc(chunk)) {
-				state->error = 57;
+				state.error = 57;
 				break;
 			}
 		}
@@ -3459,19 +3444,19 @@ static void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h, LoadPNG
 		if (!IEND) chunk = loadpng_chunk_next_const(chunk, in + insize);
 	}
 
-	if (state->info_png.color.colortype == LCT_PALETTE && !state->info_png.color.palette) {
-		state->error = 106; /* error: PNG file must have PLTE chunk if color type is palette */
+	if (state.info_png.color.colortype == LCT_PALETTE && !state.info_png.color.palette) {
+		state.error = 106; /* error: PNG file must have PLTE chunk if color type is palette */
 	}
 
-	if (!state->error) {
+	if (!state.error) {
 		/*predict output size, to allocate exact size for output buffer to avoid more dynamic allocation.
 		If the decompressed size does not match the prediction, the image must be corrupt.*/
-		if (state->info_png.interlace_method == 0) {
-			size_t bpp = loadpng_get_bpp(&state->info_png.color);
+		if (state.info_png.interlace_method == 0) {
+			size_t bpp = loadpng_get_bpp(&state.info_png.color);
 			expected_size = loadpng_get_raw_size_idat(*w, *h, bpp);
 		}
 		else {
-			size_t bpp = loadpng_get_bpp(&state->info_png.color);
+			size_t bpp = loadpng_get_bpp(&state.info_png.color);
 			/*Adam-7 interlaced: expected size is the sum of the 7 sub-images sizes*/
 			expected_size = 0;
 			expected_size += loadpng_get_raw_size_idat((*w + 7) >> 3, (*h + 7) >> 3, bpp);
@@ -3484,58 +3469,46 @@ static void decodeGeneric(unsigned char** out, unsigned* w, unsigned* h, LoadPNG
 		}
 
 		vector<unsigned char> v(scanlines, scanlines + scanlines_size);
-		state->error = loadpng_zlib_decompress(v, idat, idatsize, &state->decoder.zlibsettings);
+		state.error = loadpng_zlib_decompress(v, idat, idatsize, &state.decoder.zlibsettings);
 		scanlines = (unsigned char *)malloc(v.size());
 		memcpy(scanlines, v.data(), v.size());
 		scanlines_size = v.size();
 	}
-	if (!state->error && scanlines_size != expected_size) state->error = 91; /*decompressed size doesn't match prediction*/
+	if (!state.error && scanlines_size != expected_size) state.error = 91; /*decompressed size doesn't match prediction*/
 	free(idat);
 
-	if (!state->error) {
-		outsize = loadpng_get_raw_size(*w, *h, &state->info_png.color);
-		*out = (unsigned char*)malloc(outsize);
-		if (!*out) state->error = 83; /*alloc fail*/
+	if (!state.error) {
+		pngsize = loadpng_get_raw_size(*w, *h, &state.info_png.color);
+		*out = (unsigned char*)malloc(pngsize);
+		if (!*out) state.error = 83; /*alloc fail*/
 	}
-	if (!state->error) {
-		memset(*out, 0, outsize);
-		state->error = postProcessScanlines(*out, scanlines, *w, *h, &state->info_png);
+	if (!state.error) {
+		memset(*out, 0, pngsize);
+		state.error = postProcessScanlines(*out, scanlines, *w, *h, &state.info_png);
 	}
 	free(scanlines);
-}
-unsigned loadpng_decode(unsigned char** out, unsigned* w, unsigned* h, LoadPNGState* state, const unsigned char* in, size_t insize) {
-	*out = 0;
-	decodeGeneric(out, w, h, state, in, insize);
-	if (state->error) return state->error;
+
+	if (state.error) return state.error;
 	unsigned char* data = *out;
 	size_t outsize;
 
 	/*TODO: check if this works according to the statement in the documentation: "The converter can convert
 	from grayscale input color type, to 8-bit grayscale or grayscale with alpha"*/
-	if (!(state->info_raw.colortype == LCT_RGB || state->info_raw.colortype == LCT_RGBA)
-		&& !(state->info_raw.bitdepth == 8)) {
+	if (!(state.info_raw.colortype == LCT_RGB || state.info_raw.colortype == LCT_RGBA)
+		&& !(state.info_raw.bitdepth == 8)) {
 		return 56; /*unsupported color mode conversion*/
 	}
 
-	outsize = loadpng_get_raw_size(*w, *h, &state->info_raw);
+	outsize = loadpng_get_raw_size(*w, *h, &state.info_raw);
 	*out = (unsigned char*)malloc(outsize);
 	if (!(*out)) {
-		state->error = 83; /*alloc fail*/
+		state.error = 83; /*alloc fail*/
 	}
-	else state->error = loadpng_convert(*out, data, &state->info_raw,
-		&state->info_png.color, *w, *h);
+	else state.error = loadpng_convert(*out, data, &state.info_raw,
+		&state.info_png.color, *w, *h);
 	free(data);
-	return state->error;
-}
-unsigned loadpng_decode_memory(unsigned char** out, unsigned* w, unsigned* h, const unsigned char* in, size_t insize, LoadPNGColorType colortype, unsigned bitdepth) {
-	unsigned error;
-	LoadPNGState state;
-	loadpng_state_init(&state);
-	state.info_raw.colortype = colortype;
-	state.info_raw.bitdepth = bitdepth;
-	error = loadpng_decode(out, w, h, &state, in, insize);
 	loadpng_state_cleanup(&state);
-	return error;
+	return state.error;
 }
 
 static unsigned addChunk_IHDR(vector<unsigned char> &out, unsigned w, unsigned h, LoadPNGColorType colortype, unsigned bitdepth, unsigned interlace_method) {

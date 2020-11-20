@@ -723,6 +723,20 @@ extern "C" {
 	SGvoid setIcon(SGtext ico);
 
 	/**
+	* Check if add operation will overflow. If it overflows, set result to 0 and
+	* return false.
+	* @Param a + b = c.
+	*/
+	SGbool safeAdd(SGuint a, SGuint b, SGuint *c);
+
+	/**
+	* Check if multiply operation will overflow. If it overflows, set result to 0 and
+	* return false.
+	* @Param a * b = c.
+	*/
+	SGbool safeMul(SGuint a, SGuint b, SGuint *c);
+
+	/**
 	* Convert rgb to bgr or vice versa.
 	* @Param src is the picture source.
 	*/
