@@ -203,156 +203,126 @@ typedef struct {
 	unsigned error;
 } LoadPNGState;
 
-static unsigned loadpng_read32bitInt(const unsigned char* buffer) {
+class pngBits {
+public:
+	vector<unsigned char> *data;
+	unsigned int bp;
+	unsigned int buffer;
+
+	void setData(vector<unsigned char> *data) {
+		this->data = data;
+		bp = buffer = 0;
+	}
+	void writeOrderBits(unsigned value, size_t nbits) {
+		for (int i = 0; i != nbits; i++) {
+			if ((bp & 7u) == 0)data->push_back(0);
+			(*data)[data->size() - 1] |= ((value >> i) & 1) << (bp & 7u);
+			++bp;
+		}
+	}
+	void writeReverseBits(unsigned value, size_t nbits) {
+		for (int i = 0; i != nbits; i++) {
+			if ((bp & 7u) == 0)data->push_back(0);
+			(*data)[data->size() - 1] |= ((value >> (nbits - 1u - i)) & 1u) << (bp & 7u);
+			++bp;
+		}
+	}
+
+	unsigned ensureBits9(size_t nbits) {
+		size_t start = bp >> 3u;
+		size_t size = data->size();
+		if (start + 1u < size) {
+			buffer = (*data)[start + 0] | ((*data)[start + 1] << 8u);
+			buffer >>= (bp & 7u);
+			return 1;
+		}
+		else {
+			buffer = 0;
+			if (start + 0u < size) buffer |= (*data)[start + 0];
+			buffer >>= (bp & 7u);
+			return bp + nbits <= data->size() * 8;
+		}
+	}
+	unsigned ensureBits17(size_t nbits) {
+		size_t start = bp >> 3u;
+		size_t size = data->size();
+		if (start + 2u < size) {
+			buffer = (*data)[start + 0] | ((*data)[start + 1] << 8u) | ((*data)[start + 2] << 16u);
+			buffer >>= (bp & 7u);
+			return 1;
+		}
+		else {
+			buffer = 0;
+			if (start + 0u < size) buffer |= (*data)[start + 0];
+			if (start + 1u < size) buffer |= ((*data)[start + 1] << 8u);
+			buffer >>= (bp & 7u);
+			return bp + nbits <= data->size() * 8;
+		}
+	}
+	unsigned ensureBits25(size_t nbits) {
+		size_t start = bp >> 3u;
+		size_t size = data->size();
+		if (start + 3u < size) {
+			buffer = (*data)[start + 0] | ((*data)[start + 1] << 8u) | ((*data)[start + 2] << 16u) | ((*data)[start + 3] << 24u);
+			buffer >>= (bp & 7u);
+			return 1;
+		}
+		else {
+			buffer = 0;
+			if (start + 0u < size) buffer |= (*data)[start + 0];
+			if (start + 1u < size) buffer |= ((*data)[start + 1] << 8u);
+			if (start + 2u < size) buffer |= ((*data)[start + 2] << 16u);
+			buffer >>= (bp & 7u);
+			return bp + nbits <= data->size() * 8;
+		}
+	}
+	unsigned ensureBits32(size_t nbits) {
+		size_t start = bp >> 3u;
+		size_t size = data->size();
+		if (start + 4u < size) {
+			buffer = (*data)[start + 0] | ((*data)[start + 1] << 8u) | ((*data)[start + 2] << 16u) | ((*data)[start + 3] << 24u);
+			buffer >>= (bp & 7u);
+			buffer |= (((*data)[start + 4] << 24u) << (8u - (bp & 7u)));
+			return 1;
+		}
+		else {
+			buffer = 0;
+			if (start + 0u < size) buffer |= (*data)[start + 0];
+			if (start + 1u < size) buffer |= ((*data)[start + 1] << 8u);
+			if (start + 2u < size) buffer |= ((*data)[start + 2] << 16u);
+			if (start + 3u < size) buffer |= ((*data)[start + 3] << 24u);
+			buffer >>= (bp & 7u);
+			return bp + nbits <= data->size() * 8;
+		}
+	}
+	int peekBits(size_t nbits) {
+		return buffer & ((1u << nbits) - 1u);
+	}
+	void advanceBits(size_t nbits) {
+		buffer >>= nbits;
+		bp += nbits;
+	}
+	int readBits(size_t nbits) {
+		int result = peekBits(nbits);
+		advanceBits(nbits);
+		return result;
+	}
+};
+static unsigned reverseBits(unsigned bits, unsigned num) {
+	unsigned i, result = 0;
+	for (i = 0; i < num; i++) result |= ((bits >> (num - i - 1u)) & 1u) << i;
+	return result;
+}
+static unsigned readInt32(const unsigned char* buffer) {
 	return (((unsigned)buffer[0] << 24u) | ((unsigned)buffer[1] << 16u) | ((unsigned)buffer[2] << 8u) | (unsigned)buffer[3]);
 }
-static void loadpng_set32bitInt(unsigned char* buffer, unsigned value) {
+static void writeInt32(unsigned char* buffer, unsigned value) {
 	buffer[0] = (unsigned char)((value >> 24) & 0xff);
 	buffer[1] = (unsigned char)((value >> 16) & 0xff);
 	buffer[2] = (unsigned char)((value >> 8) & 0xff);
 	buffer[3] = (unsigned char)((value) & 0xff);
 }
 
-#define WRITEBIT(writer, bit){\
-  /* append new byte */\
-  if(((writer->bp) & 7u) == 0) {\
-    (*(writer->data)).push_back(0);\
-  }\
-  ((*(writer->data))[(*(writer->data)).size() - 1]) |= (bit << ((writer->bp) & 7u));\
-  ++writer->bp;\
-}
-typedef struct {
-	vector<unsigned char> *data;
-	unsigned char bp; /*ok to overflow, indicates bit pos inside byte*/
-} LoadPNGBitWriter;
-static void LoadPNGBitWriter_init(LoadPNGBitWriter* writer, vector<unsigned char> *data) {
-	writer->data = data;
-	writer->bp = 0;
-}
-static void writeBits(LoadPNGBitWriter* writer, unsigned value, size_t nbits) {
-	size_t i;
-	for (i = 0; i != nbits; ++i) {
-		WRITEBIT(writer, (unsigned char)((value >> i) & 1));
-	}
-}
-static void writeBitsReversed(LoadPNGBitWriter* writer, unsigned value, size_t nbits) {
-	size_t i;
-	for (i = 0; i != nbits; ++i) {
-		/* TODO: increase output size only once here rather than in each WRITEBIT */
-		WRITEBIT(writer, (unsigned char)((value >> (nbits - 1u - i)) & 1u));
-	}
-}
-
-typedef struct {
-	const unsigned char* data;
-	size_t size; /*size of data in bytes*/
-	size_t bitsize; /*size of data in bits, end of valid bp values, should be 8*size*/
-	size_t bp;
-	unsigned buffer; /*buffer for reading bits. NOTE: 'unsigned' must support at least 32 bits*/
-} LoadPNGBitReader;
-static unsigned LoadPNGBitReader_init(LoadPNGBitReader* reader, const unsigned char* data, size_t size) {
-	size_t temp;
-	reader->data = data;
-	reader->size = size;
-	/* size in bits, return error if overflow (if size_t is 32 bit this supports up to 500MB)  */
-	if (safeMul(size, 8u, &reader->bitsize)) return 105;
-	/*ensure incremented bp can be compared to bitsize without overflow even when it would be incremented 32 too much and
-	trying to ensure 32 more bits*/
-	if (safeAdd(reader->bitsize, 64u, &temp)) return 105;
-	reader->bp = 0;
-	reader->buffer = 0;
-	return 0; /*ok*/
-}
-static unsigned ensureBits9(LoadPNGBitReader* reader, size_t nbits) {
-	size_t start = reader->bp >> 3u;
-	size_t size = reader->size;
-	if (start + 1u < size) {
-		reader->buffer = (unsigned)reader->data[start + 0] | ((unsigned)reader->data[start + 1] << 8u);
-		reader->buffer >>= (reader->bp & 7u);
-		return 1;
-	}
-	else {
-		reader->buffer = 0;
-		if (start + 0u < size) reader->buffer |= reader->data[start + 0];
-		reader->buffer >>= (reader->bp & 7u);
-		return reader->bp + nbits <= reader->bitsize;
-	}
-}
-static unsigned ensureBits17(LoadPNGBitReader* reader, size_t nbits) {
-	size_t start = reader->bp >> 3u;
-	size_t size = reader->size;
-	if (start + 2u < size) {
-		reader->buffer = (unsigned)reader->data[start + 0] | ((unsigned)reader->data[start + 1] << 8u) |
-			((unsigned)reader->data[start + 2] << 16u);
-		reader->buffer >>= (reader->bp & 7u);
-		return 1;
-	}
-	else {
-		reader->buffer = 0;
-		if (start + 0u < size) reader->buffer |= reader->data[start + 0];
-		if (start + 1u < size) reader->buffer |= ((unsigned)reader->data[start + 1] << 8u);
-		reader->buffer >>= (reader->bp & 7u);
-		return reader->bp + nbits <= reader->bitsize;
-	}
-}
-static inline unsigned ensureBits25(LoadPNGBitReader* reader, size_t nbits) {
-	size_t start = reader->bp >> 3u;
-	size_t size = reader->size;
-	if (start + 3u < size) {
-		reader->buffer = (unsigned)reader->data[start + 0] | ((unsigned)reader->data[start + 1] << 8u) |
-			((unsigned)reader->data[start + 2] << 16u) | ((unsigned)reader->data[start + 3] << 24u);
-		reader->buffer >>= (reader->bp & 7u);
-		return 1;
-	}
-	else {
-		reader->buffer = 0;
-		if (start + 0u < size) reader->buffer |= reader->data[start + 0];
-		if (start + 1u < size) reader->buffer |= ((unsigned)reader->data[start + 1] << 8u);
-		if (start + 2u < size) reader->buffer |= ((unsigned)reader->data[start + 2] << 16u);
-		reader->buffer >>= (reader->bp & 7u);
-		return reader->bp + nbits <= reader->bitsize;
-	}
-}
-static inline unsigned ensureBits32(LoadPNGBitReader* reader, size_t nbits) {
-	size_t start = reader->bp >> 3u;
-	size_t size = reader->size;
-	if (start + 4u < size) {
-		reader->buffer = (unsigned)reader->data[start + 0] | ((unsigned)reader->data[start + 1] << 8u) |
-			((unsigned)reader->data[start + 2] << 16u) | ((unsigned)reader->data[start + 3] << 24u);
-		reader->buffer >>= (reader->bp & 7u);
-		reader->buffer |= (((unsigned)reader->data[start + 4] << 24u) << (8u - (reader->bp & 7u)));
-		return 1;
-	}
-	else {
-		reader->buffer = 0;
-		if (start + 0u < size) reader->buffer |= reader->data[start + 0];
-		if (start + 1u < size) reader->buffer |= ((unsigned)reader->data[start + 1] << 8u);
-		if (start + 2u < size) reader->buffer |= ((unsigned)reader->data[start + 2] << 16u);
-		if (start + 3u < size) reader->buffer |= ((unsigned)reader->data[start + 3] << 24u);
-		reader->buffer >>= (reader->bp & 7u);
-		return reader->bp + nbits <= reader->bitsize;
-	}
-}
-static unsigned peekBits(LoadPNGBitReader* reader, size_t nbits) {
-	/* The shift allows nbits to be only up to 31. */
-	return reader->buffer & ((1u << nbits) - 1u);
-}
-static void advanceBits(LoadPNGBitReader* reader, size_t nbits) {
-	reader->buffer >>= nbits;
-	reader->bp += nbits;
-}
-static unsigned readBits(LoadPNGBitReader* reader, size_t nbits) {
-	unsigned result = peekBits(reader, nbits);
-	advanceBits(reader, nbits);
-	return result;
-}
-
-static unsigned reverseBits(unsigned bits, unsigned num) {
-	/*TODO: implement faster lookup table based version when needed*/
-	unsigned i, result = 0;
-	for (i = 0; i < num; i++) result |= ((bits >> (num - i - 1u)) & 1u) << i;
-	return result;
-}
 
 #define FIRST_LENGTH_CODE_INDEX 257
 #define LAST_LENGTH_CODE_INDEX 285
@@ -451,7 +421,8 @@ static unsigned HuffmanTree_makeTable(HuffmanTree* tree) {
 			for (j = 0; j < num; ++j) {
 				/*bit reader will read the l bits of symbol first, the remaining FIRSTBITS - l bits go to the MSB's*/
 				unsigned index = reverse | (j << l);
-				if (tree->table_len[index] != 16) return 55; /*invalid tree: long symbol shares prefix with short symbol*/
+				if (tree->table_len[index] != 16)
+					return 55; /*invalid tree: long symbol shares prefix with short symbol*/
 				tree->table_len[index] = l;
 				tree->table_value[index] = i;
 			}
@@ -641,8 +612,7 @@ static void boundaryPM(BPMLists* lists, BPMNode* leaves, size_t numpresent, int 
 		}
 	}
 }
-unsigned loadpng_huffman_code_lengths(unsigned* lengths, const unsigned* frequencies,
-	size_t numcodes, unsigned maxbitlen) {
+unsigned loadpng_huffman_code_lengths(unsigned* lengths, const unsigned* frequencies, size_t numcodes, unsigned maxbitlen) {
 	unsigned error = 0;
 	unsigned i;
 	size_t numpresent = 0; /*number of symbols with non-zero frequency*/
@@ -720,8 +690,7 @@ unsigned loadpng_huffman_code_lengths(unsigned* lengths, const unsigned* frequen
 	free(leaves);
 	return error;
 }
-static unsigned HuffmanTree_makeFromFrequencies(HuffmanTree* tree, const unsigned* frequencies,
-	size_t mincodes, size_t numcodes, unsigned maxbitlen) {
+static unsigned HuffmanTree_makeFromFrequencies(HuffmanTree* tree, const unsigned* frequencies, size_t mincodes, size_t numcodes, unsigned maxbitlen) {
 	unsigned error = 0;
 	while (!frequencies[numcodes - 1] && numcodes > mincodes) --numcodes; /*trim zeroes*/
 	tree->lengths = (unsigned*)malloc(numcodes * sizeof(unsigned));
@@ -733,19 +702,19 @@ static unsigned HuffmanTree_makeFromFrequencies(HuffmanTree* tree, const unsigne
 	if (!error) error = HuffmanTree_makeFromLengths2(tree);
 	return error;
 }
-static unsigned huffmanDecodeSymbol(LoadPNGBitReader* reader, const HuffmanTree* codetree) {
-	unsigned short code = peekBits(reader, FIRSTBITS);
+static unsigned huffmanDecodeSymbol(pngBits *bits, const HuffmanTree* codetree) {
+	unsigned short code = bits->peekBits(FIRSTBITS);
 	unsigned short l = codetree->table_len[code];
 	unsigned short value = codetree->table_value[code];
 	if (l <= FIRSTBITS) {
-		advanceBits(reader, l);
+		bits->advanceBits(l);
 		return value;
 	}
 	else {
 		unsigned index2;
-		advanceBits(reader, FIRSTBITS);
-		index2 = value + peekBits(reader, l - FIRSTBITS);
-		advanceBits(reader, codetree->table_len[index2] - FIRSTBITS);
+		bits->advanceBits(FIRSTBITS);
+		index2 = value + bits->peekBits(l - FIRSTBITS);
+		bits->advanceBits(codetree->table_len[index2] - FIRSTBITS);
 		return codetree->table_value[index2];
 	}
 }
@@ -888,9 +857,8 @@ static void updateHashChain(Hash* hash, size_t wpos, unsigned hashval, unsigned 
 	if (hash->headz[numzeros] != -1) hash->chainz[wpos] = hash->headz[numzeros];
 	hash->headz[numzeros] = (int)wpos;
 }
-static unsigned encodeLZ77(vector<unsigned int> &out, Hash* hash,
-	const unsigned char* in, size_t inpos, size_t insize, unsigned windowsize,
-	unsigned minmatch, unsigned nicematch, unsigned lazymatching) {
+
+static unsigned encodeLZ77(vector<unsigned int> &out, Hash* hash, const unsigned char* in, size_t inpos, size_t insize, unsigned windowsize, unsigned minmatch, unsigned nicematch, unsigned lazymatching) {
 	size_t pos;
 	unsigned i, error = 0;
 	/*for large window lengths, assume the user wants no compression loss. Otherwise, max hash chain length speedup.*/
@@ -1080,12 +1048,11 @@ static unsigned deflateNoCompression(vector<unsigned char> &out, const unsigned 
 
 	return 0;
 }
-static void writeLZ77data(LoadPNGBitWriter* writer, const vector<unsigned int> &lz77_encoded,
-	const HuffmanTree* tree_ll, const HuffmanTree* tree_d) {
+static void writeLZ77data(pngBits* bits, const vector<unsigned int> &lz77_encoded, const HuffmanTree* tree_ll, const HuffmanTree* tree_d) {
 	size_t i = 0;
 	for (i = 0; i != lz77_encoded.size(); ++i) {
 		unsigned val = lz77_encoded[i];
-		writeBitsReversed(writer, tree_ll->codes[val], tree_ll->lengths[val]);
+		bits->writeReverseBits(tree_ll->codes[val], tree_ll->lengths[val]);
 		if (val > 256) /*for a length code, 3 more things have to be added*/ {
 			unsigned length_index = val - FIRST_LENGTH_CODE_INDEX;
 			unsigned n_length_extra_bits = LENGTHEXTRA[length_index];
@@ -1097,15 +1064,13 @@ static void writeLZ77data(LoadPNGBitWriter* writer, const vector<unsigned int> &
 			unsigned n_distance_extra_bits = DISTANCEEXTRA[distance_index];
 			unsigned distance_extra_bits = lz77_encoded[++i];
 
-			writeBits(writer, length_extra_bits, n_length_extra_bits);
-			writeBitsReversed(writer, tree_d->codes[distance_code], tree_d->lengths[distance_code]);
-			writeBits(writer, distance_extra_bits, n_distance_extra_bits);
+			bits->writeOrderBits(length_extra_bits, n_length_extra_bits);
+			bits->writeReverseBits(tree_d->codes[distance_code], tree_d->lengths[distance_code]);
+			bits->writeOrderBits(distance_extra_bits, n_distance_extra_bits);
 		}
 	}
 }
-static unsigned deflateDynamic(LoadPNGBitWriter* writer, Hash* hash,
-	const unsigned char* data, size_t datapos, size_t dataend,
-	const LoadPNGCompressSettings* settings, unsigned final) {
+static unsigned deflateDynamic(pngBits* bits, Hash* hash, const unsigned char* data, size_t datapos, size_t dataend, const LoadPNGCompressSettings* settings, unsigned final) {
 	unsigned error = 0;
 
 	/*The lz77 encoded data, represented with integers since there will also be length and distance codes in it*/
@@ -1268,34 +1233,31 @@ static unsigned deflateDynamic(LoadPNGBitWriter* writer, Hash* hash,
 		*/
 
 		/*Write block type*/
-		writeBits(writer, BFINAL, 1);
-		writeBits(writer, 0, 1); /*first bit of BTYPE "dynamic"*/
-		writeBits(writer, 1, 1); /*second bit of BTYPE "dynamic"*/
+		bits->writeOrderBits(BFINAL, 1);
+		bits->writeOrderBits(0, 1);
+		bits->writeOrderBits(1, 1);
 
-								 /*write the HLIT, HDIST and HCLEN values*/
-								 /*all three sizes take trimmed ending zeroes into account, done either by HuffmanTree_makeFromFrequencies
-								 or in the loop for numcodes_cl above, which saves space. */
 		HLIT = (unsigned)(numcodes_ll - 257);
 		HDIST = (unsigned)(numcodes_d - 1);
 		HCLEN = (unsigned)(numcodes_cl - 4);
-		writeBits(writer, HLIT, 5);
-		writeBits(writer, HDIST, 5);
-		writeBits(writer, HCLEN, 4);
+		bits->writeOrderBits(HLIT, 5);
+		bits->writeOrderBits(HDIST, 5);
+		bits->writeOrderBits(HCLEN, 4);
 
 		/*write the code lengths of the code length alphabet ("bitlen_cl")*/
-		for (i = 0; i != numcodes_cl; ++i) writeBits(writer, tree_cl.lengths[CLCL_ORDER[i]], 3);
+		for (i = 0; i != numcodes_cl; ++i) bits->writeOrderBits(tree_cl.lengths[CLCL_ORDER[i]], 3);
 
 		/*write the lengths of the lit/len AND the dist alphabet*/
 		for (i = 0; i != numcodes_lld_e; ++i) {
-			writeBitsReversed(writer, tree_cl.codes[bitlen_lld_e[i]], tree_cl.lengths[bitlen_lld_e[i]]);
+			bits->writeReverseBits(tree_cl.codes[bitlen_lld_e[i]], tree_cl.lengths[bitlen_lld_e[i]]);
 			/*extra bits of repeat codes*/
-			if (bitlen_lld_e[i] == 16) writeBits(writer, bitlen_lld_e[++i], 2);
-			else if (bitlen_lld_e[i] == 17) writeBits(writer, bitlen_lld_e[++i], 3);
-			else if (bitlen_lld_e[i] == 18) writeBits(writer, bitlen_lld_e[++i], 7);
+			if (bitlen_lld_e[i] == 16) bits->writeOrderBits(bitlen_lld_e[++i], 2);
+			else if (bitlen_lld_e[i] == 17) bits->writeOrderBits(bitlen_lld_e[++i], 3);
+			else if (bitlen_lld_e[i] == 18) bits->writeOrderBits(bitlen_lld_e[++i], 7);
 		}
 
 		/*write the compressed data symbols*/
-		writeLZ77data(writer, lz77_encoded, &tree_ll, &tree_d);
+		writeLZ77data(bits, lz77_encoded, &tree_ll, &tree_d);
 		/*error: the length of the end code 256 must be larger than 0*/
 		if (tree_ll.lengths[256] == 0) {
 			error = 64;
@@ -1303,7 +1265,7 @@ static unsigned deflateDynamic(LoadPNGBitWriter* writer, Hash* hash,
 		}
 
 		/*write the end code*/
-		writeBitsReversed(writer, tree_ll.codes[256], tree_ll.lengths[256]);
+		bits->writeReverseBits(tree_ll.codes[256], tree_ll.lengths[256]);
 
 		break; /*end of error-while*/
 	}
@@ -1320,10 +1282,7 @@ static unsigned deflateDynamic(LoadPNGBitWriter* writer, Hash* hash,
 
 	return error;
 }
-static unsigned deflateFixed(LoadPNGBitWriter* writer, Hash* hash,
-	const unsigned char* data,
-	size_t datapos, size_t dataend,
-	const LoadPNGCompressSettings* settings, unsigned final) {
+static unsigned deflateFixed(pngBits* bits, Hash* hash, const unsigned char* data, size_t datapos, size_t dataend, const LoadPNGCompressSettings* settings, unsigned final) {
 	HuffmanTree tree_ll; /*tree for literal values and length codes*/
 	HuffmanTree tree_d; /*tree for distance codes*/
 
@@ -1338,23 +1297,23 @@ static unsigned deflateFixed(LoadPNGBitWriter* writer, Hash* hash,
 	if (!error) error = generateFixedDistanceTree(&tree_d);
 
 	if (!error) {
-		writeBits(writer, BFINAL, 1);
-		writeBits(writer, 1, 1); /*first bit of BTYPE*/
-		writeBits(writer, 0, 1); /*second bit of BTYPE*/
+		bits->writeOrderBits(BFINAL, 1);
+		bits->writeOrderBits(1, 1);
+		bits->writeOrderBits(0, 1);
 
 		if (settings->use_lz77) /*LZ77 encoded*/ {
 			vector<unsigned int> lz77_encoded;
 			error = encodeLZ77(lz77_encoded, hash, data, datapos, dataend, settings->windowsize,
 				settings->minmatch, settings->nicematch, settings->lazymatching);
-			if (!error) writeLZ77data(writer, lz77_encoded, &tree_ll, &tree_d);
+			if (!error) writeLZ77data(bits, lz77_encoded, &tree_ll, &tree_d);
 		}
 		else /*no LZ77, but still will be Huffman compressed*/ {
 			for (i = datapos; i < dataend; ++i) {
-				writeBitsReversed(writer, tree_ll.codes[data[i]], tree_ll.lengths[data[i]]);
+				bits->writeReverseBits(tree_ll.codes[data[i]], tree_ll.lengths[data[i]]);
 			}
 		}
 		/*add END code*/
-		if (!error) writeBitsReversed(writer, tree_ll.codes[256], tree_ll.lengths[256]);
+		if (!error) bits->writeReverseBits(tree_ll.codes[256], tree_ll.lengths[256]);
 	}
 
 	/*cleanup*/
@@ -1363,14 +1322,13 @@ static unsigned deflateFixed(LoadPNGBitWriter* writer, Hash* hash,
 
 	return error;
 }
-static unsigned loadpng_deflatev(vector<unsigned char> &out, const unsigned char* in, size_t insize,
-	const LoadPNGCompressSettings* settings) {
+static unsigned loadpng_deflatev(vector<unsigned char> &out, const unsigned char* in, size_t insize, const LoadPNGCompressSettings* settings) {
 	unsigned error = 0;
 	size_t i, blocksize, numdeflateblocks;
 	Hash hash;
-	LoadPNGBitWriter writer;
+	pngBits bits;
 
-	LoadPNGBitWriter_init(&writer, &out);
+	bits.setData(&out);
 
 	if (settings->btype > 2) return 61;
 	else if (settings->btype == 0) return deflateNoCompression(out, in, insize);
@@ -1394,8 +1352,8 @@ static unsigned loadpng_deflatev(vector<unsigned char> &out, const unsigned char
 			size_t end = start + blocksize;
 			if (end > insize) end = insize;
 
-			if (settings->btype == 1) error = deflateFixed(&writer, &hash, in, start, end, settings, final);
-			else if (settings->btype == 2) error = deflateDynamic(&writer, &hash, in, start, end, settings, final);
+			if (settings->btype == 1) error = deflateFixed(&bits, &hash, in, start, end, settings, final);
+			else if (settings->btype == 2) error = deflateDynamic(&bits, &hash, in, start, end, settings, final);
 		}
 	}
 
@@ -1403,9 +1361,7 @@ static unsigned loadpng_deflatev(vector<unsigned char> &out, const unsigned char
 
 	return error;
 }
-unsigned loadpng_deflate(unsigned char** out, size_t* outsize,
-	const unsigned char* in, size_t insize,
-	const LoadPNGCompressSettings* settings) {
+unsigned loadpng_deflate(unsigned char** out, size_t* outsize, const unsigned char* in, size_t insize, const LoadPNGCompressSettings* settings) {
 	vector<unsigned char> v(*out, *out + *outsize);
 	unsigned error = loadpng_deflatev(v, in, insize, settings);
 	*out = (unsigned char *)malloc(v.size());
@@ -1413,9 +1369,7 @@ unsigned loadpng_deflate(unsigned char** out, size_t* outsize,
 	*outsize = v.size();
 	return error;
 }
-static unsigned deflate(unsigned char** out, size_t* outsize,
-	const unsigned char* in, size_t insize,
-	const LoadPNGCompressSettings* settings) {
+static unsigned deflate(unsigned char** out, size_t* outsize, const unsigned char* in, size_t insize, const LoadPNGCompressSettings* settings) {
 	return loadpng_deflate(out, outsize, in, insize, settings);
 }
 
@@ -1424,8 +1378,7 @@ static unsigned getTreeInflateFixed(HuffmanTree* tree_ll, HuffmanTree* tree_d) {
 	if (error) return error;
 	return generateFixedDistanceTree(tree_d);
 }
-static unsigned getTreeInflateDynamic(HuffmanTree* tree_ll, HuffmanTree* tree_d,
-	LoadPNGBitReader* reader) {
+static unsigned getTreeInflateDynamic(HuffmanTree* tree_ll, HuffmanTree* tree_d, pngBits *bits) {
 	/*make sure that length values that aren't filled in will be 0, or a wrong tree will be generated*/
 	unsigned error = 0;
 	unsigned n, HLIT, HDIST, HCLEN, i;
@@ -1437,14 +1390,14 @@ static unsigned getTreeInflateDynamic(HuffmanTree* tree_ll, HuffmanTree* tree_d,
 	unsigned* bitlen_cl = 0;
 	HuffmanTree tree_cl; /*the code tree for code length codes (the huffman tree for compressed huffman trees)*/
 
-	if (!ensureBits17(reader, 14)) return 49; /*error: the bit pointer is or will go past the memory*/
+	if (!bits->ensureBits17(14)) return 49; /*error: the bit pointer is or will go past the memory*/
 
-											  /*number of literal/length codes + 257. Unlike the spec, the value 257 is added to it here already*/
-	HLIT = readBits(reader, 5) + 257;
+										   /*number of literal/length codes + 257. Unlike the spec, the value 257 is added to it here already*/
+	HLIT = bits->readBits(5) + 257;
 	/*number of distance codes. Unlike the spec, the value 1 is added to it here already*/
-	HDIST = readBits(reader, 5) + 1;
+	HDIST = bits->readBits(5) + 1;
 	/*number of code length codes. Unlike the spec, the value 4 is added to it here already*/
-	HCLEN = readBits(reader, 4) + 4;
+	HCLEN = bits->readBits(4) + 4;
 
 	bitlen_cl = (unsigned*)malloc(NUM_CODE_LENGTH_CODES * sizeof(unsigned));
 	if (!bitlen_cl) return 83 /*alloc fail*/;
@@ -1452,14 +1405,9 @@ static unsigned getTreeInflateDynamic(HuffmanTree* tree_ll, HuffmanTree* tree_d,
 	HuffmanTree_init(&tree_cl);
 
 	while (!error) {
-		/*read the code length codes out of 3 * (amount of code length codes) bits*/
-		if (reader->bp + HCLEN * 3 > reader->bitsize) {
-			error = 50;
-			break;
-		}
 		for (i = 0; i != HCLEN; ++i) {
-			ensureBits9(reader, 3); /*out of bounds already checked above */
-			bitlen_cl[CLCL_ORDER[i]] = readBits(reader, 3);
+			bits->ensureBits9(3); /*out of bounds already checked above */
+			bitlen_cl[CLCL_ORDER[i]] = bits->readBits(3);
 		}
 		for (i = HCLEN; i != NUM_CODE_LENGTH_CODES; ++i) {
 			bitlen_cl[CLCL_ORDER[i]] = 0;
@@ -1482,10 +1430,11 @@ static unsigned getTreeInflateDynamic(HuffmanTree* tree_ll, HuffmanTree* tree_d,
 		i = 0;
 		while (i < HLIT + HDIST) {
 			unsigned code;
-			ensureBits25(reader, 22); /* up to 15 bits for huffman code, up to 7 extra bits below*/
-			code = huffmanDecodeSymbol(reader, &tree_cl);
+			bits->ensureBits25(22); /* up to 15 bits for huffman code, up to 7 extra bits below*/
+			code = huffmanDecodeSymbol(bits, &tree_cl);
 			if (code <= 15) /*a length code*/ {
-				if (i < HLIT) bitlen_ll[i] = code;
+				if (i < HLIT)
+					bitlen_ll[i] = code;
 				else bitlen_d[i - HLIT] = code;
 				++i;
 			}
@@ -1498,7 +1447,7 @@ static unsigned getTreeInflateDynamic(HuffmanTree* tree_ll, HuffmanTree* tree_d,
 					break;
 				}
 
-				replength += readBits(reader, 2);
+				replength += bits->readBits(2);
 
 				if (i < HLIT + 1) value = bitlen_ll[i - 1];
 				else value = bitlen_d[i - HLIT - 1];
@@ -1508,14 +1457,15 @@ static unsigned getTreeInflateDynamic(HuffmanTree* tree_ll, HuffmanTree* tree_d,
 						error = 13;
 						break;
 					}
-					if (i < HLIT) bitlen_ll[i] = value;
+					if (i < HLIT)
+						bitlen_ll[i] = value;
 					else bitlen_d[i - HLIT] = value;
 					++i;
 				}
 			}
 			else if (code == 17) /*repeat "0" 3-10 times*/ {
 				unsigned replength = 3; /*read in the bits that indicate repeat length*/
-				replength += readBits(reader, 3);
+				replength += bits->readBits(3);
 
 				/*repeat this value in the next lengths*/
 				for (n = 0; n < replength; ++n) {
@@ -1531,7 +1481,7 @@ static unsigned getTreeInflateDynamic(HuffmanTree* tree_ll, HuffmanTree* tree_d,
 			}
 			else if (code == 18) /*repeat "0" 11-138 times*/ {
 				unsigned replength = 11; /*read in the bits that indicate repeat length*/
-				replength += readBits(reader, 7);
+				replength += bits->readBits(7);
 
 				/*repeat this value in the next lengths*/
 				for (n = 0; n < replength; ++n) {
@@ -1547,11 +1497,6 @@ static unsigned getTreeInflateDynamic(HuffmanTree* tree_ll, HuffmanTree* tree_d,
 			}
 			else /*if(code == INVALIDSYMBOL)*/ {
 				error = 16;
-				break;
-			}
-			/*check if any of the ensureBits above went out of bounds*/
-			if (reader->bp > reader->bitsize) {
-				error = 50;
 				break;
 			}
 		}
@@ -1577,8 +1522,7 @@ static unsigned getTreeInflateDynamic(HuffmanTree* tree_ll, HuffmanTree* tree_d,
 
 	return error;
 }
-static unsigned inflateHuffmanBlock(vector<unsigned char> &out, LoadPNGBitReader* reader,
-	unsigned btype) {
+static unsigned inflateHuffmanBlock(vector<unsigned char> &out, pngBits *bits, unsigned btype) {
 	unsigned error = 0;
 	HuffmanTree tree_ll; /*the huffman tree for literal and length codes*/
 	HuffmanTree tree_d; /*the huffman tree for distance codes*/
@@ -1587,13 +1531,13 @@ static unsigned inflateHuffmanBlock(vector<unsigned char> &out, LoadPNGBitReader
 	HuffmanTree_init(&tree_d);
 
 	if (btype == 1) error = getTreeInflateFixed(&tree_ll, &tree_d);
-	else /*if(btype == 2)*/ error = getTreeInflateDynamic(&tree_ll, &tree_d, reader);
+	else /*if(btype == 2)*/ error = getTreeInflateDynamic(&tree_ll, &tree_d, bits);
 
 	while (!error) /*decode all symbols until end reached, breaks at end code*/ {
 		/*code_ll is literal, length or end code*/
 		unsigned code_ll;
-		ensureBits25(reader, 20); /* up to 15 for the huffman symbol, up to 5 for the length extra bits */
-		code_ll = huffmanDecodeSymbol(reader, &tree_ll);
+		bits->ensureBits25(20); /* up to 15 for the huffman symbol, up to 5 for the length extra bits */
+		code_ll = huffmanDecodeSymbol(bits, &tree_ll);
 		if (code_ll <= 255) /*literal symbol*/ {
 			out.push_back((unsigned char)code_ll);
 		}
@@ -1609,12 +1553,12 @@ static unsigned inflateHuffmanBlock(vector<unsigned char> &out, LoadPNGBitReader
 			numextrabits_l = LENGTHEXTRA[code_ll - FIRST_LENGTH_CODE_INDEX];
 			if (numextrabits_l != 0) {
 				/* bits already ensured above */
-				length += readBits(reader, numextrabits_l);
+				length += bits->readBits(numextrabits_l);
 			}
 
 			/*part 3: get distance code*/
-			ensureBits32(reader, 28); /* up to 15 for the huffman symbol, up to 13 for the extra bits */
-			code_d = huffmanDecodeSymbol(reader, &tree_d);
+			bits->ensureBits32(28); /* up to 15 for the huffman symbol, up to 13 for the extra bits */
+			code_d = huffmanDecodeSymbol(bits, &tree_d);
 			if (code_d > 29) {
 				if (code_d <= 31) {
 					error = 18;
@@ -1631,7 +1575,7 @@ static unsigned inflateHuffmanBlock(vector<unsigned char> &out, LoadPNGBitReader
 			numextrabits_d = DISTANCEEXTRA[code_d];
 			if (numextrabits_d != 0) {
 				/* bits already ensured above */
-				distance += readBits(reader, numextrabits_d);
+				distance += bits->readBits(numextrabits_d);
 			}
 
 			/*part 5: fill in all the out[n] values based on the length and dist*/
@@ -1662,11 +1606,6 @@ static unsigned inflateHuffmanBlock(vector<unsigned char> &out, LoadPNGBitReader
 			error = 16;
 			break;
 		}
-		/*check if any of the ensureBits above went out of bounds*/
-		if (reader->bp > reader->bitsize) {
-			error = 51;
-			break;
-		}
 	}
 
 	HuffmanTree_cleanup(&tree_ll);
@@ -1674,19 +1613,18 @@ static unsigned inflateHuffmanBlock(vector<unsigned char> &out, LoadPNGBitReader
 
 	return error;
 }
-static unsigned inflateNoCompression(vector<unsigned char> &out, LoadPNGBitReader* reader,
-	const LoadPNGDecompressSettings* settings) {
+static unsigned inflateNoCompression(vector<unsigned char> &out, pngBits *bits, const LoadPNGDecompressSettings* settings) {
 	size_t bytepos;
-	size_t size = reader->size;
+	size_t size = bits->data->size();
 	unsigned LEN, NLEN, error = 0;
 
 	/*go to first boundary of byte*/
-	bytepos = (reader->bp + 7u) >> 3u;
+	bytepos = (bits->bp + 7u) >> 3u;
 
 	/*read LEN (2 bytes) and NLEN (2 bytes)*/
 	if (bytepos + 4 >= size) return 52; /*error, bit pointer will jump past memory*/
-	LEN = (unsigned)reader->data[bytepos] + ((unsigned)reader->data[bytepos + 1] << 8u); bytepos += 2;
-	NLEN = (unsigned)reader->data[bytepos] + ((unsigned)reader->data[bytepos + 1] << 8u); bytepos += 2;
+	LEN = (*bits->data)[bytepos] + ((*bits->data)[bytepos + 1] << 8u); bytepos += 2;
+	NLEN = (*bits->data)[bytepos] + ((*bits->data)[bytepos + 1] << 8u); bytepos += 2;
 
 	/*check if 16-bit NLEN is really the one's complement of LEN*/
 	if (!settings->ignore_nlen && LEN + NLEN != 65535) {
@@ -1698,40 +1636,37 @@ static unsigned inflateNoCompression(vector<unsigned char> &out, LoadPNGBitReade
 	/*read the literal data: LEN bytes are now stored in the out buffer*/
 	if (bytepos + LEN > size) return 23; /*error: reading outside of in buffer*/
 
-	memcpy(out.data() + out.size() - LEN, reader->data + bytepos, LEN);
+	memcpy(out.data() + out.size() - LEN, bits->data->data() + bytepos, LEN);
 	bytepos += LEN;
 
-	reader->bp = bytepos << 3u;
+	bits->bp = bytepos << 3u;
 
 	return error;
 }
-static unsigned loadpng_inflatev(vector<unsigned char> &out,
-	const unsigned char* in, size_t insize,
-	const LoadPNGDecompressSettings* settings) {
+static unsigned loadpng_inflatev(vector<unsigned char> &out, vector<unsigned char> &in, const LoadPNGDecompressSettings* settings) {
 	unsigned BFINAL = 0;
-	LoadPNGBitReader reader;
-	unsigned error = LoadPNGBitReader_init(&reader, in, insize);
+	pngBits bits;
+	bits.setData(&in);
 
-	if (error) return error;
-
+	int error;
 	while (!BFINAL) {
 		unsigned BTYPE;
-		if (!ensureBits9(&reader, 3)) return 52; /*error, bit pointer will jump past memory*/
-		BFINAL = readBits(&reader, 1);
-		BTYPE = readBits(&reader, 2);
+		if (!bits.ensureBits9(3)) return 52; /*error, bit pointer will jump past memory*/
+		BFINAL = bits.readBits(1);
+		BTYPE = bits.readBits(2);
 
 		if (BTYPE == 3) return 20; /*error: invalid BTYPE*/
-		else if (BTYPE == 0) error = inflateNoCompression(out, &reader, settings); /*no compression*/
-		else error = inflateHuffmanBlock(out, &reader, BTYPE); /*compression, BTYPE 01 or 10*/
+		else if (BTYPE == 0) error = inflateNoCompression(out, &bits, settings); /*no compression*/
+		else error = inflateHuffmanBlock(out, &bits, BTYPE); /*compression, BTYPE 01 or 10*/
 
 		if (error) return error;
 	}
 
 	return error;
 }
-static unsigned inflatev(vector<unsigned char> &out, const unsigned char* in, size_t insize,
-	const LoadPNGDecompressSettings* settings) {
-	return loadpng_inflatev(out, in, insize, settings);
+static unsigned inflatev(vector<unsigned char> &out, const unsigned char* indata, size_t insize, const LoadPNGDecompressSettings* settings) {
+	vector<unsigned char> in(indata, indata + insize);
+	return loadpng_inflatev(out, in, settings);
 }
 
 static unsigned update_adler32(unsigned adler, const unsigned char* data, unsigned len) {
@@ -1753,10 +1688,6 @@ static unsigned update_adler32(unsigned adler, const unsigned char* data, unsign
 
 	return (s2 << 16u) | s1;
 }
-static unsigned adler32(const unsigned char* data, unsigned len) {
-	return update_adler32(1u, data, len);
-}
-
 unsigned loadpng_zlib_compress(unsigned char** out, size_t* outsize, const unsigned char* in, size_t insize, const LoadPNGCompressSettings* settings) {
 	size_t i;
 	unsigned error;
@@ -1774,7 +1705,7 @@ unsigned loadpng_zlib_compress(unsigned char** out, size_t* outsize, const unsig
 	}
 
 	if (!error) {
-		unsigned ADLER32 = adler32(in, (unsigned)insize);
+		unsigned ADLER32 = update_adler32(1, in, (unsigned)insize);
 		/*zlib data: 1 byte CMF (CM+CINFO), 1 byte FLG, deflate data, 4 byte ADLER32 checksum of the Decompressed data*/
 		unsigned CMF = 120; /*0b01111000: CM 8, CINFO 7. With CINFO 7, any window size up to 32768 can be used.*/
 		unsigned FLEVEL = 0;
@@ -1786,7 +1717,7 @@ unsigned loadpng_zlib_compress(unsigned char** out, size_t* outsize, const unsig
 		(*out)[0] = (unsigned char)(CMFFLG >> 8);
 		(*out)[1] = (unsigned char)(CMFFLG & 255);
 		for (i = 0; i != deflatesize; ++i) (*out)[i + 2] = deflatedata[i];
-		loadpng_set32bitInt(&(*out)[*outsize - 4], ADLER32);
+		writeInt32(&(*out)[*outsize - 4], ADLER32);
 	}
 
 	free(deflatedata);
@@ -1823,8 +1754,8 @@ unsigned loadpng_zlib_decompress(vector<unsigned char> &out, const unsigned char
 	if (error) return error;
 
 	if (!settings->ignore_adler32) {
-		unsigned ADLER32 = loadpng_read32bitInt(&in[insize - 4]);
-		unsigned checksum = adler32(out.data(), (unsigned)(out.size()));
+		unsigned ADLER32 = readInt32(&in[insize - 4]);
+		unsigned checksum = update_adler32(1, out.data(), (unsigned)(out.size()));
 		if (checksum != ADLER32) return 58; /*error, adler checksum not correct, data must be corrupted*/
 	}
 
@@ -1906,9 +1837,6 @@ static void setBitOfReversedStream(size_t* bitpointer, unsigned char* bitstream,
 	else         bitstream[(*bitpointer) >> 3u] |= (1u << (7u - ((*bitpointer) & 7u)));
 	++(*bitpointer);
 }
-unsigned loadpng_chunk_length(const unsigned char* chunk) {
-	return loadpng_read32bitInt(&chunk[0]);
-}
 unsigned char loadpng_chunk_type_equals(const unsigned char* chunk, const char* type) {
 	if (strlen(type) != 4) return 0;
 	return (chunk[4] == type[0] && chunk[5] == type[1] && chunk[6] == type[2] && chunk[7] == type[3]);
@@ -1920,17 +1848,17 @@ const unsigned char* loadpng_chunk_data_const(const unsigned char* chunk) {
 	return &chunk[8];
 }
 unsigned loadpng_chunk_check_crc(const unsigned char* chunk) {
-	unsigned length = loadpng_chunk_length(chunk);
-	unsigned CRC = loadpng_read32bitInt(&chunk[length + 8]);
+	unsigned length = readInt32(chunk);
+	unsigned CRC = readInt32(&chunk[length + 8]);
 	/*the CRC is taken of the data and the 4 chunk type letters, not the length*/
 	unsigned checksum = loadpng_crc32(&chunk[4], length + 4);
 	if (CRC != checksum) return 1;
 	else return 0;
 }
 void loadpng_chunk_generate_crc(unsigned char* chunk) {
-	unsigned length = loadpng_chunk_length(chunk);
+	unsigned length = readInt32(chunk);
 	unsigned CRC = loadpng_crc32(&chunk[4], length + 4);
-	loadpng_set32bitInt(chunk + 8 + length, CRC);
+	writeInt32(chunk + 8 + length, CRC);
 }
 unsigned char* loadpng_chunk_next(unsigned char* chunk, unsigned char* end) {
 	if (chunk >= end || end - chunk < 12) return end; /*too small to contain a chunk*/
@@ -1942,7 +1870,7 @@ unsigned char* loadpng_chunk_next(unsigned char* chunk, unsigned char* end) {
 	else {
 		size_t total_chunk_length;
 		unsigned char* result;
-		if (safeAdd(loadpng_chunk_length(chunk), 12, &total_chunk_length)) return end;
+		if (safeAdd(readInt32(chunk), 12, &total_chunk_length)) return end;
 		result = chunk + total_chunk_length;
 		if (result < chunk) return end; /*pointer overflow*/
 		return result;
@@ -1958,7 +1886,7 @@ const unsigned char* loadpng_chunk_next_const(const unsigned char* chunk, const 
 	else {
 		size_t total_chunk_length;
 		const unsigned char* result;
-		if (safeAdd(loadpng_chunk_length(chunk), 12, &total_chunk_length)) return end;
+		if (safeAdd(readInt32(chunk), 12, &total_chunk_length)) return end;
 		result = chunk + total_chunk_length;
 		if (result < chunk) return end; /*pointer overflow*/
 		return result;
@@ -1972,7 +1900,7 @@ static unsigned loadpng_chunk_init(unsigned char** chunk, vector<unsigned char> 
 	*chunk = out.data() + new_length - length - 12u;
 
 	/*1: length*/
-	loadpng_set32bitInt(*chunk, length);
+	writeInt32(*chunk, length);
 
 	/*2: chunk name (4 letters)*/
 	memcpy(*chunk + 4, type, 4);
@@ -2134,7 +2062,7 @@ static int loadpng_pixel_overflow(unsigned w, unsigned h, const LoadPNGColorMode
 	if (safeMul((size_t)w, (size_t)h, &numpixels)) return 1;
 	if (safeMul(numpixels, 8, &total)) return 1; /* bit pointer with 8-bit color, or 8 bytes per channel color */
 
-														/* Bytes per scanline with the expression "(w / 8u) * bpp) + ((w & 7u) * bpp + 7u) / 8u" */
+												 /* Bytes per scanline with the expression "(w / 8u) * bpp) + ((w & 7u) * bpp + 7u) / 8u" */
 	if (safeMul((size_t)(w / 8u), bpp, &line)) return 1;
 	if (safeAdd(line, ((w & 7u) * bpp + 7u) / 8u, &line)) return 1;
 
@@ -3017,7 +2945,7 @@ unsigned loadpng_inspect(unsigned* w, unsigned* h, LoadPNGState* state, const un
 		state->error = 28;
 		return state->error;
 	}
-	if (loadpng_chunk_length(in + 8) != 13) {
+	if (readInt32(in + 8) != 13) {
 		state->error = 94;
 		return state->error;
 	}
@@ -3027,8 +2955,8 @@ unsigned loadpng_inspect(unsigned* w, unsigned* h, LoadPNGState* state, const un
 	}
 
 	/*read the values given in the header*/
-	width = loadpng_read32bitInt(&in[16]);
-	height = loadpng_read32bitInt(&in[20]);
+	width = readInt32(&in[16]);
+	height = readInt32(&in[20]);
 	/*TODO: remove the undocumented feature that allows to give null pointers to width or height*/
 	if (w) *w = width;
 	if (h) *h = height;
@@ -3065,7 +2993,7 @@ unsigned loadpng_inspect(unsigned* w, unsigned* h, LoadPNGState* state, const un
 	}
 
 	if (!state->decoder.ignore_crc) {
-		unsigned CRC = loadpng_read32bitInt(&in[29]);
+		unsigned CRC = readInt32(&in[29]);
 		unsigned checksum = loadpng_crc32(&in[12], 17);
 		if (CRC != checksum) {
 			state->error = 57;
@@ -3377,7 +3305,7 @@ unsigned loadpng_decode_memory(unsigned char** out, unsigned* w, unsigned* h, co
 		}
 
 		/*length of the data of the chunk, excluding the length bytes, chunk type and CRC bytes*/
-		chunkLength = loadpng_chunk_length(chunk);
+		chunkLength = readInt32(chunk);
 		/*error: chunk length larger than the max PNG chunk size*/
 		if (chunkLength > 2147483647) {
 			if (state.decoder.ignore_end) break; /*other errors may still happen though*/
@@ -3516,8 +3444,8 @@ static unsigned addChunk_IHDR(vector<unsigned char> &out, unsigned w, unsigned h
 	if (unsigned error = loadpng_chunk_init(&chunk, out, 13, "IHDR"))return error;
 	data = chunk + 8;
 
-	loadpng_set32bitInt(data + 0, w); /*width*/
-	loadpng_set32bitInt(data + 4, h); /*height*/
+	writeInt32(data + 0, w); /*width*/
+	writeInt32(data + 4, h); /*height*/
 	data[8] = (unsigned char)bitdepth; /*bit depth*/
 	data[9] = (unsigned char)colortype; /*color type*/
 	data[10] = 0; /*compression method*/
@@ -4002,7 +3930,7 @@ unsigned loadpng_encode_memory(unsigned char** out, size_t* outsize, const unsig
 	state.error = checkColorValidity(state.info_raw.colortype, state.info_raw.bitdepth);
 	if (state.error) goto cleanup; /*error: invalid color type given*/
 
-									/* color convert and compute scanline filter types */
+								   /* color convert and compute scanline filter types */
 	loadpng_info_copy(&info, &state.info_png);
 	LoadPNGColorStats stats;
 	loadpng_color_stats_init(&stats);
