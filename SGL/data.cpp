@@ -2704,8 +2704,7 @@ public:
 #define SIZEZIPLOCALHEADER 0x1e
 #define BUFREADCOMMENT 0x400
 
-#define ZALLOC(strm, items, size) \
-           (*((strm)->zalloc))((items), (size))
+#define ZALLOC(strm, items, size) (*((strm)->zalloc))((items), (size))
 #define ZFREE(strm, addr)  (*((strm)->zfree))((void *)(addr))
 
 #define UPDBITS {s->bitb=b;s->bitk=k;}
@@ -3318,7 +3317,6 @@ int inflate_flush(inflate_blocks_statef *s, z_stream *z, int r) {
 	s->read = q;
 	return r;
 }
-
 inflate_codes_statef *inflate_codes_new(unsigned int bl, unsigned int bd, const inflate_huft *tl, const inflate_huft *td, z_stream *z) {
 	inflate_codes_statef *c;
 
@@ -3463,7 +3461,6 @@ int inflate_codes(inflate_blocks_statef *s, z_stream *z, int r) {
 void inflate_codes_free(inflate_codes_statef *c, z_stream *z) {
 	ZFREE(z, c);
 }
-
 void inflate_blocks_reset(inflate_blocks_statef *s, z_stream *z, unsigned long *c) {
 	if (c != NULL)
 		*c = s->check;
