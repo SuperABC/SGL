@@ -1640,7 +1640,7 @@ unsigned char* loadpng_chunk_next(unsigned char* chunk, unsigned char* end) {
 		return chunk + 8;
 	}
 	else {
-		size_t total_chunk_length;
+		SGuint total_chunk_length;
 		unsigned char* result;
 		if (safeAdd(readInt32(chunk), 12, &total_chunk_length)) return end;
 		result = chunk + total_chunk_length;
@@ -1655,7 +1655,7 @@ const unsigned char* loadpng_chunk_next_const(const unsigned char* chunk, const 
 		return chunk + 8;
 	}
 	else {
-		size_t total_chunk_length;
+		SGuint total_chunk_length;
 		const unsigned char* result;
 		if (safeAdd(readInt32(chunk), 12, &total_chunk_length)) return end;
 		result = chunk + total_chunk_length;
@@ -1664,7 +1664,7 @@ const unsigned char* loadpng_chunk_next_const(const unsigned char* chunk, const 
 	}
 }
 static unsigned loadpng_chunk_init(unsigned char** chunk, vector<unsigned char> &out, unsigned length, const char* type) {
-	size_t new_length = out.size();
+	SGuint new_length = out.size();
 	if (safeAdd(new_length, length, &new_length)) return 77;
 	if (safeAdd(new_length, 12, &new_length)) return 77;
 	out.resize(new_length);
@@ -1789,9 +1789,9 @@ static size_t loadpng_get_raw_size_idat(unsigned w, unsigned h, unsigned bpp) {
 	return (size_t)h * line;
 }
 static int loadpng_pixel_overflow(unsigned w, unsigned h, const LoadPNGColorMode* pngcolor, const LoadPNGColorMode* rawcolor) {
-	size_t bpp = max(getNumColorChannels(pngcolor->colortype) * pngcolor->bitdepth, getNumColorChannels(rawcolor->colortype) * rawcolor->bitdepth);
-	size_t numpixels, total;
-	size_t line; /* bytes per line in worst case */
+	SGuint bpp = max(getNumColorChannels(pngcolor->colortype) * pngcolor->bitdepth, getNumColorChannels(rawcolor->colortype) * rawcolor->bitdepth);
+	SGuint numpixels, total;
+	SGuint line; /* bytes per line in worst case */
 
 	if (safeMul((size_t)w, (size_t)h, &numpixels)) return 1;
 	if (safeMul(numpixels, 8, &total)) return 1; /* bit pointer with 8-bit color, or 8 bytes per channel color */
@@ -2976,7 +2976,7 @@ unsigned loadpng_decode_memory(unsigned char** out, unsigned* w, unsigned* h, co
 
 		unknown = 0;
 		if (loadpng_chunk_type_equals(chunk, "IDAT")) {
-			size_t newsize;
+			SGuint newsize;
 			if (safeAdd(idatsize, chunkLength, &newsize)) {
 				state.error = 95;
 				break;

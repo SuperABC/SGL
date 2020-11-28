@@ -72,3 +72,4 @@ sample.exe:
 .PHONY:clean
 clean:
 	rm -rf $(OUTDIR)*.o $(OUTDIR)libsgl.a $(OUTDIR)sample.exe
+
